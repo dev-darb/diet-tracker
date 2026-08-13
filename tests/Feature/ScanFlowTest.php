@@ -10,6 +10,7 @@ use App\Enums\QuantityUnit;
 use App\Models\CanonicalProduct;
 use App\Models\PantryItem;
 use App\Models\ProductResolutionJob;
+use App\Models\ProductVersion;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -133,6 +134,31 @@ class ScanFlowTest extends TestCase
         $job = ProductResolutionJob::latest('id')->first();
         $this->assertSame('matched_barcode', $job->status);
         $this->assertNull($job->uploaded_image_path);
+    }
+
+    public function test_barcode_path_survives_a_bad_out_of_range_nutriment(): void
+    {
+        // Real OFF data contains impossible crowd-sourced values that overflow the
+        // decimal(8,2) nutrient columns on Postgres (a 500 → blank page). The scan
+        // must still resolve, dropping only the bad value.
+        $this->fakeOff([
+            'code' => '5000159407236',
+            'product_name' => 'Snickers',
+            'brands' => 'Mars',
+            'nutrition_data_per' => '100g',
+            'nutriments' => ['energy-kcal_100g' => 123456789, 'proteins_100g' => 9.4],
+        ]);
+
+        Volt::actingAs($this->user)->test('scan')
+            ->set('detectedBarcode', '5000159407236')
+            ->call('analyze')
+            ->assertHasNoErrors()
+            ->assertSet('step', 'confirm')
+            ->assertSee('Snickers');
+
+        $version = ProductVersion::latest('id')->first();
+        $this->assertNull($version->calories);       // impossible value dropped
+        $this->assertSame('9.40', (string) $version->protein); // valid value kept
     }
 
     // --- 2. Photo path with a faked identifier -----------------------------

@@ -397,7 +397,7 @@ new class extends Component
                     <p x-show="uploadError" x-cloak class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600" x-text="uploadError"></p>
 
                     <button type="button" x-show="barcodeFound || uploaded" x-cloak
-                            x-on:click="$wire.set('detectedBarcode', barcode).then(() =&gt; $wire.analyze())"
+                            x-on:click="$wire.detectedBarcode = barcode; $wire.analyze()"
                             class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
                         Identify product
                     </button>
