@@ -192,7 +192,11 @@ Each **Job** = one testable milestone with acceptance criteria (AC) and the brie
 ## 10. Progress log
 
 - **Milestone 0 — Foundation: ✅ COMPLETE** (`3430eda`). Official Livewire starter kit (Laravel 12.66, Livewire 4.4, Volt, Flux, Tailwind v4); PostgreSQL (`diet_tracker` DB, role `diet_user`) + Redis; auth loop, mobile shell (Home/Pantry/**Scan**/Eat/Health), 4-step onboarding, profile hub with real account deletion. Domain logic in `app/Services/ProfileService.php`; components thin. **38 tests passing.** Deviations from §5: post-auth landing renamed `dashboard`→`home`; added `onboarding_completed_at` to gate onboarding. See `docs/FOUNDATION_NOTES.md`.
-- **Push status:** blocked — session has read-only GitHub access to `dev-darb/diet-tracker`. Awaiting write (Contents: read & write) grant on the Claude GitHub App; all work committed locally meanwhile.
+- **Milestone 1 — Canonical product + pantry skeleton: ✅ COMPLETE.** Backend `a96465d` (10 tables/models/factories, 6 enums, pure `NutritionCalculator` + `NutrientValues`, `PantryService` ledger with cached balance + reconciliation). UI `6f47e5d` (admin product CRUD gated by `is_admin` + `app:make-admin`, Pantry list/detail/actions via `PantryService`, manual add, end-to-end acceptance test). 105 tests green.
+- **Milestone 2 — AI product identification: ✅ COMPLETE.** Backend `8a11eb2` (Prism `prism-php/prism ^0.100`, `App\AI\Contracts\ProductIdentifier` + Prism impl, `AiJobLogger`→`ai_jobs`, Open Food Facts client+importer, `ProductResolver` barcode→exact→fuzzy→unknown with 0.85/0.60 thresholds, nutrient columns relaxed to nullable + null-propagation in `NutrientValues`). UI `d8b040e` (multi-step Scan flow: capture → on-device `BarcodeDetector`/@zxing barcode → resolve → "Is this right?" confirm/correct → quantity → add to pantry; graceful key-absent + unknown fallbacks). 145 tests green.
+- **Push status:** ✅ write access granted; auto-pushing each milestone. Branch `claude/app-planning-breakdown-unjb8x` up to `d8b040e`.
+- **Open item — live AI key:** photo→AI identification needs `OPENROUTER_API_KEY` (D2) to run live; barcode→OFF path works keyless. Key requested from founder.
+- **Sequencing note:** with "build now, key later", proceeding M4 (Consumption) → M6 (Health analytics) → M7 (Insights, fake-tested) to close the §18 acceptance loop structurally without keys; M3 (unknown-product research — needs live AI + a web-search provider decision) deferred until keys/search are settled.
 
 ---
 
