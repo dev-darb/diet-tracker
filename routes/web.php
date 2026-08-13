@@ -15,7 +15,8 @@ Route::middleware(['auth'])->group(function () {
 
     // Main app — only reachable once onboarding is complete.
     Route::middleware('onboarded')->group(function () {
-        Route::view('home', 'home')->name('home');
+        // Home / Today — deterministic daily snapshot + component indicators (J6.2).
+        Volt::route('home', 'home')->name('home');
 
         // Pantry — "what do I currently have" list + tap-through item detail (J1.5).
         Volt::route('pantry', 'pantry')->name('pantry');
@@ -26,7 +27,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Eat — recent consumption history: consume, edit/delete, inspect (J4.2).
         Volt::route('eat', 'eat')->name('eat');
-        Route::view('health', 'health')->name('health');
+
+        // Health — Today + weekly averages, indicators, sparklines (J6.2).
+        Volt::route('health', 'health')->name('health');
 
         Volt::route('profile', 'profile')->name('profile');
 
