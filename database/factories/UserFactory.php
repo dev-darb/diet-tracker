@@ -53,4 +53,13 @@ class UserFactory extends Factory
             UserProfile::factory()->for($user)->create();
         });
     }
+
+    /**
+     * Flag the user as an admin (BUILD_PLAN §11). `is_admin` is not mass
+     * assignable, so we set it via the factory's attribute array directly.
+     */
+    public function admin(): static
+    {
+        return $this->state(fn () => ['is_admin' => true]);
+    }
 }

@@ -15,4 +15,25 @@ enum SourceType: string
     case LabelOcr = 'label_ocr';
     case UserConfirmed = 'user_confirmed';
     case LlmEstimate = 'llm_estimate';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::OpenFoodFacts => 'Open Food Facts',
+            self::Manufacturer => 'Manufacturer',
+            self::Retailer => 'Retailer',
+            self::LabelOcr => 'Label OCR',
+            self::UserConfirmed => 'User confirmed',
+            self::LlmEstimate => 'LLM estimate',
+        };
+    }
+
+    /** @return array<int, array{value: string, label: string}> */
+    public static function options(): array
+    {
+        return array_map(fn (self $t) => [
+            'value' => $t->value,
+            'label' => $t->label(),
+        ], self::cases());
+    }
 }

@@ -47,7 +47,18 @@ class User extends Authenticatable // implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
         ];
+    }
+
+    /**
+     * Whether this user may reach the admin console (BUILD_PLAN §11). Note
+     * `is_admin` is deliberately NOT mass-assignable: promotion happens only via
+     * the `app:make-admin` command, never through a user-facing form.
+     */
+    public function isAdmin(): bool
+    {
+        return (bool) $this->is_admin;
     }
 
     /**

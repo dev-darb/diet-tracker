@@ -16,7 +16,11 @@ Route::middleware(['auth'])->group(function () {
     // Main app — only reachable once onboarding is complete.
     Route::middleware('onboarded')->group(function () {
         Route::view('home', 'home')->name('home');
-        Route::view('pantry', 'pantry')->name('pantry');
+
+        // Pantry — "what do I currently have" list + tap-through item detail (J1.5).
+        Volt::route('pantry', 'pantry')->name('pantry');
+        Volt::route('pantry/{pantryItem}', 'pantry-item')->name('pantry.item');
+
         Route::view('scan', 'scan')->name('scan');
         Route::view('eat', 'eat')->name('eat');
         Route::view('health', 'health')->name('health');
@@ -26,6 +30,14 @@ Route::middleware(['auth'])->group(function () {
         Route::redirect('settings', 'settings/password');
         Volt::route('settings/password', 'settings.password')->name('settings.password');
         Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
+    });
+
+    // Admin console (BUILD_PLAN §11) — Products section for Milestone 1.
+    Route::middleware('admin')->group(function () {
+        Route::redirect('admin', 'admin/products');
+        Volt::route('admin/products', 'admin.products.index')->name('admin.products.index');
+        Volt::route('admin/products/create', 'admin.products.create')->name('admin.products.create');
+        Volt::route('admin/products/{product}/edit', 'admin.products.edit')->name('admin.products.edit');
     });
 });
 
