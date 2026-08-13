@@ -3,6 +3,7 @@
 use App\Services\NutritionAnalyticsService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 /**
@@ -11,7 +12,7 @@ use Livewire\Volt\Component;
  * and lightweight inline-SVG sparklines. Trends (§9.2) is a stub for MVP. Every
  * figure comes from NutritionAnalyticsService; the component does NO maths.
  */
-new class extends Component
+new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Component
 {
     public function with(NutritionAnalyticsService $analytics): array
     {
@@ -29,7 +30,6 @@ new class extends Component
     }
 }; ?>
 
-<x-layouts.app :title="__('Health')">
     <div class="space-y-6">
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Health</h1>
@@ -155,4 +155,4 @@ new class extends Component
             <x-app.health-disclaimer />
         @endif
     </div>
-</x-layouts.app>
+

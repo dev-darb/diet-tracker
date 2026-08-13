@@ -52,7 +52,7 @@ new #[Layout('components.layouts.focus')] class extends Component {
     public function mount(): void
     {
         if (Auth::user()->hasCompletedOnboarding()) {
-            $this->redirectRoute('home', navigate: true);
+            $this->redirectRoute('home');
         }
     }
 
@@ -137,7 +137,7 @@ new #[Layout('components.layouts.focus')] class extends Component {
             'activity_level' => $this->activity_level ?: null,
         ]);
 
-        $this->redirectRoute('home', navigate: true);
+        $this->redirectRoute('home');
     }
 
     public function with(): array

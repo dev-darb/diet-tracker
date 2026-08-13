@@ -5,6 +5,7 @@ use App\Models\CanonicalProduct;
 use App\Services\PantryService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 /**
@@ -13,7 +14,7 @@ use Livewire\Volt\Component;
  * product + quantity) as the pre-Scan path (§20 Phase 1). All mutations go
  * through PantryService so the ledger + cached balance stay correct.
  */
-new class extends Component {
+new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Component {
     // Manual-add form
     public bool $showAdd = false;
     public string $productSearch = '';
@@ -90,7 +91,6 @@ new class extends Component {
     }
 }; ?>
 
-<x-layouts.app :title="__('Pantry')">
     <div class="space-y-5">
         <div class="flex items-start justify-between">
             <div>
@@ -173,7 +173,7 @@ new class extends Component {
         @else
             <div class="overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm">
                 @foreach ($items as $item)
-                    <a href="{{ route('pantry.item', $item) }}" wire:navigate
+                    <a href="{{ route('pantry.item', $item) }}"
                        class="flex items-center justify-between gap-4 border-b border-zinc-100 px-5 py-4 transition last:border-b-0 hover:bg-zinc-50">
                         <div class="min-w-0">
                             <p class="truncate text-sm font-semibold text-zinc-900">{{ $item->canonicalProduct->brand }} — {{ $item->canonicalProduct->name }}</p>
@@ -192,4 +192,4 @@ new class extends Component {
             </div>
         @endif
     </div>
-</x-layouts.app>
+

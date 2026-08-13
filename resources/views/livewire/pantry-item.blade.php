@@ -5,6 +5,7 @@ use App\Services\ConsumptionService;
 use App\Services\PantryNutritionService;
 use App\Services\PantryService;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 /**
@@ -16,7 +17,7 @@ use Livewire\Volt\Component;
  * snapshotted consumption event AND deducted from the ledger (brief §8.1–§8.3);
  * Change quantity / Remove stay on PantryService (pure inventory corrections).
  */
-new class extends Component {
+new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Component {
     public PantryItem $pantryItem;
 
     public string $consumeAmount = '1';
@@ -77,7 +78,7 @@ new class extends Component {
             $service->manualRemove($this->pantryItem, $balance);
         }
 
-        $this->redirectRoute('pantry', navigate: true);
+        $this->redirectRoute('pantry');
     }
 
     private function applyConsume(ConsumptionService $service, float $amount): void
@@ -110,11 +111,10 @@ new class extends Component {
     }
 }; ?>
 
-<x-layouts.app :title="__('Item')">
     <div class="space-y-5" x-data="{ toast: false }"
          x-on:item-changed.window="toast = true; setTimeout(() => toast = false, 2000)">
 
-        <a href="{{ route('pantry') }}" wire:navigate class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-800">
+        <a href="{{ route('pantry') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-800">
             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
             Pantry
         </a>
@@ -243,4 +243,4 @@ new class extends Component {
             <div class="rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg">Pantry updated</div>
         </div>
     </div>
-</x-layouts.app>
+

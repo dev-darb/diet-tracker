@@ -11,12 +11,12 @@
 
             {{-- Top bar --}}
             <header class="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-100 bg-white/90 px-5 py-3.5 backdrop-blur">
-                <a href="{{ route('home') }}" class="flex items-center gap-2" wire:navigate>
+                <a href="{{ route('home') }}" class="flex items-center gap-2">
                     <span class="flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-sm font-semibold text-white">P</span>
                     <span class="text-base font-semibold tracking-tight text-zinc-900">{{ $title ?? 'Pantry' }}</span>
                 </a>
 
-                <a href="{{ route('profile') }}" wire:navigate
+                <a href="{{ route('profile') }}"
                    aria-label="Profile and settings"
                    class="flex size-9 items-center justify-center rounded-full bg-zinc-100 text-sm font-medium text-zinc-700 transition hover:bg-zinc-200 {{ request()->routeIs('profile') ? 'ring-2 ring-emerald-500' : '' }}">
                     {{ auth()->user()?->initials() ?: '?' }}

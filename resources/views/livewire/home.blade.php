@@ -2,6 +2,7 @@
 
 use App\Services\NutritionAnalyticsService;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 /**
@@ -10,7 +11,7 @@ use Livewire\Volt\Component;
  * indicators. All figures come from NutritionAnalyticsService — this component
  * does NO arithmetic (brief §9.9).
  */
-new class extends Component
+new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Component
 {
     public function with(NutritionAnalyticsService $analytics): array
     {
@@ -18,7 +19,6 @@ new class extends Component
     }
 }; ?>
 
-<x-layouts.app :title="__('Home')">
     <div class="space-y-6">
         <div>
             <p class="text-sm text-zinc-500">{{ now()->format('l, j F') }}</p>
@@ -59,7 +59,7 @@ new class extends Component
             <div class="space-y-2">
                 <div class="flex items-baseline justify-between px-1">
                     <h2 class="text-sm font-semibold text-zinc-900">How today looks</h2>
-                    <a href="{{ route('health') }}" wire:navigate class="text-xs font-medium text-emerald-700 hover:text-emerald-800">This week →</a>
+                    <a href="{{ route('health') }}" class="text-xs font-medium text-emerald-700 hover:text-emerald-800">This week →</a>
                 </div>
                 <x-app.indicators :indicators="$today['indicators']" />
                 <x-app.health-disclaimer />
@@ -67,7 +67,7 @@ new class extends Component
         @endif
 
         {{-- Primary shortcut: scan --}}
-        <a href="{{ route('scan') }}" wire:navigate
+        <a href="{{ route('scan') }}"
            class="flex items-center justify-between rounded-2xl bg-emerald-600 px-5 py-4 text-white shadow-sm transition hover:bg-emerald-700">
             <div>
                 <p class="text-base font-semibold">Scan a product</p>
@@ -79,14 +79,14 @@ new class extends Component
         </a>
 
         <div class="grid grid-cols-2 gap-3">
-            <a href="{{ route('pantry') }}" wire:navigate class="rounded-2xl border border-zinc-100 bg-white px-4 py-4 shadow-sm transition hover:border-zinc-200">
+            <a href="{{ route('pantry') }}" class="rounded-2xl border border-zinc-100 bg-white px-4 py-4 shadow-sm transition hover:border-zinc-200">
                 <p class="text-sm font-semibold text-zinc-900">Pantry</p>
                 <p class="mt-0.5 text-xs text-zinc-500">What you have</p>
             </a>
-            <a href="{{ route('health') }}" wire:navigate class="rounded-2xl border border-zinc-100 bg-white px-4 py-4 shadow-sm transition hover:border-zinc-200">
+            <a href="{{ route('health') }}" class="rounded-2xl border border-zinc-100 bg-white px-4 py-4 shadow-sm transition hover:border-zinc-200">
                 <p class="text-sm font-semibold text-zinc-900">Health</p>
                 <p class="mt-0.5 text-xs text-zinc-500">Your trends</p>
             </a>
         </div>
     </div>
-</x-layouts.app>
+

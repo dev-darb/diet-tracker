@@ -11,7 +11,7 @@ use Livewire\WithPagination;
  * read-only listing; all writes happen in the create/edit forms via
  * CanonicalProductService.
  */
-new #[Layout('components.layouts.admin')] class extends Component {
+new #[Layout('components.layouts.admin', ['title' => 'Products'])] class extends Component {
     use WithPagination;
 
     #[Url(as: 'q')]
@@ -44,14 +44,13 @@ new #[Layout('components.layouts.admin')] class extends Component {
     }
 }; ?>
 
-<x-layouts.admin :title="__('Products')">
     <div class="space-y-5">
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Products</h1>
                 <p class="mt-1 text-sm text-zinc-500">Browse, search and edit canonical products.</p>
             </div>
-            <a href="{{ route('admin.products.create') }}" wire:navigate
+            <a href="{{ route('admin.products.create') }}"
                class="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
                 New product
             </a>
@@ -65,7 +64,7 @@ new #[Layout('components.layouts.admin')] class extends Component {
 
         <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
             @forelse ($products as $product)
-                <a href="{{ route('admin.products.edit', $product) }}" wire:navigate
+                <a href="{{ route('admin.products.edit', $product) }}"
                    class="flex items-center justify-between gap-4 border-b border-zinc-100 px-5 py-4 transition last:border-b-0 hover:bg-zinc-50">
                     <div class="min-w-0">
                         <p class="truncate text-sm font-semibold text-zinc-900">
@@ -91,4 +90,4 @@ new #[Layout('components.layouts.admin')] class extends Component {
 
         <div>{{ $products->links() }}</div>
     </div>
-</x-layouts.admin>
+

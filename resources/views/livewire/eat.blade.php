@@ -4,6 +4,7 @@ use App\Models\ConsumptionEvent;
 use App\Services\ConsumptionService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 /**
@@ -13,7 +14,7 @@ use Livewire\Volt\Component;
  * ConsumptionService so snapshots + the pantry ledger stay consistent — this
  * component never mutates consumption or ledger rows directly.
  */
-new class extends Component {
+new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Component {
     public ?int $editingId = null;
     public string $editQuantity = '';
     public string $editTime = '';
@@ -111,12 +112,11 @@ new class extends Component {
     }
 }; ?>
 
-<x-layouts.app :title="__('Eat')">
     <div class="space-y-5" x-data="{ toast: false }"
          x-on:consumption-updated.window="toast = true; setTimeout(() => toast = false, 2000)">
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Eat</h1>
-            <p class="mt-1 text-sm text-zinc-500">What you've logged. Consume items from your <a href="{{ route('pantry') }}" wire:navigate class="font-medium text-emerald-700 hover:text-emerald-800">pantry</a>.</p>
+            <p class="mt-1 text-sm text-zinc-500">What you've logged. Consume items from your <a href="{{ route('pantry') }}" class="font-medium text-emerald-700 hover:text-emerald-800">pantry</a>.</p>
         </div>
 
         @if ($groups->isEmpty())
@@ -225,4 +225,4 @@ new class extends Component {
             <div class="rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg">Updated</div>
         </div>
     </div>
-</x-layouts.app>
+

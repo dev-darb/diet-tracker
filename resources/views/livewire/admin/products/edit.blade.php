@@ -13,7 +13,7 @@ use Livewire\Volt\Component;
  * versions (BUILD_PLAN §11). Thin — delegates every write to
  * CanonicalProductService.
  */
-new #[Layout('components.layouts.admin')] class extends Component {
+new #[Layout('components.layouts.admin', ['title' => 'Edit product'])] class extends Component {
     public CanonicalProduct $product;
 
     // Canonical identity
@@ -131,11 +131,10 @@ new #[Layout('components.layouts.admin')] class extends Component {
     }
 }; ?>
 
-<x-layouts.admin :title="__('Edit product')">
     <div class="mx-auto max-w-2xl space-y-6" x-data="{ saved: false }"
          x-on:saved.window="saved = true; setTimeout(() => saved = false, 2500)">
         <div class="flex items-center gap-2 text-sm text-zinc-500">
-            <a href="{{ route('admin.products.index') }}" wire:navigate class="hover:text-zinc-800">Products</a>
+            <a href="{{ route('admin.products.index') }}" class="hover:text-zinc-800">Products</a>
             <span>/</span>
             <span class="truncate text-zinc-900">{{ $product->brand }} — {{ $product->name }}</span>
         </div>
@@ -197,4 +196,4 @@ new #[Layout('components.layouts.admin')] class extends Component {
             </form>
         </section>
     </div>
-</x-layouts.admin>
+

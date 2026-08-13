@@ -24,7 +24,7 @@ new class extends Component {
 
         $profiles->deleteAccount($user);
 
-        $this->redirect('/', navigate: true);
+        $this->redirect('/');
     }
 }; ?>
 

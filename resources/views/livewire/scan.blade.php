@@ -11,6 +11,7 @@ use App\Services\PantryService;
 use App\Services\ProductResolver;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 
@@ -31,7 +32,7 @@ use Livewire\WithFileUploads;
  *  - Unknown / needs-research result -> a friendly manual-add fallback (the async
  *    research workflow is Milestone 3, deliberately not built here).
  */
-new class extends Component
+new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Component
 {
     use WithFileUploads;
 
@@ -264,9 +265,8 @@ new class extends Component
     }
 }; ?>
 
-<x-layouts.app :title="__('Scan')">
-    <style>[x-cloak]{display:none!important}</style>
     <div class="space-y-5">
+        <style>[x-cloak]{display:none!important}</style>
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Scan</h1>
             <p class="mt-1 text-sm text-zinc-500">One packaged product at a time. Show the front of the pack clearly.</p>
@@ -406,7 +406,7 @@ new class extends Component
                     </button>
 
                     <p class="text-center text-xs text-zinc-400">
-                        Prefer to type it in? <a href="{{ route('pantry') }}" wire:navigate class="font-medium text-emerald-600 hover:text-emerald-700">Add to pantry manually</a>
+                        Prefer to type it in? <a href="{{ route('pantry') }}" class="font-medium text-emerald-600 hover:text-emerald-700">Add to pantry manually</a>
                     </p>
                 </div>
             @endif
@@ -529,7 +529,7 @@ new class extends Component
                                 class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
                             Try another scan
                         </button>
-                        <a href="{{ route('pantry') }}" wire:navigate
+                        <a href="{{ route('pantry') }}"
                            class="block w-full rounded-xl border border-zinc-200 px-4 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
                             Add manually
                         </a>
@@ -553,7 +553,7 @@ new class extends Component
                                 class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
                             Scan another
                         </button>
-                        <a href="{{ route('pantry') }}" wire:navigate
+                        <a href="{{ route('pantry') }}"
                            class="block w-full rounded-xl border border-zinc-200 px-4 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
                             View pantry
                         </a>
@@ -573,7 +573,7 @@ new class extends Component
                     </div>
 
                     <div class="space-y-2">
-                        <a href="{{ route('pantry') }}" wire:navigate
+                        <a href="{{ route('pantry') }}"
                            class="block w-full rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-700">
                             Add manually
                         </a>
@@ -601,7 +601,7 @@ new class extends Component
                                 class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
                             Scan the barcode
                         </button>
-                        <a href="{{ route('pantry') }}" wire:navigate
+                        <a href="{{ route('pantry') }}"
                            class="block w-full rounded-xl border border-zinc-200 px-4 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
                             Add manually
                         </a>
@@ -622,7 +622,7 @@ new class extends Component
                                 class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
                             Try another photo
                         </button>
-                        <a href="{{ route('pantry') }}" wire:navigate
+                        <a href="{{ route('pantry') }}"
                            class="block w-full rounded-xl border border-zinc-200 px-4 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
                             Add manually
                         </a>
@@ -632,4 +632,4 @@ new class extends Component
 
         </div>
     </div>
-</x-layouts.app>
+

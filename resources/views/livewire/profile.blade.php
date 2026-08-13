@@ -7,6 +7,7 @@ use App\Enums\Sex;
 use App\Services\ProfileService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 /**
@@ -14,7 +15,7 @@ use Livewire\Volt\Component;
  * allergies, basic health profile, plus privacy/data controls, logout and
  * account deletion. All writes go through ProfileService (thin-component rule).
  */
-new class extends Component {
+new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Component {
     // Account
     public string $name = '';
     public string $email = '';
@@ -136,7 +137,6 @@ new class extends Component {
     }
 }; ?>
 
-<x-layouts.app :title="__('Profile')">
     <div class="space-y-6" x-data="{ saved: null }"
          x-on:saved.window="saved = $event.detail.section; setTimeout(() => saved = null, 2500)">
 
@@ -284,11 +284,11 @@ new class extends Component {
 
         {{-- Security / other settings --}}
         <section class="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm">
-            <a href="{{ route('settings.password') }}" wire:navigate class="flex items-center justify-between px-5 py-4 transition hover:bg-zinc-50">
+            <a href="{{ route('settings.password') }}" class="flex items-center justify-between px-5 py-4 transition hover:bg-zinc-50">
                 <span class="text-sm font-medium text-zinc-900">Password</span>
                 <svg class="size-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
             </a>
-            <a href="{{ route('settings.appearance') }}" wire:navigate class="flex items-center justify-between px-5 py-4 transition hover:bg-zinc-50">
+            <a href="{{ route('settings.appearance') }}" class="flex items-center justify-between px-5 py-4 transition hover:bg-zinc-50">
                 <span class="text-sm font-medium text-zinc-900">Appearance</span>
                 <svg class="size-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
             </a>
@@ -316,4 +316,4 @@ new class extends Component {
             <livewire:settings.delete-user-form />
         </div>
     </div>
-</x-layouts.app>
+

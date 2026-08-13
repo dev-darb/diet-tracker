@@ -13,7 +13,7 @@ use Livewire\Volt\Component;
  * delegates to CanonicalProductService, which records `user_confirmed`
  * provenance for the version.
  */
-new #[Layout('components.layouts.admin')] class extends Component {
+new #[Layout('components.layouts.admin', ['title' => 'New product'])] class extends Component {
     // Canonical identity
     public string $brand = '';
     public string $name = '';
@@ -61,7 +61,7 @@ new #[Layout('components.layouts.admin')] class extends Component {
 
         session()->flash('status', 'Product created.');
 
-        $this->redirectRoute('admin.products.edit', $product, navigate: true);
+        $this->redirectRoute('admin.products.edit', $product);
     }
 
     /** @return array<string, mixed> */
@@ -136,10 +136,9 @@ new #[Layout('components.layouts.admin')] class extends Component {
     }
 }; ?>
 
-<x-layouts.admin :title="__('New product')">
     <div class="mx-auto max-w-2xl space-y-5">
         <div class="flex items-center gap-2 text-sm text-zinc-500">
-            <a href="{{ route('admin.products.index') }}" wire:navigate class="hover:text-zinc-800">Products</a>
+            <a href="{{ route('admin.products.index') }}" class="hover:text-zinc-800">Products</a>
             <span>/</span>
             <span class="text-zinc-900">New</span>
         </div>
@@ -167,8 +166,8 @@ new #[Layout('components.layouts.admin')] class extends Component {
                 <button type="submit" class="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
                     Create product
                 </button>
-                <a href="{{ route('admin.products.index') }}" wire:navigate class="text-sm font-medium text-zinc-500 hover:text-zinc-800">Cancel</a>
+                <a href="{{ route('admin.products.index') }}" class="text-sm font-medium text-zinc-500 hover:text-zinc-800">Cancel</a>
             </div>
         </form>
     </div>
-</x-layouts.admin>
+

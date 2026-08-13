@@ -130,7 +130,7 @@ new class extends Component
                         <ul class="mt-3 space-y-1.5">
                             @foreach ($pantry_items as $item)
                                 <li class="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2">
-                                    <a href="{{ route('pantry.item', $item) }}" wire:navigate
+                                    <a href="{{ route('pantry.item', $item) }}"
                                        class="text-sm font-medium text-zinc-800 hover:text-emerald-700">
                                         {{ trim(($item->canonicalProduct->brand ? $item->canonicalProduct->brand.' ' : '').$item->canonicalProduct->name) }}
                                     </a>
