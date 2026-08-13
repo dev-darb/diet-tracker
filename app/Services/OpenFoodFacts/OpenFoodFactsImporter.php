@@ -54,8 +54,11 @@ class OpenFoodFactsImporter
         return DB::transaction(function () use ($product): CanonicalProduct {
             $canonical = CanonicalProduct::create([
                 'gtin' => $product->barcode,
-                'brand' => $product->brand ?? 'Unknown brand',
-                'name' => $product->productName ?? 'Unknown product',
+                // OFF strings are third-party and unbounded; the columns are
+                // varchar(255). Postgres rejects an over-length value (SQLite does
+                // not), so truncate defensively — a valid scan must never 500.
+                'brand' => $this->limit($product->brand) ?? 'Unknown brand',
+                'name' => $this->limit($product->productName) ?? 'Unknown product',
                 'variant' => null,
                 ...$this->packSize($product->quantity),
                 'category' => null,
@@ -115,13 +118,32 @@ class OpenFoodFactsImporter
     private function parseAmount(?string $raw, string $valueKey, string $unitKey): array
     {
         if ($raw !== null && preg_match('/([\d]+(?:[.,]\d+)?)\s*([a-zA-Z]+)/', $raw, $m) === 1) {
+            $value = (float) str_replace(',', '.', $m[1]);
+
+            // The value/unit columns are decimal(10,3)/varchar; a malformed OFF
+            // string could parse to something that overflows on Postgres, so a
+            // wildly out-of-range amount is treated as unparseable (stays null).
+            if ($value <= 0.0 || $value >= 9_999_999.0) {
+                return [$valueKey => null, $unitKey => null];
+            }
+
             return [
-                $valueKey => (float) str_replace(',', '.', $m[1]),
-                $unitKey => strtolower($m[2]),
+                $valueKey => $value,
+                $unitKey => $this->limit(strtolower($m[2]), 16),
             ];
         }
 
         return [$valueKey => null, $unitKey => null];
+    }
+
+    /** Truncate a third-party string to fit its column (multibyte-safe). */
+    private function limit(?string $value, int $max = 255): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return mb_strlen($value) > $max ? mb_substr($value, 0, $max) : $value;
     }
 
     private function evidenceSummary(OffProduct $product): string

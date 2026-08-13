@@ -35,8 +35,11 @@ new class extends Component
 {
     use WithFileUploads;
 
-    /** capture | confirm | quantity | done | unknown | corrected | ai_unavailable */
+    /** capture | confirm | quantity | done | unknown | corrected | ai_unavailable | error */
     public string $step = 'capture';
+
+    /** Human-readable detail shown on the `error` step to aid alpha debugging. */
+    public string $errorDetail = '';
 
     // Capture
     public $photo = null;
@@ -125,10 +128,20 @@ new class extends Component
             $meta = ['model_provider' => $config['provider'] ?? null, 'model_name' => $config['model'] ?? null];
         }
 
-        $result = $resolver->resolve($detected, Auth::user(), $meta);
+        try {
+            $result = $resolver->resolve($detected, Auth::user(), $meta);
 
-        // Keep the captured image on the audit row (brief §12).
-        $result->resolutionJob->update(['uploaded_image_path' => $this->imagePath]);
+            // Keep the captured image on the audit row (brief §12).
+            $result->resolutionJob->update(['uploaded_image_path' => $this->imagePath]);
+        } catch (Throwable $e) {
+            // A real product-data / import failure must not blank the screen —
+            // report it and show an actionable error instead of a 500.
+            report($e);
+            $this->errorDetail = $e->getMessage();
+            $this->step = 'error';
+
+            return;
+        }
 
         $this->resolutionJobId = $result->resolutionJob->id;
         $this->detected = $detected->toArray();
@@ -215,7 +228,7 @@ new class extends Component
     {
         $this->reset([
             'photo', 'detectedBarcode', 'imagePath', 'resolutionJobId',
-            'matchedProductId', 'isSuggestion', 'detected', 'quantity', 'unit', 'addedProductName',
+            'matchedProductId', 'isSuggestion', 'detected', 'quantity', 'unit', 'addedProductName', 'errorDetail',
         ]);
         $this->quantity = 1;
         $this->unit = QuantityUnit::Unit->value;
@@ -232,7 +245,15 @@ new class extends Component
     public function with(PantryNutritionService $nutrition): array
     {
         $product = $this->matchedProductId !== null ? CanonicalProduct::find($this->matchedProductId) : null;
-        $summary = $product !== null ? $nutrition->productSummary($product) : null;
+
+        // Never let a nutrition-summary edge case blank the confirm screen — the
+        // product identity is what matters here; macros degrade to "not available".
+        try {
+            $summary = $product !== null ? $nutrition->productSummary($product) : null;
+        } catch (Throwable $e) {
+            report($e);
+            $summary = null;
+        }
 
         return [
             'product' => $product,
@@ -481,6 +502,35 @@ new class extends Component
                             class="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800">
                         Add to pantry
                     </button>
+                </div>
+            @endif
+
+            {{-- Something failed while resolving — actionable, never a blank page --}}
+            @if ($step === 'error')
+                <div class="space-y-5">
+                    <div class="flex flex-col items-center rounded-2xl border border-zinc-100 bg-white px-6 py-12 text-center shadow-sm">
+                        <div class="flex size-14 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                            <svg class="size-7" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                        </div>
+                        <h2 class="mt-4 text-lg font-semibold text-zinc-900">Something went wrong adding that product</h2>
+                        <p class="mt-1 max-w-xs text-sm text-zinc-500">It's been logged. You can try again, or add the product to your pantry manually.</p>
+                        @if ($errorDetail !== '')
+                            <p class="mt-3 max-w-xs break-words rounded-lg bg-red-50 px-3 py-2 text-left text-[11px] text-red-700">
+                                <span class="font-semibold">Technical detail (please share with support):</span> {{ $errorDetail }}
+                            </p>
+                        @endif
+                    </div>
+
+                    <div class="space-y-2">
+                        <button type="button" wire:click="scanAnother"
+                                class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                            Try another scan
+                        </button>
+                        <a href="{{ route('pantry') }}" wire:navigate
+                           class="block w-full rounded-xl border border-zinc-200 px-4 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
+                            Add manually
+                        </a>
+                    </div>
                 </div>
             @endif
 
