@@ -197,6 +197,12 @@ Each **Job** = one testable milestone with acceptance criteria (AC) and the brie
 - **Push status:** ✅ write access granted; auto-pushing each milestone. Branch `claude/app-planning-breakdown-unjb8x` up to `d8b040e`.
 - **Open item — live AI key:** photo→AI identification needs `OPENROUTER_API_KEY` (D2) to run live; barcode→OFF path works keyless. Key requested from founder.
 - **Sequencing note:** with "build now, key later", proceeding M4 (Consumption) → M6 (Health analytics) → M7 (Insights, fake-tested) to close the §18 acceptance loop structurally without keys; M3 (unknown-product research — needs live AI + a web-search provider decision) deferred until keys/search are settled.
+- **Milestone 4 — Consumption: ✅ COMPLETE** (`7b81952`). `ConsumptionService` (nutrient snapshots, ledger reversal on edit/delete keeping `reconcile` true), consumption history on Eat. 161 tests.
+- **Milestone 6 — Health analytics: ✅ COMPLETE** (`ff78059`). `NutritionAnalyticsService` (daily + rolling 7-day + trend deltas + component indicators, honest unknown handling), Home/Today + Health/Weekly UI with inline-SVG sparklines. 182 tests.
+- **Milestone 7 — AI Insights: ✅ COMPLETE** (`9900342`). `DietInsightGenerator` with a deterministic **rule-based default** (works with no key) + Prism LLM upgrade; pantry-aware "Your focus this week" card (Why / Show me / Dismiss); cached per week, queue-ready. **207 tests.** **§18 acceptance loop is now structurally closed.**
+- **Deployment: ✅ LIVE on Laravel Cloud** (founder-provisioned Serverless Postgres 18 + Valkey cache; branch auto-deploys). Live photo-AI still needs `OPENROUTER_API_KEY`; barcode + rule-based insights work keyless.
+- **D2 revisited — gateway-agnostic:** Vercel AI Gateway is an option (OpenAI-compatible, same `creator/model` format); switching gateways is config/env only. Plan: make the gateway env-selectable (`AI_GATEWAY=openrouter|vercel`) to also serve §14 benchmarking.
+- **Remaining:** M5 (meal builder), M3 (unknown-product research), M8 (alpha hardening: S3 image persistence, queue worker, cost/latency, Safari QA, merge/alias tooling). Known gap: OFF importer leaves `category` null, so fruit&veg + category-based insights read "unknown" on real data until categories are populated (candidate for M8/M3).
 
 ---
 
