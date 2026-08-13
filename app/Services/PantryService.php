@@ -130,6 +130,42 @@ class PantryService
         });
     }
 
+    /**
+     * Append a `correction` transaction carrying an explicit SIGNED delta,
+     * optionally linked to a consumption event. This is the compensating-entry
+     * primitive ConsumptionService uses to reverse or adjust a pantry deduction
+     * when a consumption is edited or deleted (brief §8.6/§8.7): the original
+     * `consume` row stays immutable and a new correction moves the balance, so
+     * the ledger + cached balance stay consistent and {@see reconcile()} holds.
+     *
+     * A positive delta restores stock; a negative delta removes more. Negative
+     * deltas are clamped to the current balance (consistent with the documented
+     * over-consume rule) so the balance never goes below zero. A delta that
+     * rounds to zero writes nothing and returns null (no noise rows).
+     */
+    public function adjust(
+        PantryItem $item,
+        float $delta,
+        ?int $linkedConsumptionEventId = null,
+        ?Carbon $occurredAt = null,
+    ): ?PantryTransaction {
+        return DB::transaction(function () use ($item, $delta, $linkedConsumptionEventId, $occurredAt) {
+            $item = $this->lock($item);
+            $delta = $this->round($delta);
+
+            if ($delta < 0) {
+                $available = max((float) $item->current_quantity, 0.0);
+                $delta = $this->round(-min(-$delta, $available)); // clamp: never below zero
+            }
+
+            if ($delta === 0.0) {
+                return null;
+            }
+
+            return $this->applyDelta($item, PantryTransactionType::Correction, $delta, $occurredAt, $linkedConsumptionEventId);
+        });
+    }
+
     /** Recompute the true balance from the immutable ledger. */
     public function recomputeBalance(PantryItem $item): float
     {

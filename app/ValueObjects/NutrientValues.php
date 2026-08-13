@@ -92,6 +92,17 @@ final class NutrientValues
         return new self;
     }
 
+    /**
+     * A set where every nutrient is UNKNOWN (not stated) — never a fabricated 0.
+     * Used when a consumption snapshot has no usable product version, or the
+     * chosen unit needs a serving/pack size the version lacks, so the honest
+     * record is "we don't know" rather than an understated total (brief §2.1).
+     */
+    public static function unknown(): self
+    {
+        return new self(null, null, null, null, null, null, null, null);
+    }
+
     /** Multiply every nutrient by a factor, returning a new value object. Unknowns stay unknown. */
     public function scale(float $factor): self
     {

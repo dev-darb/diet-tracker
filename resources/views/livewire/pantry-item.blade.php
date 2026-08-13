@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\PantryItem;
+use App\Services\ConsumptionService;
 use App\Services\PantryNutritionService;
 use App\Services\PantryService;
 use Illuminate\Support\Facades\Auth;
@@ -9,8 +10,11 @@ use Livewire\Volt\Component;
 /**
  * Pantry item detail + actions (BUILD_PLAN §7.9). Shows identity, current
  * quantity, computed nutrition (via NutritionCalculator, never inline maths),
- * purchase/expiry dates, and the Consume / Change quantity / Remove actions —
- * all routed through PantryService so the ledger + cached balance stay correct.
+ * purchase/expiry dates, and the Consume / Change quantity / Remove actions.
+ *
+ * Consume routes through ConsumptionService so eating is recorded as a
+ * snapshotted consumption event AND deducted from the ledger (brief §8.1–§8.3);
+ * Change quantity / Remove stay on PantryService (pure inventory corrections).
  */
 new class extends Component {
     public PantryItem $pantryItem;
@@ -27,12 +31,30 @@ new class extends Component {
         $this->newQuantity = $this->currentQuantityString();
     }
 
-    public function consumeOne(PantryService $service): void
+    public function consumeOne(ConsumptionService $service): void
     {
         $this->applyConsume($service, 1.0);
     }
 
-    public function consume(PantryService $service): void
+    public function consumeHalf(ConsumptionService $service): void
+    {
+        $balance = (float) $this->pantryItem->current_quantity;
+
+        if ($balance > 0) {
+            $this->applyConsume($service, round($balance / 2, 3));
+        }
+    }
+
+    public function consumeAll(ConsumptionService $service): void
+    {
+        $balance = (float) $this->pantryItem->current_quantity;
+
+        if ($balance > 0) {
+            $this->applyConsume($service, round($balance, 3));
+        }
+    }
+
+    public function consume(ConsumptionService $service): void
     {
         $data = $this->validate(['consumeAmount' => ['required', 'numeric', 'gt:0']]);
         $this->applyConsume($service, (float) $data['consumeAmount']);
@@ -58,9 +80,9 @@ new class extends Component {
         $this->redirectRoute('pantry', navigate: true);
     }
 
-    private function applyConsume(PantryService $service, float $amount): void
+    private function applyConsume(ConsumptionService $service, float $amount): void
     {
-        $service->consume($this->pantryItem, $amount);
+        $service->consumePantryItem(Auth::user(), $this->pantryItem, $amount);
         $this->refreshItem();
         $this->consumeAmount = '1';
         $this->dispatch('item-changed');
@@ -150,19 +172,31 @@ new class extends Component {
         <section class="space-y-4 rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
             <h2 class="text-sm font-semibold text-zinc-900">Actions</h2>
 
-            {{-- Consume --}}
-            <div class="space-y-2">
-                <p class="text-xs font-medium text-zinc-600">Consume</p>
-                <div class="flex items-end gap-3">
-                    <button type="button" wire:click="consumeOne" @disabled((float) $pantryItem->current_quantity <= 0)
+            {{-- Consume — records a snapshotted consumption event + deducts stock --}}
+            @php($outOfStock = (float) $pantryItem->current_quantity <= 0)
+            <div class="space-y-3">
+                <p class="text-xs font-medium text-zinc-600">Consume <span class="font-normal text-zinc-400">(logs it to today)</span></p>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" wire:click="consumeOne" @disabled($outOfStock)
                             class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40">
                         I ate one
                     </button>
+                    <button type="button" wire:click="consumeHalf" @disabled($outOfStock)
+                            class="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40">
+                        Half
+                    </button>
+                    <button type="button" wire:click="consumeAll" @disabled($outOfStock)
+                            class="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40">
+                        All
+                    </button>
+                </div>
+                <div class="flex items-end gap-3">
                     <div class="w-24">
+                        <label class="text-xs font-medium text-zinc-600">Custom ({{ $pantryItem->quantity_unit->shortLabel() }})</label>
                         <input type="number" step="any" min="0" inputmode="decimal" wire:model="consumeAmount"
-                               class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                               class="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                     </div>
-                    <button type="button" wire:click="consume" @disabled((float) $pantryItem->current_quantity <= 0)
+                    <button type="button" wire:click="consume" @disabled($outOfStock)
                             class="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40">
                         Consume amount
                     </button>

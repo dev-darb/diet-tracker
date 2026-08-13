@@ -61,4 +61,17 @@ class ConsumptionEvent extends Model
     {
         return $this->hasMany(ConsumptionItem::class);
     }
+
+    /**
+     * The pantry ledger rows this event is responsible for (the original
+     * `consume` plus any `correction` written when the event was edited). Their
+     * net delta is the event's live effect on stock — the basis for a correct
+     * reversal (BUILD_PLAN §6 J4.1; brief §8.6/§8.7).
+     *
+     * @return HasMany<PantryTransaction, $this>
+     */
+    public function pantryTransactions(): HasMany
+    {
+        return $this->hasMany(PantryTransaction::class, 'linked_consumption_event_id');
+    }
 }
