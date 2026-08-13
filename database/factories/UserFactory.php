@@ -2,12 +2,14 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
+use App\Models\UserProfile;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
@@ -47,8 +49,8 @@ class UserFactory extends Factory
      */
     public function onboarded(): static
     {
-        return $this->afterCreating(function (\App\Models\User $user) {
-            \App\Models\UserProfile::factory()->for($user)->create();
+        return $this->afterCreating(function (User $user) {
+            UserProfile::factory()->for($user)->create();
         });
     }
 }

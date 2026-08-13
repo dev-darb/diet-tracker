@@ -6,13 +6,14 @@ use App\Enums\ActivityLevel;
 use App\Enums\DietaryPattern;
 use App\Enums\PrimaryGoal;
 use App\Enums\Sex;
+use Database\Factories\UserProfileFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserProfile extends Model
 {
-    /** @use HasFactory<\Database\Factories\UserProfileFactory> */
+    /** @use HasFactory<UserProfileFactory> */
     use HasFactory;
 
     protected $fillable = [

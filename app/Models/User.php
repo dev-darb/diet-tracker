@@ -3,7 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,7 +13,7 @@ use Illuminate\Support\Str;
 
 class User extends Authenticatable // implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
@@ -54,6 +56,24 @@ class User extends Authenticatable // implements MustVerifyEmail
     public function profile(): HasOne
     {
         return $this->hasOne(UserProfile::class);
+    }
+
+    /** The user's pantry stock (BUILD_PLAN §5, idea #5). @return HasMany<PantryItem, $this> */
+    public function pantryItems(): HasMany
+    {
+        return $this->hasMany(PantryItem::class);
+    }
+
+    /** The user's logged eating events (brief §8.1). @return HasMany<ConsumptionEvent, $this> */
+    public function consumptionEvents(): HasMany
+    {
+        return $this->hasMany(ConsumptionEvent::class);
+    }
+
+    /** The user's generated insights (brief §9.6). @return HasMany<AiInsight, $this> */
+    public function aiInsights(): HasMany
+    {
+        return $this->hasMany(AiInsight::class);
     }
 
     /**

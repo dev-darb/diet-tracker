@@ -4,10 +4,11 @@ namespace Database\Factories;
 
 use App\Enums\PrimaryGoal;
 use App\Models\User;
+use App\Models\UserProfile;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\UserProfile>
+ * @extends Factory<UserProfile>
  */
 class UserProfileFactory extends Factory
 {
