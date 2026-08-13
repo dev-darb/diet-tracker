@@ -71,7 +71,9 @@ new class extends Component
     public function analyze(ProductIdentifier $identifier, ProductResolver $resolver): void
     {
         $this->resetValidation();
-        $this->validate(['photo' => ['required', 'image', 'max:8192']]);
+        // Photos are downscaled to JPEG on-device before upload, so this stays small;
+        // the ceiling is generous only for the rare original-file fallback.
+        $this->validate(['photo' => ['required', 'image', 'max:12288']]);
 
         // Store the capture on the local public disk (retention policy is M8).
         $this->imagePath = $this->photo->store('scans', 'public');
@@ -217,6 +219,7 @@ new class extends Component
 }; ?>
 
 <x-layouts.app :title="__('Scan')">
+    <style>[x-cloak]{display:none!important}</style>
     <div class="space-y-5">
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Scan</h1>
@@ -238,7 +241,32 @@ new class extends Component
             {{-- STEP 1 — Capture --------------------------------------------------}}
             @if ($step === 'capture')
                 <div class="space-y-4"
-                     x-data="{ preview: null }">
+                     x-data="{
+                        preview: null,
+                        uploading: false,
+                        uploaded: false,
+                        progress: 0,
+                        uploadError: null,
+                        async handle(event) {
+                            const file = event.target.files[0];
+                            this.uploaded = false;
+                            this.uploadError = null;
+                            this.progress = 0;
+                            $wire.set('detectedBarcode', '');
+                            if (!file) { this.preview = null; return; }
+                            this.preview = URL.createObjectURL(file);
+                            if (window.detectBarcode) {
+                                window.detectBarcode(file).then(code =&gt; { if (code) $wire.set('detectedBarcode', code); }).catch(() =&gt; {});
+                            }
+                            this.uploading = true;
+                            const upload = window.downscaleImage ? await window.downscaleImage(file) : file;
+                            $wire.upload('photo', upload,
+                                () =&gt; { this.uploading = false; this.uploaded = true; },
+                                () =&gt; { this.uploading = false; this.uploadError = 'That photo could not be uploaded — it may be too large or an unsupported format. Try again, or add the product manually below.'; },
+                                (e) =&gt; { this.progress = e.detail.progress; }
+                            );
+                        }
+                     }">
                     <label class="block cursor-pointer">
                         <div class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-12 text-center transition hover:border-emerald-300 hover:bg-emerald-50/40">
                             <template x-if="preview">
@@ -256,15 +284,7 @@ new class extends Component
                             <p class="mt-1 text-xs text-zinc-500">Use your camera, or choose an existing image.</p>
                         </div>
                         <input type="file" accept="image/*" capture="environment" class="sr-only"
-                               wire:model="photo"
-                               x-on:change="
-                                    const f = $event.target.files[0];
-                                    preview = f ? URL.createObjectURL(f) : null;
-                                    $wire.set('detectedBarcode', '');
-                                    if (f && window.detectBarcode) {
-                                        window.detectBarcode(f).then(code => { if (code) $wire.set('detectedBarcode', code); }).catch(() => {});
-                                    }
-                               ">
+                               x-on:change="handle($event)">
                     </label>
 
                     @error('photo') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
@@ -276,12 +296,23 @@ new class extends Component
                         </div>
                     @endif
 
-                    @if ($photo)
-                        <button type="button" wire:click="analyze"
-                                class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
-                            Identify product
-                        </button>
-                    @endif
+                    {{-- Upload progress. Phone photos are downscaled on-device first, then uploaded, so this is quick. --}}
+                    <div x-show="uploading" x-cloak class="space-y-1.5">
+                        <div class="flex items-center justify-between text-xs text-zinc-500">
+                            <span>Uploading photo…</span>
+                            <span class="tabular-nums" x-text="progress + '%'"></span>
+                        </div>
+                        <div class="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                            <div class="h-full rounded-full bg-emerald-500 transition-all" :style="`width: ${progress}%`"></div>
+                        </div>
+                    </div>
+
+                    <p x-show="uploadError" x-cloak class="text-xs text-red-600" x-text="uploadError"></p>
+
+                    <button type="button" x-show="uploaded" x-cloak wire:click="analyze"
+                            class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                        Identify product
+                    </button>
 
                     <p class="text-center text-xs text-zinc-400">
                         Prefer to type it in? <a href="{{ route('pantry') }}" wire:navigate class="font-medium text-emerald-600 hover:text-emerald-700">Add to pantry manually</a>
