@@ -19,6 +19,8 @@ npm-debug.log
 yarn-error.log
 /.fleet
 /.idea
+/dump.rdb
+*.rdb
 /.nova
 /.vscode
 /.zed
