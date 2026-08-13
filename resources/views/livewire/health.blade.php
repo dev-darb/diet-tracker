@@ -47,6 +47,9 @@ new class extends Component
                 </x-slot:icon>
             </x-app.placeholder>
         @else
+            {{-- Your focus this week — prioritised, pantry-aware insight (brief §9.6). --}}
+            <livewire:insight-card />
+
             {{-- THIS WEEK — average intake + trends vs previous week (brief §9.4). --}}
             <section class="space-y-3">
                 <div class="flex items-baseline justify-between px-1">

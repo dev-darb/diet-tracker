@@ -16,13 +16,23 @@ class AiInsightFactory extends Factory
         return [
             'user_id' => User::factory(),
             'insight_type' => 'weekly_focus',
-            'period_start' => now()->subDays(7)->toDateString(),
+            'period_start' => now()->subDays(6)->toDateString(),
             'period_end' => now()->toDateString(),
-            'title' => fake()->sentence(4),
-            'body' => fake()->paragraph(),
-            'structured_inputs' => ['avg_calories' => 2100],
-            'provider' => 'openrouter',
-            'model' => 'anthropic/claude-3.5-sonnet',
+            'title' => 'Fibre is your biggest opportunity this week',
+            'body' => 'You\'re averaging around 18g/day, below the general 30g guide.',
+            'priority' => 'high',
+            'focus_key' => 'fibre',
+            'structured_inputs' => ['weekly' => ['has_data' => true], 'pantry' => []],
+            'pantry_item_ids' => [],
+            'provider' => 'rule_based',
+            'model' => 'deterministic',
+            'dismissed_at' => null,
         ];
+    }
+
+    /** A dismissed insight (hidden for its period). */
+    public function dismissed(): self
+    {
+        return $this->state(fn () => ['dismissed_at' => now()]);
     }
 }

@@ -23,9 +23,13 @@ class AiInsight extends Model
         'period_end',
         'title',
         'body',
+        'priority',
+        'focus_key',
         'structured_inputs',
+        'pantry_item_ids',
         'provider',
         'model',
+        'dismissed_at',
     ];
 
     protected function casts(): array
@@ -34,7 +38,15 @@ class AiInsight extends Model
             'period_start' => 'date',
             'period_end' => 'date',
             'structured_inputs' => 'array',
+            'pantry_item_ids' => 'array',
+            'dismissed_at' => 'datetime',
         ];
+    }
+
+    /** Whether the user has dismissed this insight (hidden for its period). */
+    public function isDismissed(): bool
+    {
+        return $this->dismissed_at !== null;
     }
 
     /** @return BelongsTo<User, $this> */

@@ -51,6 +51,9 @@ new class extends Component
             @endif
         </div>
 
+        {{-- Your focus this week — the top AI (or deterministic) insight (brief §9.6). --}}
+        <livewire:insight-card />
+
         @if ($today['has_data'])
             {{-- Component indicators (brief §9.5): Good / OK / Low / Slightly high. --}}
             <div class="space-y-2">
