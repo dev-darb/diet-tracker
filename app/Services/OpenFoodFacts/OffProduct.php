@@ -68,7 +68,19 @@ final class OffProduct
         ];
     }
 
-    /** A single numeric nutriment, or null when OFF omits it (never fabricate 0). */
+    /**
+     * Largest per-100g nutrient value we will trust/store. The nutrient columns
+     * are decimal(8,2) (must round to < 10^6), and OFF is crowd-sourced with
+     * frequent data-entry errors (wrong units, stray digits). A value beyond any
+     * physically plausible per-100g figure is treated as unknown rather than
+     * stored — storing it would overflow Postgres and 500 the whole scan.
+     */
+    private const MAX_NUTRIENT = 100000.0;
+
+    /**
+     * A single numeric nutriment, or null when OFF omits it (never fabricate 0)
+     * or states an impossible value (out of range / negative → treated as unknown).
+     */
     public function nutriment(string $key): ?float
     {
         if (! array_key_exists($key, $this->nutriments)) {
@@ -77,7 +89,17 @@ final class OffProduct
 
         $value = $this->nutriments[$key];
 
-        return is_numeric($value) ? (float) $value : null;
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        $value = (float) $value;
+
+        if (! is_finite($value) || $value < 0.0 || $value > self::MAX_NUTRIENT) {
+            return null;
+        }
+
+        return $value;
     }
 
     private static function firstBrand(mixed $brands): ?string

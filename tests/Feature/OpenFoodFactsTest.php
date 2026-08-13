@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ServingBasis;
 use App\Enums\SourceType;
 use App\Models\CanonicalProduct;
+use App\Services\OpenFoodFacts\OffProduct;
 use App\Services\OpenFoodFacts\OpenFoodFactsClient;
 use App\Services\OpenFoodFacts\OpenFoodFactsImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -90,6 +91,26 @@ class OpenFoodFactsTest extends TestCase
         $this->assertSame('Mars', $product->brand); // first of the comma list
         $this->assertSame(497.0, $product->nutriment('energy-kcal_100g'));
         $this->assertNull($product->nutriment('fiber_100g')); // not stated
+    }
+
+    public function test_nutriment_rejects_out_of_range_or_negative_values(): void
+    {
+        // OFF is crowd-sourced and full of data-entry errors. The nutrient columns
+        // are decimal(8,2) (Postgres rejects >= 10^6), so an impossible per-100g
+        // value must be treated as unknown (null), never stored — otherwise a
+        // single bad product 500s the whole scan.
+        $product = OffProduct::fromApi('123', [
+            'product_name' => 'Bad data',
+            'nutriments' => [
+                'energy-kcal_100g' => 123456789, // absurd → null
+                'proteins_100g' => -5,           // negative → null
+                'salt_100g' => 1.2,              // valid → kept
+            ],
+        ]);
+
+        $this->assertNull($product->nutriment('energy-kcal_100g'));
+        $this->assertNull($product->nutriment('proteins_100g'));
+        $this->assertSame(1.2, $product->nutriment('salt_100g'));
     }
 
     public function test_client_returns_null_on_not_found(): void
