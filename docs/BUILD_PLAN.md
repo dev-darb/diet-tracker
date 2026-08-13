@@ -180,12 +180,19 @@ Each **Job** = one testable milestone with acceptance criteria (AC) and the brie
 
 ---
 
-## 8. Open decisions (don't block Milestones 0–1; needed by Milestone 2+)
+## 8. Decisions (LOCKED — confirmed by founder)
 
-- **D1 — Livewire 4 (starter-kit default) vs pin Livewire 3?** Recommendation: take the starter kit (Livewire 4) unless you want maximum battle-tested stability for the alpha.
-- **D2 — First AI provider/gateway.** Recommendation: **OpenRouter via Prism** (one key, model-swap by config → serves benchmarking §14). Alternatives: direct Anthropic/Gemini. Needed before Milestone 2.
-- **D3 — Open Food Facts as authoritative source?** Recommendation: **yes** (idea #2). If declined, Milestone 2 relies more heavily on LLM identification and Milestone 3 research runs more often.
-- **D4 — Internal API from day one?** Recommendation: **no** — keep services frontend-agnostic (they're the seam); add an API only when a second client appears (§21 Q4).
+- **D1 — Frontend: Livewire 4 (official starter kit).** ✅ Locked.
+- **D2 — First AI provider/gateway: OpenRouter via Prism** (one key, model-swap by config → serves benchmarking §14). ✅ Locked. Needed before Milestone 2.
+- **D3 — Open Food Facts as authoritative source: YES** (idea #2). ✅ Locked.
+- **D4 — Internal API from day one: NO** — services stay frontend-agnostic; add an API only when a second client appears (§21 Q4). ✅ Locked.
+
+---
+
+## 10. Progress log
+
+- **Milestone 0 — Foundation: ✅ COMPLETE** (`3430eda`). Official Livewire starter kit (Laravel 12.66, Livewire 4.4, Volt, Flux, Tailwind v4); PostgreSQL (`diet_tracker` DB, role `diet_user`) + Redis; auth loop, mobile shell (Home/Pantry/**Scan**/Eat/Health), 4-step onboarding, profile hub with real account deletion. Domain logic in `app/Services/ProfileService.php`; components thin. **38 tests passing.** Deviations from §5: post-auth landing renamed `dashboard`→`home`; added `onboarding_completed_at` to gate onboarding. See `docs/FOUNDATION_NOTES.md`.
+- **Push status:** blocked — session has read-only GitHub access to `dev-darb/diet-tracker`. Awaiting write (Contents: read & write) grant on the Claude GitHub App; all work committed locally meanwhile.
 
 ---
 
