@@ -71,20 +71,45 @@ new class extends Component
     public function analyze(ProductIdentifier $identifier, ProductResolver $resolver): void
     {
         $this->resetValidation();
-        // Photos are downscaled to JPEG on-device before upload, so this stays small;
-        // the ceiling is generous only for the rare original-file fallback.
-        $this->validate(['photo' => ['required', 'image', 'max:12288']]);
-
-        // Store the capture on the local public disk (retention policy is M8).
-        $this->imagePath = $this->photo->store('scans', 'public');
 
         $barcode = trim($this->detectedBarcode) ?: null;
+
+        // The barcode is read on-device, so a barcode scan needs NO uploaded image
+        // (the stored photo is only an audit artefact) — this keeps the keyless
+        // fast path working even when the browser file upload is unavailable. The
+        // photo -> AI path, by contrast, genuinely needs the image.
+        if ($barcode === null) {
+            // Downscaled to JPEG on-device before upload, so this stays small; the
+            // ceiling is generous only for the rare original-file fallback.
+            $this->validate(['photo' => ['required', 'image', 'max:12288']]);
+        } elseif ($this->photo !== null) {
+            $this->validate(['photo' => ['image', 'max:12288']]);
+        }
+
+        // Store the capture for the audit trail when we actually have one (best
+        // effort — a storage hiccup must never sink a valid barcode scan).
+        if ($this->photo !== null) {
+            try {
+                $this->imagePath = $this->photo->store('scans', 'public');
+            } catch (Throwable $e) {
+                report($e);
+                $this->imagePath = null;
+            }
+        }
+
         $meta = [];
 
         if ($barcode !== null) {
             // Fast path: deterministic barcode -> OFF, no AI cost (idea #1, §7.15).
             $detected = IdentifiedProduct::fromArray(['barcode' => $barcode, 'confidence' => 1.0]);
         } else {
+            // Photo path needs the stored image; if storage failed, degrade gracefully.
+            if ($this->imagePath === null) {
+                $this->step = 'ai_unavailable';
+
+                return;
+            }
+
             // Photo path: multimodal AI identification (needs a provider key).
             try {
                 $detected = $identifier->identify(ProductImage::fromStoragePath($this->imagePath, 'public'));
@@ -243,21 +268,43 @@ new class extends Component
                 <div class="space-y-4"
                      x-data="{
                         preview: null,
+                        reading: false,
+                        barcodeFound: false,
+                        barcode: '',
                         uploading: false,
                         uploaded: false,
                         progress: 0,
                         uploadError: null,
                         async handle(event) {
                             const file = event.target.files[0];
+                            this.preview = null;
+                            this.reading = false;
+                            this.barcodeFound = false;
+                            this.barcode = '';
+                            this.uploading = false;
                             this.uploaded = false;
-                            this.uploadError = null;
                             this.progress = 0;
-                            $wire.set('detectedBarcode', '');
-                            if (!file) { this.preview = null; return; }
+                            this.uploadError = null;
+                            if (!file) { return; }
                             this.preview = URL.createObjectURL(file);
+
+                            // 1) Read a barcode on-device. If found, the keyless Open Food Facts
+                            //    lookup needs NO file upload — so this path works even when the
+                            //    browser upload is unavailable.
                             if (window.detectBarcode) {
-                                window.detectBarcode(file).then(code =&gt; { if (code) $wire.set('detectedBarcode', code); }).catch(() =&gt; {});
+                                this.reading = true;
+                                let code = null;
+                                try {
+                                    code = await Promise.race([
+                                        window.detectBarcode(file),
+                                        new Promise((r) =&gt; setTimeout(() =&gt; r(null), 8000)),
+                                    ]);
+                                } catch (_) {}
+                                this.reading = false;
+                                if (code) { this.barcode = code; this.barcodeFound = true; return; }
                             }
+
+                            // 2) No barcode → the photo itself must be uploaded for AI identification.
                             this.uploading = true;
                             try {
                                 const upload = window.downscaleImage ? await window.downscaleImage(file) : file;
@@ -265,16 +312,16 @@ new class extends Component
                                 const watchdog = setTimeout(() =&gt; {
                                     if (done) return;
                                     this.uploading = false;
-                                    this.uploadError = 'Upload timed out (stuck before finishing). Tell me you saw this — meanwhile you can add the product manually below.';
+                                    this.uploadError = 'Photo upload timed out. Add the product manually below, or scan its barcode (which needs no upload).';
                                 }, 20000);
                                 $wire.upload('photo', upload,
                                     () =&gt; { done = true; clearTimeout(watchdog); this.uploading = false; this.uploaded = true; },
-                                    (message) =&gt; { done = true; clearTimeout(watchdog); this.uploading = false; this.uploadError = 'Server rejected the photo' + (message ? ' (' + message + ')' : '') + '. Add the product manually below, or tell me this message.'; },
+                                    (message) =&gt; { done = true; clearTimeout(watchdog); this.uploading = false; this.uploadError = 'Photo upload was rejected' + (message ? ' (' + message + ')' : '') + '. Add manually below, or scan the barcode instead.'; },
                                     (e) =&gt; { this.progress = (e &amp;&amp; e.detail) ? e.detail.progress : this.progress; }
                                 );
                             } catch (err) {
                                 this.uploading = false;
-                                this.uploadError = 'Upload error: ' + (err &amp;&amp; err.message ? err.message : err) + ' — please tell me this message.';
+                                this.uploadError = 'Photo upload error: ' + (err &amp;&amp; err.message ? err.message : err);
                             }
                         }
                      }">
@@ -300,14 +347,22 @@ new class extends Component
 
                     @error('photo') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
 
-                    @if ($detectedBarcode !== '')
-                        <div class="flex items-center gap-2 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700">
-                            <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5v15m3-15v15m3-15v15m4.5-15v15m3-15v15" /></svg>
-                            <span>Barcode detected on-device — <span class="font-semibold tabular-nums">{{ $detectedBarcode }}</span></span>
-                        </div>
-                    @endif
+                    {{-- Reading a barcode on-device (this path needs no upload). --}}
+                    <div x-show="reading" x-cloak class="flex items-center gap-2 text-sm text-zinc-500">
+                        <svg class="size-4 animate-spin text-emerald-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Reading barcode…
+                    </div>
 
-                    {{-- Upload progress. Phone photos are downscaled on-device first, then uploaded, so this is quick. --}}
+                    {{-- Barcode found → keyless Open Food Facts lookup, no upload required. --}}
+                    <div x-show="barcodeFound" x-cloak class="flex items-center gap-2 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700">
+                        <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5v15m3-15v15m3-15v15m4.5-15v15m3-15v15" /></svg>
+                        <span>Barcode detected on-device — <span class="font-semibold tabular-nums" x-text="barcode"></span></span>
+                    </div>
+
+                    {{-- Photo upload — only the AI photo path needs this; the barcode path skips it. --}}
                     <div x-show="uploading" x-cloak class="space-y-1.5">
                         <div class="flex items-center justify-between text-xs text-zinc-500">
                             <span>Uploading photo…</span>
@@ -318,9 +373,10 @@ new class extends Component
                         </div>
                     </div>
 
-                    <p x-show="uploadError" x-cloak class="text-xs text-red-600" x-text="uploadError"></p>
+                    <p x-show="uploadError" x-cloak class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600" x-text="uploadError"></p>
 
-                    <button type="button" x-show="uploaded" x-cloak wire:click="analyze"
+                    <button type="button" x-show="barcodeFound || uploaded" x-cloak
+                            x-on:click="$wire.set('detectedBarcode', barcode).then(() =&gt; $wire.analyze())"
                             class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
                         Identify product
                     </button>

@@ -112,6 +112,29 @@ class ScanFlowTest extends TestCase
         Storage::disk('public')->assertExists($job->uploaded_image_path);
     }
 
+    public function test_barcode_path_works_without_an_uploaded_photo(): void
+    {
+        // The browser file upload can be unavailable (e.g. blocked temp-upload
+        // endpoint); a barcode read on-device must still resolve with no image.
+        $this->fakeOff([
+            'code' => '5000159407236',
+            'product_name' => 'Snickers',
+            'brands' => 'Mars',
+            'nutriments' => ['energy-kcal_100g' => 497, 'proteins_100g' => 9.4],
+        ]);
+
+        Volt::actingAs($this->user)->test('scan')
+            ->set('detectedBarcode', '5000159407236')
+            ->call('analyze')
+            ->assertHasNoErrors()
+            ->assertSet('step', 'confirm')
+            ->assertSee('Snickers');
+
+        $job = ProductResolutionJob::latest('id')->first();
+        $this->assertSame('matched_barcode', $job->status);
+        $this->assertNull($job->uploaded_image_path);
+    }
+
     // --- 2. Photo path with a faked identifier -----------------------------
 
     public function test_photo_path_identifies_confirms_and_adds_to_pantry(): void
