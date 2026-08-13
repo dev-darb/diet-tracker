@@ -91,4 +91,82 @@ class NutrientValuesTest extends TestCase
         $this->assertNotSame($v, $v->add(NutrientValues::zero()));
         $this->assertSame(100.0, $v->calories);
     }
+
+    // --- Unknown vs zero (Milestone 2, brief §2.1) --------------------------
+
+    public function test_from_array_present_null_is_unknown_absent_is_zero(): void
+    {
+        $v = NutrientValues::fromArray([
+            'calories' => 250,
+            'fibre' => null,   // present but not stated → unknown
+            // 'salt' absent → known zero (backward compatible)
+        ]);
+
+        $this->assertSame(250.0, $v->calories);
+        $this->assertNull($v->fibre);
+        $this->assertSame(0.0, $v->salt);
+    }
+
+    public function test_explicit_null_nutrient_is_unknown(): void
+    {
+        $v = new NutrientValues(calories: 100, fibre: null, salt: null);
+
+        $this->assertFalse($v->isKnown('fibre'));
+        $this->assertTrue($v->isKnown('calories'));
+        $this->assertFalse($v->isComplete());
+        $this->assertSame(['fibre', 'salt'], $v->unknownKeys());
+    }
+
+    public function test_scale_preserves_unknowns_and_never_fabricates_zero(): void
+    {
+        $v = new NutrientValues(calories: 400, fibre: null);
+
+        $scaled = $v->scale(0.5);
+
+        $this->assertSame(200.0, $scaled->calories);
+        $this->assertNull($scaled->fibre);
+    }
+
+    public function test_rounding_preserves_unknowns(): void
+    {
+        $v = new NutrientValues(calories: 33.333, salt: null);
+
+        $rounded = $v->rounded(2);
+
+        $this->assertSame(33.33, $rounded->calories);
+        $this->assertNull($rounded->salt);
+    }
+
+    public function test_add_propagates_unknowns(): void
+    {
+        $known = new NutrientValues(calories: 100, fibre: 5, salt: 1);
+        $partial = new NutrientValues(calories: 50, fibre: null, salt: 0.5);
+
+        $sum = $known->add($partial);
+
+        $this->assertSame(150.0, $sum->calories); // both known → summed
+        $this->assertNull($sum->fibre);           // one unknown → total unknown
+        $this->assertSame(1.5, $sum->salt);
+    }
+
+    public function test_known_zero_is_distinct_from_unknown(): void
+    {
+        $knownZero = new NutrientValues(fibre: 0.0);
+        $unknown = new NutrientValues(fibre: null);
+
+        $this->assertSame(0.0, $knownZero->fibre);
+        $this->assertTrue($knownZero->isKnown('fibre'));
+        $this->assertNull($unknown->fibre);
+        $this->assertFalse($unknown->isKnown('fibre'));
+    }
+
+    public function test_to_array_exports_unknowns_as_null(): void
+    {
+        $v = new NutrientValues(calories: 200, fibre: null);
+
+        $array = $v->toArray();
+
+        $this->assertSame(200.0, $array['calories']);
+        $this->assertNull($array['fibre']);
+    }
 }

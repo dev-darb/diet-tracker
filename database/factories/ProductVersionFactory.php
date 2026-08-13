@@ -45,4 +45,14 @@ class ProductVersionFactory extends Factory
     {
         return $this->state(fn () => ['status' => $status]);
     }
+
+    /**
+     * A version with some nutrients "not stated" (null/unknown) — the shape Open
+     * Food Facts routinely returns (brief §2.1). Fibre and salt are the usual
+     * omissions.
+     */
+    public function withUnknownNutrients(array $unknown = ['fibre', 'salt']): static
+    {
+        return $this->state(fn () => array_fill_keys($unknown, null));
+    }
 }

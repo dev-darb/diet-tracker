@@ -232,4 +232,36 @@ class NutritionCalculatorTest extends TestCase
 
         $this->assertSame(10.0, $total->calories); // 3 × (10/3)g × 1 kcal/g
     }
+
+    // --- Unknown nutrients (brief §2.1) ------------------------------------
+
+    public function test_contribution_keeps_unknown_nutrients_unknown(): void
+    {
+        // A product whose fibre/salt OFF never stated.
+        $per100 = new NutrientValues(calories: 400, protein: 8, fibre: null, salt: null);
+
+        $c = $this->calc->contribution($per100, ServingBasis::Per100g, null, 150, QuantityUnit::Gram);
+
+        $this->assertSame(600.0, $c->calories);
+        $this->assertSame(12.0, $c->protein);
+        $this->assertNull($c->fibre); // never fabricated to 0
+        $this->assertNull($c->salt);
+    }
+
+    public function test_meal_total_is_unknown_for_a_nutrient_any_component_lacks(): void
+    {
+        $known = $this->calc->contribution(
+            new NutrientValues(calories: 200, fibre: 3),
+            ServingBasis::Per100g, null, 100, QuantityUnit::Gram,
+        );
+        $partial = $this->calc->contribution(
+            new NutrientValues(calories: 150, fibre: null),
+            ServingBasis::Per100g, null, 100, QuantityUnit::Gram,
+        );
+
+        $total = $this->calc->sum([$known, $partial])->rounded(2);
+
+        $this->assertSame(350.0, $total->calories); // both known → summed honestly
+        $this->assertNull($total->fibre);           // one unknown → total unknown, not understated
+    }
 }

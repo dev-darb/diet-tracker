@@ -19,6 +19,13 @@ use InvalidArgumentException;
  * intermediate step; callers round once at the edge (persist/present) via
  * {@see NutrientValues::rounded()}. Nothing here rounds internally, so
  * conversions and sums never drift.
+ *
+ * Unknown nutrients (brief §2.1): a nutrient may be `null` ("not stated" — Open
+ * Food Facts and label OCR routinely omit fibre/salt). This engine never
+ * fabricates 0 for an unknown; the null propagates through {@see NutrientValues}
+ * (scaling/summing an unknown stays unknown), so a total that includes a product
+ * with an unstated nutrient reports that nutrient as unknown rather than
+ * understated.
  */
 class NutritionCalculator
 {

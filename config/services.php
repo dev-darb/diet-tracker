@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    /*
+    | Open Food Facts (BUILD_PLAN D3, idea #2; brief §7.5). Keyless, but the API
+    | REQUIRES a descriptive User-Agent identifying the app. Used as the
+    | authoritative barcode → nutrition source before any LLM (§2.1).
+    */
+    'open_food_facts' => [
+        'base_url' => env('OFF_BASE_URL', 'https://world.openfoodfacts.org'),
+        'user_agent' => env('OFF_USER_AGENT', 'DietTracker/0.1 (alpha; contact via github dev-darb/diet-tracker)'),
+        'timeout' => (int) env('OFF_TIMEOUT', 10),
+    ],
+
 ];
