@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ProductVerificationStatus;
+use App\Enums\ServingBasis;
 use App\Models\CanonicalProduct;
 use App\Models\PantryItem;
 use App\Models\ProductVersion;
@@ -65,6 +66,42 @@ class PantryNutritionService
         }
 
         return $this->nutritionFor($item, $version, $quantity);
+    }
+
+    /**
+     * A representative nutrition figure for a product that is NOT yet in a
+     * pantry — the Scan "Is this right?" confirmation (brief §7.6). Prefers a
+     * per-serving figure when the current version states a serving size,
+     * otherwise the version's own basis (per 100g/ml). Returns null when the
+     * product has no usable version. All arithmetic goes through
+     * {@see NutritionCalculator}; unknown nutrients stay null (never fabricated).
+     *
+     * @return array{values: NutrientValues, basis_label: string}|null
+     */
+    public function productSummary(CanonicalProduct $product): ?array
+    {
+        $version = $this->currentVersion($product);
+
+        if ($version === null) {
+            return null;
+        }
+
+        $values = NutrientValues::fromArray($version->only(NutrientValues::KEYS));
+        $serving = $version->serving_size_value !== null ? (float) $version->serving_size_value : null;
+
+        if ($serving !== null && $serving > 0.0) {
+            $unit = $version->serving_size_unit ?: 'g';
+
+            return [
+                'values' => $this->calculator->convertBasis($values, $version->serving_basis, ServingBasis::PerServing, $serving),
+                'basis_label' => 'per serving ('.rtrim(rtrim(number_format($serving, 3, '.', ''), '0'), '.').$unit.')',
+            ];
+        }
+
+        return [
+            'values' => $values,
+            'basis_label' => $version->serving_basis === ServingBasis::Per100g ? 'per 100g / 100ml' : 'per serving',
+        ];
     }
 
     private function nutritionFor(PantryItem $item, ProductVersion $version, float $quantity): ?NutrientValues

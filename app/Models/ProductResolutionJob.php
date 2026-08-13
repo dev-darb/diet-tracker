@@ -18,6 +18,7 @@ class ProductResolutionJob extends Model
 
     protected $fillable = [
         'user_id',
+        'uploaded_image_path',
         'detected_fields',
         'detection_confidence',
         'matched_product_id',
@@ -25,6 +26,8 @@ class ProductResolutionJob extends Model
         'model_provider',
         'model_name',
         'latency_ms',
+        'user_correction',
+        'corrected_at',
     ];
 
     protected function casts(): array
@@ -33,6 +36,8 @@ class ProductResolutionJob extends Model
             'detected_fields' => 'array',
             'detection_confidence' => 'decimal:3',
             'latency_ms' => 'integer',
+            'user_correction' => 'array',
+            'corrected_at' => 'datetime',
         ];
     }
 

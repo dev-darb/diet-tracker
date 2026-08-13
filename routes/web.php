@@ -21,7 +21,8 @@ Route::middleware(['auth'])->group(function () {
         Volt::route('pantry', 'pantry')->name('pantry');
         Volt::route('pantry/{pantryItem}', 'pantry-item')->name('pantry.item');
 
-        Route::view('scan', 'scan')->name('scan');
+        // Scan — capture -> on-device barcode -> resolve -> confirm -> quantity -> pantry (J2.5).
+        Volt::route('scan', 'scan')->name('scan');
         Route::view('eat', 'eat')->name('eat');
         Route::view('health', 'health')->name('health');
 
