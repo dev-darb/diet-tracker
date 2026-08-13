@@ -61,6 +61,14 @@ return [
                 'x_title' => env('OPENROUTER_SITE_X_TITLE', null),
             ],
         ],
+        // Vercel AI Gateway (OpenAI-compatible). Selected app-wide by
+        // AI_GATEWAY=vercel; registered as a custom Prism provider in
+        // AiServiceProvider::boot() that reuses Prism's OpenAI provider pointed
+        // at this URL with Bearer auth. Same `creator/model` format as OpenRouter.
+        'vercel' => [
+            'api_key' => env('AI_GATEWAY_API_KEY', ''),
+            'url' => env('AI_GATEWAY_URL', 'https://ai-gateway.vercel.sh/v1'),
+        ],
         'perplexity' => [
             'api_key' => env('PERPLEXITY_API_KEY', ''),
             'url' => env('PERPLEXITY_URL', 'https://api.perplexity.ai'),

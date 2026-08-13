@@ -45,8 +45,10 @@ Laravel Cloud auto-injects `DB_*` and `REDIS_*` from the resources you provision
 | `OFF_BASE_URL` | `https://world.openfoodfacts.org` | Default; keyless. |
 | `OFF_USER_AGENT` | `DietTracker/0.1 (alpha; contact dev-darb)` | OFF requires a descriptive UA. |
 | `MAIL_MAILER` | `log` | Password-reset emails are only logged until a real mailer is set (see note). |
-| `OPENROUTER_API_KEY` | *(optional, later)* | Enables live photo identification (Part D). |
-| `AI_PRODUCT_IDENTIFIER_MODEL` | `openai/gpt-4o-mini` | Optional; swap to benchmark models (brief §14). |
+| `AI_GATEWAY` | `openrouter` | Selects the AI gateway all capabilities use: `openrouter` (default) or `vercel` (Part D). |
+| `OPENROUTER_API_KEY` | *(optional, later)* | Live photo identification when `AI_GATEWAY=openrouter` (Part D). |
+| `AI_GATEWAY_API_KEY` | *(optional, later)* | Live photo identification when `AI_GATEWAY=vercel` (Vercel AI Gateway, Part D). |
+| `AI_PRODUCT_IDENTIFIER_MODEL` | `openai/gpt-4o-mini` | Optional; swap to benchmark models (brief §14). Same `creator/model` format on both gateways. |
 
 **Mail note:** with `MAIL_MAILER=log`, "forgot password" links are written to logs, not delivered. For real reset emails, add a mail provider (Resend/Postmark/Mailgun) and set `MAIL_*`. Not required to test the core loop.
 
@@ -61,15 +63,28 @@ Laravel Cloud auto-detects Laravel and normally runs these. If you set them manu
 
 ---
 
-## Part D — OpenRouter key (optional, for live photo identification)
+## Part D — AI gateway key (optional, for live photo identification)
 
-Barcode scanning + manual add work with **no key**. To enable photo→AI identification:
+Barcode scanning + manual add work with **no key**. The AI gateway is env-selectable
+via a single switch, `AI_GATEWAY` (default `openrouter`); both gateways are
+OpenAI-style and share the same `creator/model` id format, so only the key differs.
+
+**Option 1 — OpenRouter (default, `AI_GATEWAY=openrouter`):**
 
 1. Get a key at **https://openrouter.ai** → Keys → Create Key (`sk-or-...`), add a little credit.
 2. Set `OPENROUTER_API_KEY` in Laravel Cloud env vars → redeploy (or just save; Cloud restarts).
-3. (Optional) set `AI_PRODUCT_IDENTIFIER_MODEL` to try different models.
 
-Without it, the photo path degrades gracefully to "scan the barcode or add manually" — never an error.
+**Option 2 — Vercel AI Gateway (`AI_GATEWAY=vercel`):**
+
+1. Create an API key in the **Vercel AI Gateway** dashboard.
+2. Set `AI_GATEWAY=vercel` and `AI_GATEWAY_API_KEY` in Laravel Cloud env vars → redeploy.
+   (Requests then go to `https://ai-gateway.vercel.sh/v1`.)
+
+Either way, (optional) set `AI_PRODUCT_IDENTIFIER_MODEL` to try different models.
+
+With **no** key set for the selected gateway, the photo path degrades gracefully to
+"scan the barcode or add manually" and weekly insights fall back to the deterministic
+rule-based generator — never an error.
 
 ---
 

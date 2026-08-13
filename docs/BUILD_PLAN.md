@@ -183,7 +183,7 @@ Each **Job** = one testable milestone with acceptance criteria (AC) and the brie
 ## 8. Decisions (LOCKED — confirmed by founder)
 
 - **D1 — Frontend: Livewire 4 (official starter kit).** ✅ Locked.
-- **D2 — First AI provider/gateway: OpenRouter via Prism** (one key, model-swap by config → serves benchmarking §14). ✅ Locked. Needed before Milestone 2.
+- **D2 — AI gateway: env-selectable via Prism (OpenRouter default, Vercel optional)** (one key, model-swap by config → serves benchmarking §14). ✅ Locked. Needed before Milestone 2. **Now gateway-agnostic:** a single switch `AI_GATEWAY=openrouter|vercel` selects the Prism provider (and its base URL + key) for ALL capabilities — `openrouter` uses `OPENROUTER_API_KEY`, `vercel` uses `AI_GATEWAY_API_KEY` against `https://ai-gateway.vercel.sh/v1`. Both are OpenAI-style, same `creator/model` ids. Vercel is registered as a custom Prism provider (`PrismManager::extend`, reusing Prism's OpenAI provider); domain code is untouched and reads only `config('ai.*')`.
 - **D3 — Open Food Facts as authoritative source: YES** (idea #2). ✅ Locked.
 - **D4 — Internal API from day one: NO** — services stay frontend-agnostic; add an API only when a second client appears (§21 Q4). ✅ Locked.
 
@@ -201,7 +201,7 @@ Each **Job** = one testable milestone with acceptance criteria (AC) and the brie
 - **Milestone 6 — Health analytics: ✅ COMPLETE** (`ff78059`). `NutritionAnalyticsService` (daily + rolling 7-day + trend deltas + component indicators, honest unknown handling), Home/Today + Health/Weekly UI with inline-SVG sparklines. 182 tests.
 - **Milestone 7 — AI Insights: ✅ COMPLETE** (`9900342`). `DietInsightGenerator` with a deterministic **rule-based default** (works with no key) + Prism LLM upgrade; pantry-aware "Your focus this week" card (Why / Show me / Dismiss); cached per week, queue-ready. **207 tests.** **§18 acceptance loop is now structurally closed.**
 - **Deployment: ✅ LIVE on Laravel Cloud** (founder-provisioned Serverless Postgres 18 + Valkey cache; branch auto-deploys). Live photo-AI still needs `OPENROUTER_API_KEY`; barcode + rule-based insights work keyless.
-- **D2 revisited — gateway-agnostic:** Vercel AI Gateway is an option (OpenAI-compatible, same `creator/model` format); switching gateways is config/env only. Plan: make the gateway env-selectable (`AI_GATEWAY=openrouter|vercel`) to also serve §14 benchmarking.
+- **D2 revisited — gateway-agnostic: ✅ DONE.** The gateway is env-selectable via a single switch `AI_GATEWAY=openrouter|vercel` (default `openrouter`); it resolves the Prism provider + base URL + key for every capability with **no domain-code changes** (only `config/ai.php`, `config/prism.php`, `AiServiceProvider`). Vercel AI Gateway (OpenAI-compatible, `https://ai-gateway.vercel.sh/v1`, `AI_GATEWAY_API_KEY`) is registered as a custom Prism provider via `PrismManager::extend`, reusing Prism's OpenAI provider. Key-absent grace holds for whichever gateway is selected. Also serves §14 benchmarking.
 - **Remaining:** M5 (meal builder), M3 (unknown-product research), M8 (alpha hardening: S3 image persistence, queue worker, cost/latency, Safari QA, merge/alias tooling). Known gap: OFF importer leaves `category` null, so fruit&veg + category-based insights read "unknown" on real data until categories are populated (candidate for M8/M3).
 
 ---
