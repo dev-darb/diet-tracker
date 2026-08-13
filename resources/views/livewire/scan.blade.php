@@ -259,12 +259,23 @@ new class extends Component
                                 window.detectBarcode(file).then(code =&gt; { if (code) $wire.set('detectedBarcode', code); }).catch(() =&gt; {});
                             }
                             this.uploading = true;
-                            const upload = window.downscaleImage ? await window.downscaleImage(file) : file;
-                            $wire.upload('photo', upload,
-                                () =&gt; { this.uploading = false; this.uploaded = true; },
-                                () =&gt; { this.uploading = false; this.uploadError = 'That photo could not be uploaded — it may be too large or an unsupported format. Try again, or add the product manually below.'; },
-                                (e) =&gt; { this.progress = e.detail.progress; }
-                            );
+                            try {
+                                const upload = window.downscaleImage ? await window.downscaleImage(file) : file;
+                                let done = false;
+                                const watchdog = setTimeout(() =&gt; {
+                                    if (done) return;
+                                    this.uploading = false;
+                                    this.uploadError = 'Upload timed out (stuck before finishing). Tell me you saw this — meanwhile you can add the product manually below.';
+                                }, 20000);
+                                $wire.upload('photo', upload,
+                                    () =&gt; { done = true; clearTimeout(watchdog); this.uploading = false; this.uploaded = true; },
+                                    (message) =&gt; { done = true; clearTimeout(watchdog); this.uploading = false; this.uploadError = 'Server rejected the photo' + (message ? ' (' + message + ')' : '') + '. Add the product manually below, or tell me this message.'; },
+                                    (e) =&gt; { this.progress = (e &amp;&amp; e.detail) ? e.detail.progress : this.progress; }
+                                );
+                            } catch (err) {
+                                this.uploading = false;
+                                this.uploadError = 'Upload error: ' + (err &amp;&amp; err.message ? err.message : err) + ' — please tell me this message.';
+                            }
                         }
                      }">
                     <label class="block cursor-pointer">
