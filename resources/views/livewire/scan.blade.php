@@ -308,10 +308,13 @@ new class extends Component
                             this.uploadError = null;
                             if (!file) { return; }
                             this.preview = URL.createObjectURL(file);
+                            // Clear any barcode from a previous scan on the server.
+                            $wire.set('detectedBarcode', '');
 
                             // 1) Read a barcode on-device. If found, the keyless Open Food Facts
                             //    lookup needs NO file upload — so this path works even when the
-                            //    browser upload is unavailable.
+                            //    browser upload is unavailable. Persist it to the server now so a
+                            //    plain wire:click on the button can resolve it.
                             if (window.detectBarcode) {
                                 this.reading = true;
                                 let code = null;
@@ -322,7 +325,7 @@ new class extends Component
                                     ]);
                                 } catch (_) {}
                                 this.reading = false;
-                                if (code) { this.barcode = code; this.barcodeFound = true; return; }
+                                if (code) { this.barcode = code; this.barcodeFound = true; $wire.set('detectedBarcode', code); return; }
                             }
 
                             // 2) No barcode → the photo itself must be uploaded for AI identification.
@@ -397,7 +400,7 @@ new class extends Component
                     <p x-show="uploadError" x-cloak class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600" x-text="uploadError"></p>
 
                     <button type="button" x-show="barcodeFound || uploaded" x-cloak
-                            x-on:click="$wire.detectedBarcode = barcode; $wire.analyze()"
+                            wire:click="analyze"
                             class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
                         Identify product
                     </button>
