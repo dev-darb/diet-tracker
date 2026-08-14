@@ -35,6 +35,8 @@ use Illuminate\Support\Collection;
  */
 class NutritionAnalyticsService
 {
+    public function __construct(private readonly NutritionTargetsService $targets) {}
+
     /** Window length for the "This week" horizon (brief §9.2 — Today + 7-day Week for MVP). */
     public const WEEK_DAYS = 7;
 
@@ -116,6 +118,7 @@ class NutritionAnalyticsService
     public function dailySummary(User $user, ?Carbon $date = null): array
     {
         $day = CarbonImmutable::parse($date ?? now())->startOfDay();
+        $targets = $this->targets->targetsFor($user);
         $days = $this->collectDays($user, $day, $day->endOfDay());
         $agg = $days[$day->toDateString()] ?? null;
 
@@ -137,7 +140,8 @@ class NutritionAnalyticsService
             'totals' => ($total ?? NutrientValues::zero())->toArray(1),
             'unknown_nutrients' => $total?->unknownKeys() ?? [],
             'food_variety' => (int) ($agg['variety'] ?? 0),
-            'indicators' => $this->buildIndicators($indicatorValues, self::FOOD_VARIETY_TARGET_DAILY),
+            'indicators' => $this->buildIndicators($indicatorValues, self::FOOD_VARIETY_TARGET_DAILY, $targets),
+            'targets' => $targets,
         ];
     }
 
@@ -165,6 +169,7 @@ class NutritionAnalyticsService
     public function weeklySummary(User $user, ?Carbon $endDate = null): array
     {
         $end = CarbonImmutable::parse($endDate ?? now())->startOfDay();
+        $targets = $this->targets->targetsFor($user);
         $currentStart = $end->subDays(self::WEEK_DAYS - 1);
         $previousStart = $currentStart->subDays(self::WEEK_DAYS);
         $previousEnd = $currentStart->subDay();
@@ -221,7 +226,8 @@ class NutritionAnalyticsService
                 'known' => $fruitVeg['known'],
                 'portions_per_day' => $fruitVeg['known'] ? $fruitVeg['portions_per_day'] : null,
             ],
-            'indicators' => $this->buildIndicators($indicatorValues, self::FOOD_VARIETY_TARGET_WEEKLY),
+            'indicators' => $this->buildIndicators($indicatorValues, self::FOOD_VARIETY_TARGET_WEEKLY, $targets),
+            'targets' => $targets,
             'sparklines' => [
                 'calories' => $this->series($all, $currentDates, 'calories'),
                 'protein' => $this->series($all, $currentDates, 'protein'),
@@ -355,19 +361,24 @@ class NutritionAnalyticsService
      * (brief §9.5). Food variety uses the supplied window target.
      *
      * @param  array<string, float|null>  $values
-     * @return array<int, array{key: string, label: string, band: string, value: float|null, target: float, unit: string, direction: string, known: bool}>
+     * @param  array<string, array{target: float, unit: string, direction: string, label: string, basis: string, personalised: bool}>  $targets
+     * @return array<int, array{key: string, label: string, band: string, value: float|null, target: float, unit: string, direction: string, known: bool, basis: string, personalised: bool}>
      */
-    private function buildIndicators(array $values, float $foodVarietyTarget): array
+    private function buildIndicators(array $values, float $foodVarietyTarget, array $targets): array
     {
         $indicators = [];
 
         foreach (self::INDICATOR_ORDER as $key) {
             if ($key === 'food_variety') {
-                $target = $foodVarietyTarget;
-                $meta = ['unit' => 'foods', 'direction' => 'higher', 'label' => 'Food variety'];
+                $meta = [
+                    'target' => $foodVarietyTarget, 'unit' => 'foods', 'direction' => 'higher',
+                    'label' => 'Food variety', 'basis' => 'App guidance: distinct foods over the window', 'personalised' => false,
+                ];
             } else {
-                $meta = self::REFERENCE_TARGETS[$key];
-                $target = $meta['target'];
+                // Per-user targets (NutritionTargetsService): personalised where
+                // the profile allows, citable population guidance otherwise —
+                // each carrying its receipt for the UI.
+                $meta = $targets[$key];
             }
 
             $value = $values[$key] ?? null;
@@ -375,12 +386,14 @@ class NutritionAnalyticsService
             $indicators[] = [
                 'key' => $key,
                 'label' => $meta['label'],
-                'band' => $this->band($value, $target, $meta['direction']),
+                'band' => $this->band($value, $meta['target'], $meta['direction']),
                 'value' => $value,
-                'target' => $target,
+                'target' => $meta['target'],
                 'unit' => $meta['unit'],
                 'direction' => $meta['direction'],
                 'known' => $value !== null,
+                'basis' => $meta['basis'],
+                'personalised' => $meta['personalised'],
             ];
         }
 

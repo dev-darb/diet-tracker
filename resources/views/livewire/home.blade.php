@@ -44,9 +44,13 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                 <span class="data-md text-ink-dim">KCAL</span>
             </p>
 
-            {{-- Calibrated scale, 0–2500 kcal; the marker is the day's reading. --}}
-            @php($frac = $kcal !== null ? min(max((float) $kcal, 0) / 2500, 1) : null)
-            <div class="mt-4" role="img" aria-label="{{ $kcal !== null ? 'Scale reading '.number_format((float) $kcal).' of 2500 kilocalories' : 'Scale idle' }}">
+            {{-- Calibrated to YOUR daily calorie target (NutritionTargetsService):
+                 personalised via Mifflin-St Jeor when the profile allows, cited
+                 NHS guidance otherwise. The marker is the day's reading. --}}
+            @php($calorieTarget = $today['targets']['calories'] ?? null)
+            @php($scaleMax = (float) ($calorieTarget['target'] ?? 2500))
+            @php($frac = $kcal !== null ? min(max((float) $kcal, 0) / $scaleMax, 1) : null)
+            <div class="mt-4" role="img" aria-label="{{ $kcal !== null ? 'Scale reading '.number_format((float) $kcal).' of your '.number_format($scaleMax).' kilocalorie target' : 'Scale idle' }}">
                 <svg viewBox="0 0 100 8" preserveAspectRatio="none" class="h-4 w-full" aria-hidden="true">
                     @for ($i = 0; $i <= 50; $i++)
                         <line x1="{{ $i * 2 }}" y1="{{ $i % 5 === 0 ? 0.5 : 2.5 }}" x2="{{ $i * 2 }}" y2="7.5"
@@ -57,7 +61,10 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                     @endif
                 </svg>
                 <div class="data-micro flex justify-between text-ink-faint">
-                    <span>0</span><span>2500</span>
+                    <span>0</span>
+                    <span title="{{ $calorieTarget['basis'] ?? '' }}">
+                        {{ number_format($scaleMax, 0, '', '') }}{{ ($calorieTarget['personalised'] ?? false) ? ' · YOURS' : '' }}
+                    </span>
                 </div>
             </div>
 
