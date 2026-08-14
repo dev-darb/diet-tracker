@@ -267,6 +267,58 @@
      "item": 500,
      "base": 400
     }
+   },
+   "voice-display": {
+    "displayName": "voice-display",
+    "purpose": "The stamp voice \u2014 earned-win banners only."
+   },
+   "voice-title": {
+    "displayName": "voice-title",
+    "purpose": "Screen titles at variable weight 550."
+   },
+   "voice-item": {
+    "displayName": "voice-item",
+    "purpose": "Entity names: products, insight titles, state headings."
+   },
+   "voice-body": {
+    "displayName": "voice-body",
+    "purpose": "Primary prose at 15px/1.6."
+   },
+   "voice-caption": {
+    "displayName": "voice-caption",
+    "purpose": "Secondary prose, row labels, subtitles."
+   },
+   "voice-micro": {
+    "displayName": "voice-micro",
+    "purpose": "Unit captions and fine print under data values."
+   },
+   "data-xl": {
+    "displayName": "data-xl",
+    "purpose": "Screen hero value \u2014 one per screen."
+   },
+   "data-lg": {
+    "displayName": "data-lg",
+    "purpose": "Tile and counter values."
+   },
+   "data-md": {
+    "displayName": "data-md",
+    "purpose": "Row values and the log voice."
+   },
+   "data-sm": {
+    "displayName": "data-sm",
+    "purpose": "Metadata: provenance, timestamps, footers."
+   },
+   "data-micro": {
+    "displayName": "data-micro",
+    "purpose": "Axis endpoints and engraved unit suffixes."
+   },
+   "keycap": {
+    "displayName": "keycap",
+    "purpose": "Key engraving, primary controls."
+   },
+   "keycap-sm": {
+    "displayName": "keycap-sm",
+    "purpose": "Key engraving, compact controls."
    }
   },
   "shadows": [
@@ -304,7 +356,20 @@
     "value": "28rem",
     "purpose": "max-w-md single-column console shell; the world is mobile-first with a centered column on wider viewports."
    }
-  ]
+  ],
+  "layoutMeta": {
+   "bandRhythm": {
+    "pair": "8px",
+    "interior": "12px",
+    "band": "20px"
+   },
+   "rules": [
+    "Faceplate",
+    "Band Rhythm",
+    "Recessed Bay",
+    "Panel printing"
+   ]
+  }
  },
  "components": [
   {

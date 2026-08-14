@@ -22,21 +22,75 @@ typography:
     fontSize: "clamp(4.2rem, 17vw, 5.4rem)"
     fontWeight: 400
     lineHeight: 1
-  title:
+  voice-display:
+    fontFamily: "'Archivo', ui-sans-serif, system-ui, sans-serif"
+    fontSize: "2.6rem"
+    fontWeight: 700
+    letterSpacing: "0.01em"
+    lineHeight: 0.95
+  voice-title:
+    fontFamily: "'Archivo', ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.25rem"
+    fontWeight: 550
+    letterSpacing: "-0.01em"
+    lineHeight: 1.25
+  voice-item:
     fontFamily: "'Archivo', ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.125rem"
     fontWeight: 500
-    lineHeight: 1.375
-  body:
+    lineHeight: 1.35
+  voice-body:
+    fontFamily: "'Archivo', ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.9375rem"
+    fontWeight: 400
+    lineHeight: 1.6
+  voice-caption:
     fontFamily: "'Archivo', ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.5
-  data:
+  voice-micro:
+    fontFamily: "'Archivo', ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 400
+    lineHeight: 1.45
+  data-xl:
+    fontFamily: "'Fragment Mono', ui-monospace, 'SF Mono', monospace"
+    fontSize: "2.25rem"
+    fontWeight: 400
+    lineHeight: 1.1
+  data-lg:
+    fontFamily: "'Fragment Mono', ui-monospace, 'SF Mono', monospace"
+    fontSize: "1.25rem"
+    fontWeight: 400
+    lineHeight: 1.2
+  data-md:
     fontFamily: "'Fragment Mono', ui-monospace, 'SF Mono', monospace"
     fontSize: "0.875rem"
     fontWeight: 400
+    lineHeight: 1.45
+  data-sm:
+    fontFamily: "'Fragment Mono', ui-monospace, 'SF Mono', monospace"
+    fontSize: "0.75rem"
+    fontWeight: 400
+    letterSpacing: "0.02em"
+    lineHeight: 1.5
+  data-micro:
+    fontFamily: "'Fragment Mono', ui-monospace, 'SF Mono', monospace"
+    fontSize: "0.625rem"
+    fontWeight: 400
+    letterSpacing: "0.02em"
     lineHeight: 1.4
+  keycap:
+    fontFamily: "'Fragment Mono', ui-monospace, 'SF Mono', monospace"
+    fontSize: "0.8125rem"
+    fontWeight: 400
+    letterSpacing: "0.12em"
+  keycap-sm:
+    fontFamily: "'Fragment Mono', ui-monospace, 'SF Mono', monospace"
+    fontSize: "0.6875rem"
+    fontWeight: 400
+    letterSpacing: "0.12em"
   label:
     fontFamily: "'Fragment Mono', ui-monospace, 'SF Mono', monospace"
     fontSize: "0.6875rem"
@@ -48,9 +102,11 @@ rounded:
   well: "5px"
   plate: "6px"
 spacing:
+  gap-pair: "8px"
   gap: "12px"
   pad: "16px"
   pad-wide: "20px"
+  gap-band: "20px"
 components:
   module:
     backgroundColor: "{colors.plate}"
