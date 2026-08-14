@@ -373,7 +373,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             <p class="voice-caption font-medium text-ink" x-text="preview ? 'Photo ready' : 'Take or upload a photo'"></p>
                             <p class="voice-caption mt-1 text-ink-dim">One packaged product at a time — show the front of the pack.</p>
                         </div>
-                        <input type="file" accept="image/*" capture="environment" class="sr-only"
+                        <input type="file" accept="image/*" class="sr-only"
                                x-on:change="handle($event)">
                     </label>
 

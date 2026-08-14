@@ -460,7 +460,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                         <label class="key keycap-sm block w-full cursor-pointer px-4 py-3 text-center text-ink-dim">
                             <span x-show="!up">Photo the plate — we'll suggest what's in it</span>
                             <span x-show="up" x-cloak>Uploading… <span x-text="progress + '%'"></span></span>
-                            <input type="file" accept="image/*" capture="environment" class="sr-only"
+                            <input type="file" accept="image/*" class="sr-only"
                                    x-on:change="
                                         const f = $event.target.files[0];
                                         if (!f) return;
@@ -565,7 +565,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                         <label class="key keycap-sm block w-full cursor-pointer px-4 py-3 text-center text-ink-dim">
                             <span x-show="!up">Photo the dish — we'll name and estimate it</span>
                             <span x-show="up" x-cloak>Uploading… <span x-text="progress + '%'"></span></span>
-                            <input type="file" accept="image/*" capture="environment" class="sr-only"
+                            <input type="file" accept="image/*" class="sr-only"
                                    x-on:change="
                                         const f = $event.target.files[0];
                                         if (!f) return;
