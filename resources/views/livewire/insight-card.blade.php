@@ -138,7 +138,6 @@ new class extends Component
                 </ul>
             @endif
 
-            <x-app.health-disclaimer class="mt-4" />
         </div>
     @endif
 </div>
