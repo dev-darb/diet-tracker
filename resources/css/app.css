@@ -141,6 +141,69 @@
         font-variant-numeric: tabular-nums;
     }
 
+    /* ------------------------------------------------------------------
+       Type roles. Two voices, named jobs — never raw sizes in views.
+
+       Spoken voice (Archivo): display > title > item > body > caption.
+       Weights lean one step heavier than a light-surface UI would use;
+       light-on-dark loses apparent weight (craft floor).
+    ------------------------------------------------------------------ */
+    .voice-display {
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+        line-height: 0.95;
+    }
+    .voice-title {
+        font-size: 1.25rem;
+        font-weight: 550;
+        letter-spacing: -0.01em;
+        line-height: 1.25;
+    }
+    .voice-item {
+        font-size: 1.125rem;
+        font-weight: 500;
+        line-height: 1.35;
+    }
+    .voice-body {
+        font-size: 0.9375rem;
+        line-height: 1.6;
+    }
+    .voice-caption {
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+    .voice-micro {
+        font-size: 0.75rem;
+        line-height: 1.45;
+    }
+
+    /* Measured voice (Fragment Mono): a five-step gauge ramp. One data-xl
+       per screen — the reading the screen exists to give. */
+    .data-xl, .data-lg, .data-md, .data-sm, .data-micro {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+    }
+    .data-xl { font-size: 2.25rem; line-height: 1.1; }
+    .data-lg { font-size: 1.25rem; line-height: 1.2; }
+    .data-md { font-size: 0.875rem; line-height: 1.45; }
+    .data-sm { font-size: 0.75rem; line-height: 1.5; letter-spacing: 0.02em; }
+    .data-micro { font-size: 0.625rem; line-height: 1.4; letter-spacing: 0.02em; }
+
+    /* Key labels: one engraving standard across every pressable control. */
+    .keycap {
+        font-family: var(--font-mono);
+        font-size: 0.8125rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+    .keycap-sm {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
     /* A physical key on the control strip / a pressable console control. */
     .key {
         border: 1px solid var(--color-seam);

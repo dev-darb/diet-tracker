@@ -115,8 +115,8 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
     <div class="space-y-3" x-data="{ toast: false }"
          x-on:consumption-updated.window="toast = true; setTimeout(() => toast = false, 2000)">
         <div class="px-1">
-            <h1 class="text-xl font-medium tracking-tight text-ink">Eat</h1>
-            <p class="mt-0.5 text-sm text-ink-dim">What you've logged. Consume items from your <a href="{{ route('pantry') }}" class="text-ink underline decoration-seam-strong underline-offset-4 transition hover:decoration-action">pantry</a>.</p>
+            <h1 class="voice-title text-ink">Eat</h1>
+            <p class="voice-caption mt-0.5 text-ink-dim">What you've logged. Consume items from your <a href="{{ route('pantry') }}" class="text-ink underline decoration-seam-strong underline-offset-4 transition hover:decoration-action">pantry</a>.</p>
         </div>
 
         @if ($groups->isEmpty())
@@ -130,7 +130,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                 <section class="module px-0 pb-1 pt-4">
                     <div class="flex items-baseline justify-between px-5">
                         <h2 class="silkscreen">{{ $group['label'] }}</h2>
-                        <span class="data text-[11px] text-ink-dim">
+                        <span class="data-sm text-ink-dim">
                             {{ $group['calories'] === null ? '----' : number_format($group['calories']).' KCAL' }}
                         </span>
                     </div>
@@ -140,15 +140,15 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                             @php($line = $event->items->first())
                             <li>
                                 <div class="flex min-h-[44px] items-center gap-2.5 px-4 py-2.5">
-                                    <span class="data w-10 shrink-0 text-[11px] text-ink-faint">{{ $event->consumed_at->format('H:i') }}</span>
+                                    <span class="data-sm w-10 shrink-0 text-ink-faint">{{ $event->consumed_at->format('H:i') }}</span>
                                     <div class="min-w-0 flex-1">
-                                        <p class="data text-sm leading-snug text-ink uppercase">{{ $event->name ?: 'Consumption' }}</p>
-                                        <p class="data mt-0.5 text-[11px] text-ink-faint">
+                                        <p class="data-md leading-snug text-ink uppercase">{{ $event->name ?: 'Consumption' }}</p>
+                                        <p class="data-sm mt-0.5 text-ink-faint">
                                             {{ rtrim(rtrim(number_format((float) ($line->quantity ?? 0), 3, '.', ''), '0'), '.') }}
                                             <span class="uppercase">{{ $line?->unit?->shortLabelFor((float) ($line->quantity ?? 0)) ?? '' }}</span>
                                         </p>
                                     </div>
-                                    <span class="data shrink-0 whitespace-nowrap text-sm text-ink">
+                                    <span class="data-md shrink-0 whitespace-nowrap text-ink">
                                         {{ $event->calories === null ? '----' : number_format((float) $event->calories, 0) }}
                                     </span>
                                     <div class="flex shrink-0 items-center">
@@ -172,10 +172,10 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                     <div class="border-t border-seam bg-plate-well px-5 py-3">
                                         @foreach ($event->items as $component)
                                             <div class="flex items-center justify-between gap-3 py-1 text-xs">
-                                                <span class="min-w-0 truncate text-ink-dim">{{ $component->canonicalProduct?->name ?? 'Item' }}
-                                                    <span class="data text-ink-faint">· {{ rtrim(rtrim(number_format((float) $component->quantity, 3, '.', ''), '0'), '.') }} <span class="uppercase">{{ $component->unit->shortLabel() }}</span></span>
+                                                <span class="voice-micro min-w-0 truncate text-ink-dim">{{ $component->canonicalProduct?->name ?? 'Item' }}
+                                                    <span class="data-sm text-ink-faint">· {{ rtrim(rtrim(number_format((float) $component->quantity, 3, '.', ''), '0'), '.') }} <span class="uppercase">{{ $component->unit->shortLabel() }}</span></span>
                                                 </span>
-                                                <span class="data shrink-0 text-ink-dim">
+                                                <span class="data-sm shrink-0 text-ink-dim">
                                                     P {{ $component->protein === null ? '--' : number_format((float) $component->protein, 1) }} ·
                                                     C {{ $component->carbs === null ? '--' : number_format((float) $component->carbs, 1) }} ·
                                                     F {{ $component->fat === null ? '--' : number_format((float) $component->fat, 1) }}
@@ -201,8 +201,8 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <button type="button" wire:click="saveEdit"
-                                                        class="key key-action px-4 py-2.5 font-mono text-[13px] tracking-[0.1em] uppercase">Save</button>
-                                                <button type="button" wire:click="cancelEdit" class="font-mono text-[11px] tracking-[0.08em] text-ink-dim uppercase transition hover:text-ink">Cancel</button>
+                                                        class="key key-action keycap px-4 py-2.5">Save</button>
+                                                <button type="button" wire:click="cancelEdit" class="keycap-sm text-ink-dim transition hover:text-ink">Cancel</button>
                                             </div>
                                         </div>
                                         @error('editQuantity') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
@@ -219,7 +219,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
         <div x-show="toast" x-cloak class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
             <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md bg-good px-4 py-3 text-black">
                 <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg>
-                <span class="font-mono text-sm tracking-[0.14em] uppercase">Updated</span>
+                <span class="keycap">Updated</span>
             </div>
         </div>
     </div>

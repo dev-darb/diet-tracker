@@ -21,12 +21,12 @@
     <ul class="mt-2 divide-y divide-seam">
         @foreach ($indicators as $indicator)
             <li class="flex items-center gap-3 py-2.5">
-                <span class="min-w-0 flex-1 truncate text-sm text-ink">{{ $indicator['label'] }}</span>
-                <span class="data text-sm text-ink-dim">
+                <span class="voice-caption min-w-0 flex-1 truncate text-ink">{{ $indicator['label'] }}</span>
+                <span class="data-md text-ink-dim">
                     @if ($indicator['known'])
                         {{ $fmt($indicator['value']) }}{{ $indicator['unit'] === 'g' ? 'G' : '' }}<span class="text-ink-faint">/{{ $fmt($indicator['target']) }}{{ $indicator['unit'] === 'g' ? 'G' : '' }}</span>
                         @if ($indicator['unit'] !== 'g')
-                            <span class="ml-1 text-[10px] tracking-[0.08em] text-ink-faint uppercase">{{ $indicator['unit'] }}</span>
+                            <span class="data-micro ml-1 text-ink-faint uppercase">{{ $indicator['unit'] }}</span>
                         @endif
                     @else
                         ----

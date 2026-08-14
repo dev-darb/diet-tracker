@@ -94,11 +94,11 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
     <div class="space-y-3">
         <div class="flex items-center justify-between px-1">
             <div>
-                <h1 class="text-xl font-medium tracking-tight text-ink">Pantry</h1>
-                <p class="mt-0.5 text-sm text-ink-dim">What food you currently have.</p>
+                <h1 class="voice-title text-ink">Pantry</h1>
+                <p class="voice-caption mt-0.5 text-ink-dim">What food you currently have.</p>
             </div>
             <button type="button" wire:click="toggleAdd"
-                    class="key {{ $showAdd ? '' : 'key-action' }} px-3.5 py-2.5 font-mono text-[11px] tracking-[0.14em] uppercase {{ $showAdd ? 'text-ink-dim' : '' }}">
+                    class="key keycap-sm {{ $showAdd ? 'text-ink-dim' : 'key-action' }} px-3.5 py-2.5">
                 {{ $showAdd ? 'Close' : 'Add item' }}
             </button>
         </div>
@@ -111,7 +111,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                 @if ($selectedProduct)
                     <div class="mt-3 flex items-center justify-between gap-3 rounded-[5px] border border-seam bg-plate-well px-3.5 py-2.5">
                         <span class="min-w-0 truncate text-sm text-ink">{{ $selectedProduct->brand }} — {{ $selectedProduct->name }}</span>
-                        <button type="button" wire:click="clearSelection" class="shrink-0 font-mono text-[11px] tracking-[0.08em] text-ink-dim uppercase transition hover:text-ink">Change</button>
+                        <button type="button" wire:click="clearSelection" class="keycap-sm shrink-0 text-ink-dim transition hover:text-ink">Change</button>
                     </div>
                 @else
                     <div class="mt-3">
@@ -124,7 +124,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                                         <button type="button" wire:click="selectProduct({{ $match->id }})"
                                                 class="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left text-sm transition hover:bg-plate-raised">
                                             <span class="min-w-0 truncate text-ink">{{ $match->brand }} — {{ $match->name }}</span>
-                                            <span class="shrink-0 font-mono text-[11px] tracking-[0.08em] text-action uppercase">Select</span>
+                                            <span class="keycap-sm shrink-0 text-action">Select</span>
                                         </button>
                                     </li>
                                 @endforeach
@@ -155,7 +155,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                 @error('addQuantity') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
 
                 <button type="button" wire:click="add"
-                        class="key key-action mt-4 w-full px-4 py-3 text-center font-mono text-sm tracking-[0.14em] uppercase">
+                        class="key key-action keycap mt-4 w-full px-4 py-3 text-center">
                     Add to pantry
                 </button>
             </section>
@@ -171,7 +171,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
             <section class="module px-0 pb-1 pt-4">
                 <div class="flex items-baseline justify-between px-5">
                     <h2 class="silkscreen">Stock</h2>
-                    <span class="data text-[11px] text-ink-faint">{{ $items->count() }} {{ $items->count() === 1 ? 'ITEM' : 'ITEMS' }}</span>
+                    <span class="data-sm text-ink-faint">{{ $items->count() }} {{ $items->count() === 1 ? 'ITEM' : 'ITEMS' }}</span>
                 </div>
                 <ul class="mt-2 divide-y divide-seam">
                     @foreach ($items as $item)
@@ -179,14 +179,14 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                             <a href="{{ route('pantry.item', $item) }}"
                                class="flex min-h-[44px] items-center justify-between gap-4 px-5 py-3 transition hover:bg-plate-raised">
                                 <span class="min-w-0">
-                                    <span class="block truncate text-sm text-ink">{{ $item->canonicalProduct->brand }} — {{ $item->canonicalProduct->name }}</span>
+                                    <span class="voice-caption block truncate text-ink">{{ $item->canonicalProduct->brand }} — {{ $item->canonicalProduct->name }}</span>
                                     @if ($item->canonicalProduct->variant)
-                                        <span class="mt-0.5 block truncate text-xs text-ink-dim">{{ $item->canonicalProduct->variant }}</span>
+                                        <span class="data-sm mt-0.5 block truncate text-ink-dim">{{ $item->canonicalProduct->variant }}</span>
                                     @endif
                                 </span>
-                                <span class="data shrink-0 text-sm text-ink">
+                                <span class="data-md shrink-0 text-ink">
                                     {{ rtrim(rtrim(number_format((float) $item->current_quantity, 3, '.', ''), '0'), '.') }}
-                                    <span class="text-[11px] text-ink-faint uppercase">{{ $item->quantity_unit->shortLabelFor((float) $item->current_quantity) }}</span>
+                                    <span class="data-sm text-ink-faint uppercase">{{ $item->quantity_unit->shortLabelFor((float) $item->current_quantity) }}</span>
                                 </span>
                             </a>
                         </li>

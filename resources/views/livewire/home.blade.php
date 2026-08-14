@@ -40,7 +40,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
             <p class="mt-6 flex items-baseline justify-center gap-3">
                 <span class="font-seg text-[clamp(4.2rem,17vw,5.4rem)] leading-none {{ $today['has_data'] && $kcal !== null ? 'text-[#f2ede2]' : 'text-ink-faint' }}"
                       aria-label="{{ $kcal !== null ? number_format((float) $kcal).' kilocalories today' : 'No calories logged yet today' }}">{{ $kcal !== null ? number_format((float) $kcal, 0, '', '') : '----' }}</span>
-                <span class="data text-base text-ink-dim">KCAL</span>
+                <span class="data-md text-ink-dim">KCAL</span>
             </p>
 
             {{-- Calibrated scale, 0–2500 kcal; the marker is the day's reading. --}}
@@ -55,17 +55,17 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                         <line x1="{{ $frac * 100 }}" y1="0" x2="{{ $frac * 100 }}" y2="8" stroke="var(--color-action)" stroke-width="0.9" />
                     @endif
                 </svg>
-                <div class="data flex justify-between text-[10px] text-ink-faint">
+                <div class="data-micro flex justify-between text-ink-faint">
                     <span>0</span><span>2500</span>
                 </div>
             </div>
 
             @if ($today['has_data'])
-                <p class="data mt-4 border-t border-seam pt-3 text-[11px] tracking-[0.08em] text-ink-faint uppercase">
+                <p class="data-sm mt-4 border-t border-seam pt-3 text-ink-faint uppercase">
                     {{ $today['food_variety'] }} {{ $today['food_variety'] === 1 ? 'food' : 'foods' }} logged{{ $lastLoggedAt ? ' · last '.\Illuminate\Support\Carbon::parse($lastLoggedAt)->format('H:i') : '' }}
                 </p>
             @else
-                <p class="mt-4 border-t border-seam pt-3 text-sm text-ink-dim">
+                <p class="voice-body mt-4 border-t border-seam pt-3 text-ink-dim">
                     Nothing logged yet — scan what you bought or log what you ate, and today's readout wakes up.
                 </p>
             @endif
@@ -94,7 +94,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                 @foreach ($macros as $m)
                     <div class="px-4 py-3.5">
                         <h3 class="silkscreen">{{ $m['label'] }}</h3>
-                        <p class="data mt-1.5 text-xl text-ink">
+                        <p class="data-lg mt-1.5 text-ink">
                             {{ $m['value'] === null ? '—' : rtrim(rtrim(number_format((float) $m['value'], 1), '0'), '.') }}<span class="text-xs text-ink-dim">g</span>
                         </p>
                         <div class="meter mt-2.5">
@@ -115,9 +115,9 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                     @endforeach
                 </div>
             </div>
-            <p class="data text-sm text-ink">
+            <p class="data-md text-ink">
                 {{ str_pad((string) $daysLogged, 2, '0', STR_PAD_LEFT) }}<span class="text-ink-faint">/07</span>
-                <span class="ml-1 text-[11px] tracking-[0.08em] text-ink-dim uppercase">days</span>
+                <span class="data-sm ml-1 text-ink-dim uppercase">days</span>
             </p>
         </section>
 

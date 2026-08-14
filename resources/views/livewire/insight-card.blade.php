@@ -88,29 +88,29 @@ new class extends Component
                 <span class="size-2 rounded-full bg-info" aria-hidden="true"></span>
             </div>
 
-            <h3 class="mt-3 text-base font-medium text-ink">{{ $insight->title }}</h3>
-            <p class="mt-1 text-sm leading-relaxed text-ink-dim">{{ $insight->body }}</p>
+            <h3 class="voice-item mt-3 text-ink">{{ $insight->title }}</h3>
+            <p class="voice-body mt-1.5 text-ink-dim">{{ $insight->body }}</p>
 
             {{-- Actions (brief §9.6). --}}
             <div class="mt-4 flex flex-wrap items-center gap-2">
                 <button type="button" wire:click="toggleWhy"
-                        class="key px-3 py-1.5 font-mono text-[11px] tracking-[0.08em] text-ink-dim uppercase">
+                        class="key keycap-sm px-3 py-1.5 text-ink-dim">
                     {{ $why ? 'Hide' : 'Why this matters' }}
                 </button>
                 @if (! empty($insight->pantry_item_ids))
                     <button type="button" wire:click="toggleEat"
-                            class="key px-3 py-1.5 font-mono text-[11px] tracking-[0.08em] text-ink-dim uppercase">
+                            class="key keycap-sm px-3 py-1.5 text-ink-dim">
                         {{ $eat ? 'Hide items' : 'What could I eat' }}
                     </button>
                 @endif
                 <button type="button" wire:click="dismiss"
-                        class="px-3 py-1.5 font-mono text-[11px] tracking-[0.08em] text-ink-faint uppercase transition hover:text-ink-dim">
+                        class="keycap-sm px-3 py-1.5 text-ink-faint transition hover:text-ink-dim">
                     Dismiss
                 </button>
             </div>
 
             @if ($why)
-                <p class="mt-3 border-l border-info/60 bg-plate-well px-3 py-2.5 text-xs leading-relaxed text-ink-dim">
+                <p class="voice-caption mt-3 border-l border-info/60 bg-plate-well px-3 py-2.5 text-ink-dim">
                     {{ $why_text }}
                 </p>
             @endif
@@ -120,10 +120,10 @@ new class extends Component
                     @foreach ($pantry_items as $item)
                         <li class="flex items-center justify-between gap-3 py-2.5">
                             <a href="{{ route('pantry.item', $item) }}"
-                               class="min-w-0 truncate text-sm text-ink transition hover:text-info">
+                               class="voice-caption min-w-0 truncate text-ink transition hover:text-info">
                                 {{ trim(($item->canonicalProduct->brand ? $item->canonicalProduct->brand.' ' : '').$item->canonicalProduct->name) }}
                             </a>
-                            <span class="data shrink-0 text-xs text-ink-dim">
+                            <span class="data-sm shrink-0 text-ink-dim">
                                 {{ rtrim(rtrim(number_format((float) $item->current_quantity, 3), '0'), '.') }} <span class="uppercase">{{ $item->quantity_unit?->value ?? '' }}</span>
                             </span>
                         </li>

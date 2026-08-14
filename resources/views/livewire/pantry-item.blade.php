@@ -114,7 +114,7 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
     <div class="space-y-3" x-data="{ toast: false }"
          x-on:item-changed.window="toast = true; setTimeout(() => toast = false, 2000)">
 
-        <a href="{{ route('pantry') }}" class="inline-flex items-center gap-1.5 px-1 font-mono text-[11px] tracking-[0.14em] text-ink-dim uppercase transition hover:text-ink">
+        <a href="{{ route('pantry') }}" class="keycap-sm inline-flex items-center gap-1.5 px-1 text-ink-dim transition hover:text-ink">
             <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
             Pantry
         </a>
@@ -122,18 +122,18 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         {{-- Identity + current quantity readout --}}
         <section class="module px-5 pb-5 pt-4">
             <h2 class="silkscreen">Item</h2>
-            <h1 class="mt-3 text-lg font-medium leading-snug text-ink">{{ $pantryItem->canonicalProduct->brand }} <span class="text-ink-dim">{{ $pantryItem->canonicalProduct->name }}</span></h1>
+            <h1 class="voice-item mt-3 text-ink">{{ $pantryItem->canonicalProduct->brand }} <span class="text-ink-dim">{{ $pantryItem->canonicalProduct->name }}</span></h1>
             @if ($pantryItem->canonicalProduct->variant)
-                <p class="mt-0.5 text-sm text-ink-dim">{{ $pantryItem->canonicalProduct->variant }}</p>
+                <p class="voice-caption mt-0.5 text-ink-dim">{{ $pantryItem->canonicalProduct->variant }}</p>
             @endif
 
             <p class="mt-5 flex items-baseline gap-2">
-                <span class="data text-4xl text-ink">{{ rtrim(rtrim(number_format((float) $pantryItem->current_quantity, 3, '.', ''), '0'), '.') }}</span>
-                <span class="data text-sm text-ink-dim uppercase">{{ $pantryItem->quantity_unit->shortLabelFor((float) $pantryItem->current_quantity) }} remaining</span>
+                <span class="data-xl text-ink">{{ rtrim(rtrim(number_format((float) $pantryItem->current_quantity, 3, '.', ''), '0'), '.') }}</span>
+                <span class="data-md text-ink-dim uppercase">{{ $pantryItem->quantity_unit->shortLabelFor((float) $pantryItem->current_quantity) }} remaining</span>
             </p>
 
             @if ($pantryItem->purchased_at || $pantryItem->expiry_date)
-                <p class="data mt-3 text-[11px] tracking-[0.06em] text-ink-faint uppercase">
+                <p class="data-sm mt-3 text-ink-faint uppercase">
                     @if ($pantryItem->purchased_at) Purchased {{ $pantryItem->purchased_at->format('j M Y') }} @endif
                     @if ($pantryItem->purchased_at && $pantryItem->expiry_date) · @endif
                     @if ($pantryItem->expiry_date) Expires {{ $pantryItem->expiry_date->format('j M Y') }} @endif
@@ -157,15 +157,15 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
                         ['Salt', $nutrition->salt, 'G'],
                     ] as [$label, $value, $unit])
                         <div class="flex items-baseline justify-between border-b border-seam py-2 last:border-b-0 [&:nth-last-child(2)]:border-b-0">
-                            <span class="text-sm text-ink-dim">{{ $label }}</span>
-                            <span class="data text-sm text-ink">
-                                @if ($value !== null){{ rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.') }}<span class="text-[10px] text-ink-faint"> {{ $unit }}</span>@else <span class="text-ink-faint">----</span>@endif
+                            <span class="voice-caption text-ink-dim">{{ $label }}</span>
+                            <span class="data-md text-ink">
+                                @if ($value !== null){{ rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.') }}<span class="data-micro text-ink-faint"> {{ $unit }}</span>@else <span class="text-ink-faint">----</span>@endif
                             </span>
                         </div>
                     @endforeach
                 </div>
             @else
-                <p class="mt-2 pb-2 text-sm text-ink-dim">Nutrition isn't available for this item yet.</p>
+                <p class="voice-caption mt-2 pb-2 text-ink-dim">Nutrition isn't available for this item yet.</p>
             @endif
         </section>
 
@@ -175,26 +175,26 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
             <h2 class="silkscreen">Consume — logs it to today</h2>
             <div class="mt-3 grid grid-cols-3 gap-2">
                 <button type="button" wire:click="consumeOne" @disabled($outOfStock)
-                        class="key key-action px-3 py-3 text-center font-mono text-[13px] tracking-[0.1em] uppercase disabled:cursor-not-allowed disabled:opacity-40">
+                        class="key key-action keycap-sm whitespace-nowrap px-3 py-3.5 text-center disabled:cursor-not-allowed disabled:opacity-40">
                     I ate one
                 </button>
                 <button type="button" wire:click="consumeHalf" @disabled($outOfStock)
-                        class="key px-3 py-3 text-center font-mono text-[13px] tracking-[0.1em] text-ink-dim uppercase disabled:cursor-not-allowed disabled:opacity-40">
+                        class="key keycap-sm whitespace-nowrap px-3 py-3.5 text-center text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
                     Half
                 </button>
                 <button type="button" wire:click="consumeAll" @disabled($outOfStock)
-                        class="key px-3 py-3 text-center font-mono text-[13px] tracking-[0.1em] text-ink-dim uppercase disabled:cursor-not-allowed disabled:opacity-40">
+                        class="key keycap-sm whitespace-nowrap px-3 py-3.5 text-center text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
                     All
                 </button>
             </div>
             <div class="mt-3 flex items-end gap-3">
-                <div class="w-28">
-                    <label class="silkscreen" for="consume-amount">Custom ({{ $pantryItem->quantity_unit->shortLabel() }})</label>
+                <div class="w-36">
+                    <label class="silkscreen whitespace-nowrap" for="consume-amount">Custom ({{ $pantryItem->quantity_unit->shortLabel() }})</label>
                     <input id="consume-amount" type="number" step="any" min="0" inputmode="decimal" wire:model="consumeAmount"
                            class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
                 </div>
                 <button type="button" wire:click="consume" @disabled($outOfStock)
-                        class="key px-4 py-2.5 font-mono text-[13px] tracking-[0.1em] text-ink-dim uppercase disabled:cursor-not-allowed disabled:opacity-40">
+                        class="key keycap-sm px-4 py-3 text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
                     Consume amount
                 </button>
             </div>
@@ -211,7 +211,7 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
                            class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
                 </div>
                 <button type="button" wire:click="changeQuantity"
-                        class="key px-4 py-2.5 font-mono text-[13px] tracking-[0.1em] text-ink-dim uppercase">
+                        class="key keycap-sm px-4 py-3 text-ink-dim">
                     Update
                 </button>
             </div>
@@ -221,14 +221,14 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
                 @if ($confirmRemove)
                     <div class="flex items-center gap-3">
                         <button type="button" wire:click="remove"
-                                class="key border-high bg-high px-4 py-2.5 font-mono text-[13px] tracking-[0.1em] text-black uppercase">
+                                class="key keycap border-high bg-high px-4 py-2.5 text-black">
                             Confirm remove
                         </button>
-                        <button type="button" wire:click="$set('confirmRemove', false)" class="font-mono text-[11px] tracking-[0.08em] text-ink-dim uppercase transition hover:text-ink">Cancel</button>
+                        <button type="button" wire:click="$set('confirmRemove', false)" class="keycap-sm text-ink-dim transition hover:text-ink">Cancel</button>
                     </div>
                 @else
                     <button type="button" wire:click="$set('confirmRemove', true)"
-                            class="font-mono text-[11px] tracking-[0.08em] text-high uppercase transition hover:brightness-125">
+                            class="keycap-sm text-high transition hover:brightness-125">
                         Remove from pantry
                     </button>
                 @endif
@@ -239,7 +239,7 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         <div x-show="toast" x-cloak class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
             <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md bg-good px-4 py-3 text-black">
                 <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg>
-                <span class="font-mono text-sm tracking-[0.14em] uppercase">Logged</span>
+                <span class="keycap">Logged</span>
             </div>
         </div>
     </div>

@@ -368,8 +368,8 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                                     <path d="M6.5 12h0.01M9.5 12h0.01M12.5 12h0.01M15.5 12h0.01M18 12h-0.01" stroke-width="2" />
                                 </svg>
                             </template>
-                            <p class="text-sm font-medium text-ink" x-text="preview ? 'Photo ready' : 'Take or upload a photo'"></p>
-                            <p class="mt-1 text-xs text-ink-dim">One packaged product at a time — show the front of the pack.</p>
+                            <p class="voice-caption font-medium text-ink" x-text="preview ? 'Photo ready' : 'Take or upload a photo'"></p>
+                            <p class="voice-caption mt-1 text-ink-dim">One packaged product at a time — show the front of the pack.</p>
                         </div>
                         <input type="file" accept="image/*" capture="environment" class="sr-only"
                                x-on:change="handle($event)">
@@ -382,12 +382,12 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
                     <div x-show="barcodeFound" x-cloak class="module flex items-center gap-3 px-4 py-3">
                         <span class="size-2 shrink-0 rounded-full bg-good" aria-hidden="true"></span>
-                        <p class="data min-w-0 truncate text-xs text-ink">BARCODE <span x-text="barcode"></span> <span class="text-ink-faint">· ON-DEVICE</span></p>
+                        <p class="data-sm min-w-0 truncate text-ink">BARCODE <span x-text="barcode"></span> <span class="text-ink-faint">· ON-DEVICE</span></p>
                     </div>
 
                     {{-- Photo upload — only the AI photo path needs this. --}}
                     <div x-show="uploading" x-cloak class="module space-y-2 px-4 py-3">
-                        <div class="data flex items-center justify-between text-xs text-ink-dim">
+                        <div class="data-sm flex items-center justify-between text-ink-dim">
                             <span>UPLOADING PHOTO</span>
                             <span x-text="progress + '%'"></span>
                         </div>
@@ -398,7 +398,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
                     <button type="button" x-show="barcodeFound || uploaded" x-cloak
                             wire:click="analyze"
-                            class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
+                            class="key key-action w-full keycap px-4 py-3.5 text-center">
                         Identify product
                     </button>
 
@@ -414,13 +414,13 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                     <div class="module px-5 pb-5 pt-4">
                         <h2 class="silkscreen">Match — Is this right?</h2>
 
-                        <p class="mt-4 text-lg font-medium leading-snug text-ink">{{ $product->brand }} <span class="text-ink-dim">{{ $product->name }}</span></p>
+                        <p class="voice-item mt-4 text-ink">{{ $product->brand }} <span class="text-ink-dim">{{ $product->name }}</span></p>
                         @if ($product->variant)
                             <p class="mt-0.5 text-sm text-ink-dim">{{ $product->variant }}</p>
                         @endif
 
                         {{-- Provenance is first-class (brief §2.2). --}}
-                        <p class="data mt-3 text-[11px] tracking-[0.06em] text-ink-faint uppercase">
+                        <p class="data-sm mt-3 text-ink-faint uppercase">
                             @if ($detectedBarcode !== '') Barcode {{ $detectedBarcode }} · @endif
                             @if ($product->pack_size_value) {{ rtrim(rtrim(number_format((float) $product->pack_size_value, 3, '.', ''), '0'), '.') }}{{ $product->pack_size_unit }} · @endif
                             {{ $isSuggestion ? 'Best guess' : 'Matched' }}
@@ -436,7 +436,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         <div class="mt-4 grid grid-cols-2 divide-x divide-seam border-t border-seam pt-1">
                             <div class="py-2.5 pr-4">
                                 <h3 class="silkscreen">Calories</h3>
-                                <p class="data mt-1 text-lg text-ink">
+                                <p class="data-lg mt-1 text-ink">
                                     @if ($nutrition?->calories !== null)
                                         {{ rtrim(rtrim(number_format($nutrition->calories, 1, '.', ''), '0'), '.') }}<span class="text-xs text-ink-dim"> KCAL</span>
                                     @else
@@ -446,7 +446,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             </div>
                             <div class="py-2.5 pl-4">
                                 <h3 class="silkscreen">Protein</h3>
-                                <p class="data mt-1 text-lg text-ink">
+                                <p class="data-lg mt-1 text-ink">
                                     @if ($nutrition?->protein !== null)
                                         {{ rtrim(rtrim(number_format($nutrition->protein, 1, '.', ''), '0'), '.') }}<span class="text-xs text-ink-dim">G</span>
                                     @else
@@ -456,19 +456,19 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             </div>
                         </div>
                         @if ($nutritionBasis)
-                            <p class="data mt-1 text-[11px] text-ink-faint"><span class="uppercase">{{ $nutritionBasis }}</span></p>
+                            <p class="data-sm mt-1 text-ink-faint"><span class="uppercase">{{ $nutritionBasis }}</span></p>
                         @elseif (! $nutrition)
-                            <p class="mt-1 text-[11px] text-ink-faint">Nutrition isn't available for this product yet.</p>
+                            <p class="voice-micro mt-1 text-ink-faint">Nutrition isn't available for this product yet.</p>
                         @endif
                     </div>
 
                     <div class="space-y-2">
                         <button type="button" wire:click="yesAddIt"
-                                class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
+                                class="key key-action w-full keycap px-4 py-3.5 text-center">
                             Yes, add it
                         </button>
                         <button type="button" wire:click="wrongProduct"
-                                class="key w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
+                                class="key w-full keycap px-4 py-3.5 text-center text-ink-dim">
                             Wrong product
                         </button>
                     </div>
@@ -485,7 +485,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         <div class="mt-5 flex items-center justify-center gap-4">
                             <button type="button" wire:click="decrement" aria-label="Decrease"
                                     class="key flex size-12 items-center justify-center text-lg text-ink">−</button>
-                            <span class="data w-20 border-b border-seam pb-1 text-center text-4xl text-ink">{{ $quantity }}</span>
+                            <span class="data-xl w-24 border-b border-seam pb-1 text-center text-ink">{{ $quantity }}</span>
                             <button type="button" wire:click="increment" aria-label="Increase"
                                     class="key flex size-12 items-center justify-center text-lg text-ink">+</button>
                         </div>
@@ -504,7 +504,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                     </div>
 
                     <button type="button" wire:click="addToPantry"
-                            class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
+                            class="key key-action w-full keycap px-4 py-3.5 text-center">
                         Add to pantry
                     </button>
                 </div>
@@ -514,12 +514,12 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             @if ($step === 'error')
                 <div class="space-y-3">
                     <div class="module px-6 py-12 text-center">
-                        <p class="data text-2xl text-high" aria-hidden="true">ERR</p>
+                        <p class="data-xl text-high" aria-hidden="true">ERR</p>
                         <p class="silkscreen mt-2">Resolve failed</p>
-                        <h2 class="mt-5 text-base font-medium text-ink">Something went wrong adding that product</h2>
-                        <p class="mx-auto mt-1.5 max-w-xs text-sm text-ink-dim">It's been logged. Try again, or add the product to your pantry manually.</p>
+                        <h2 class="voice-item mt-5 text-ink">Something went wrong adding that product</h2>
+                        <p class="voice-caption mx-auto mt-1.5 max-w-xs text-ink-dim">It's been logged. Try again, or add the product to your pantry manually.</p>
                         @if ($errorDetail !== '')
-                            <p class="data mx-auto mt-4 max-w-xs break-words border-l border-high bg-plate-well px-3 py-2 text-left text-[11px] leading-relaxed text-ink-dim">
+                            <p class="data-sm mx-auto mt-4 max-w-xs break-words border-l border-high bg-plate-well px-3 py-2 text-left text-ink-dim">
                                 DETAIL (share with support): {{ $errorDetail }}
                             </p>
                         @endif
@@ -527,11 +527,11 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
                     <div class="space-y-2">
                         <button type="button" wire:click="scanAnother"
-                                class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
+                                class="key key-action w-full keycap px-4 py-3.5 text-center">
                             Try another scan
                         </button>
                         <a href="{{ route('pantry') }}"
-                           class="key block w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
+                           class="key block w-full keycap px-4 py-3.5 text-center text-ink-dim">
                             Add manually
                         </a>
                     </div>
@@ -546,7 +546,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             <svg class="size-20 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M4 12.5l5.5 5.5L20 6.5" />
                             </svg>
-                            <p class="text-[2.6rem] font-bold leading-[0.95] tracking-tight uppercase">Added to<br>pantry</p>
+                            <p class="voice-display text-[2.6rem]">Added to<br>pantry</p>
                         </div>
                         <div class="led-sweep mt-6 flex justify-between" aria-hidden="true">
                             @for ($i = 0; $i < 16; $i++)
@@ -557,7 +557,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
                     <div class="module px-5 pb-4 pt-4">
                         <h2 class="silkscreen">Item</h2>
-                        <p class="mt-2 text-lg font-medium text-ink">{{ $addedProductName }}</p>
+                        <p class="voice-item mt-2 text-ink">{{ $addedProductName }}</p>
                         @php($fmtStamp = fn ($v) => rtrim(rtrim(number_format((float) $v, 1, '.', ''), '0'), '.'))
                         @php($stamp = $nutrition === null ? null : collect([
                             $nutrition->calories !== null ? $fmtStamp($nutrition->calories).' KCAL' : null,
@@ -565,7 +565,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             $nutrition->carbs !== null ? $fmtStamp($nutrition->carbs).'C' : null,
                             $nutrition->fat !== null ? $fmtStamp($nutrition->fat).'F' : null,
                         ])->filter()->implode(' · '))
-                        <p class="data mt-2 text-xs text-ink-dim">
+                        <p class="data-sm mt-2 text-ink-dim">
                             @if ($stamp)
                                 {{ $stamp }}@if ($nutritionBasis) <span class="text-ink-faint uppercase">· {{ $nutritionBasis }}</span> @endif
                             @else
@@ -573,7 +573,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             @endif
                         </p>
                         {{-- Provenance is first-class (brief §2.2): only facts we hold. --}}
-                        <p class="data mt-1.5 border-t border-seam pt-2 text-[11px] tracking-[0.06em] text-ink-faint uppercase">
+                        <p class="data-sm mt-1.5 border-t border-seam pt-2 text-ink-faint uppercase">
                             {{ $detectedBarcode !== '' ? 'Barcode '.$detectedBarcode.' · ' : '' }}{{ $isSuggestion ? 'Best guess — confirmed by you' : 'Verified match' }}
                         </p>
                     </div>
@@ -594,11 +594,11 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
                     <div class="space-y-2 pt-1">
                         <button type="button" wire:click="scanAnother"
-                                class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
+                                class="key key-action w-full keycap px-4 py-3.5 text-center">
                             Scan next
                         </button>
                         <a href="{{ route('pantry') }}"
-                           class="key block w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
+                           class="key block w-full keycap px-4 py-3.5 text-center text-ink-dim">
                             Done
                         </a>
                     </div>
@@ -609,19 +609,19 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             @if ($step === 'unknown')
                 <div class="space-y-3">
                     <div class="module px-6 py-12 text-center">
-                        <p class="data text-2xl text-ink-faint" aria-hidden="true">?---</p>
+                        <p class="data-xl text-ink-faint" aria-hidden="true">?---</p>
                         <p class="silkscreen mt-2">No confident match</p>
-                        <h2 class="mt-5 text-base font-medium text-ink">We couldn't confidently identify this yet</h2>
-                        <p class="mx-auto mt-1.5 max-w-xs text-sm text-ink-dim">Scanning the barcode usually works best. You can also add this product to your pantry manually.</p>
+                        <h2 class="voice-item mt-5 text-ink">We couldn't confidently identify this yet</h2>
+                        <p class="voice-caption mx-auto mt-1.5 max-w-xs text-ink-dim">Scanning the barcode usually works best. You can also add this product to your pantry manually.</p>
                     </div>
 
                     <div class="space-y-2">
                         <a href="{{ route('pantry') }}"
-                           class="key key-action block w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
+                           class="key key-action block w-full keycap px-4 py-3.5 text-center">
                             Add manually
                         </a>
                         <button type="button" wire:click="scanAnother"
-                                class="key w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
+                                class="key w-full keycap px-4 py-3.5 text-center text-ink-dim">
                             Try another photo
                         </button>
                     </div>
@@ -632,19 +632,19 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             @if ($step === 'ai_unavailable')
                 <div class="space-y-3">
                     <div class="module px-6 py-12 text-center">
-                        <p class="data text-2xl text-low" aria-hidden="true">AI--</p>
+                        <p class="data-xl text-low" aria-hidden="true">AI--</p>
                         <p class="silkscreen mt-2">Not configured</p>
-                        <h2 class="mt-5 text-base font-medium text-ink">Photo identification needs AI configuration</h2>
-                        <p class="mx-auto mt-1.5 max-w-xs text-sm text-ink-dim">Scan the barcode instead, or add this product to your pantry manually.</p>
+                        <h2 class="voice-item mt-5 text-ink">Photo identification needs AI configuration</h2>
+                        <p class="voice-caption mx-auto mt-1.5 max-w-xs text-ink-dim">Scan the barcode instead, or add this product to your pantry manually.</p>
                     </div>
 
                     <div class="space-y-2">
                         <button type="button" wire:click="scanAnother"
-                                class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
+                                class="key key-action w-full keycap px-4 py-3.5 text-center">
                             Scan the barcode
                         </button>
                         <a href="{{ route('pantry') }}"
-                           class="key block w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
+                           class="key block w-full keycap px-4 py-3.5 text-center text-ink-dim">
                             Add manually
                         </a>
                     </div>
@@ -655,19 +655,19 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             @if ($step === 'corrected')
                 <div class="space-y-3">
                     <div class="module px-6 py-12 text-center">
-                        <p class="data text-2xl text-info" aria-hidden="true">LOGD</p>
+                        <p class="data-xl text-info" aria-hidden="true">LOGD</p>
                         <p class="silkscreen mt-2">Correction recorded</p>
-                        <h2 class="mt-5 text-base font-medium text-ink">Thanks — we've noted that</h2>
-                        <p class="mx-auto mt-1.5 max-w-xs text-sm text-ink-dim">Your correction helps improve product matching. Try another photo, or add the product manually.</p>
+                        <h2 class="voice-item mt-5 text-ink">Thanks — we've noted that</h2>
+                        <p class="voice-caption mx-auto mt-1.5 max-w-xs text-ink-dim">Your correction helps improve product matching. Try another photo, or add the product manually.</p>
                     </div>
 
                     <div class="space-y-2">
                         <button type="button" wire:click="scanAnother"
-                                class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
+                                class="key key-action w-full keycap px-4 py-3.5 text-center">
                             Try another photo
                         </button>
                         <a href="{{ route('pantry') }}"
-                           class="key block w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
+                           class="key block w-full keycap px-4 py-3.5 text-center text-ink-dim">
                             Add manually
                         </a>
                     </div>

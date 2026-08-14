@@ -1,154 +1,453 @@
 {
-  "schemaVersion": 2,
-  "generatedAt": "2026-08-14T00:00:00Z",
-  "title": "Design System: Jabba",
-  "extensions": {
-    "colorMeta": {
-      "chassis": { "role": "neutral", "displayName": "Chassis", "canonical": "#0a0b0c", "tonalRamp": ["oklch(12% 0.004 250)", "oklch(18% 0.004 250)", "oklch(28% 0.004 250)", "oklch(40% 0.004 250)", "oklch(55% 0.004 250)", "oklch(70% 0.004 250)", "oklch(84% 0.004 250)", "oklch(95% 0.004 250)"] },
-      "plate": { "role": "neutral", "displayName": "Plate", "canonical": "#141517", "tonalRamp": ["oklch(15% 0.005 255)", "oklch(21% 0.005 255)", "oklch(30% 0.005 255)", "oklch(42% 0.005 255)", "oklch(56% 0.005 255)", "oklch(70% 0.005 255)", "oklch(84% 0.005 255)", "oklch(95% 0.005 255)"] },
-      "plate-raised": { "role": "neutral", "displayName": "Plate Raised", "canonical": "#1a1c1f", "tonalRamp": ["oklch(17% 0.006 255)", "oklch(23% 0.006 255)", "oklch(32% 0.006 255)", "oklch(44% 0.006 255)", "oklch(57% 0.006 255)", "oklch(71% 0.006 255)", "oklch(85% 0.006 255)", "oklch(95% 0.006 255)"] },
-      "plate-well": { "role": "neutral", "displayName": "Plate Well", "canonical": "#101113", "tonalRamp": ["oklch(13% 0.005 255)", "oklch(19% 0.005 255)", "oklch(29% 0.005 255)", "oklch(41% 0.005 255)", "oklch(55% 0.005 255)", "oklch(69% 0.005 255)", "oklch(83% 0.005 255)", "oklch(95% 0.005 255)"] },
-      "seam": { "role": "neutral", "displayName": "Seam", "canonical": "#26282c", "tonalRamp": ["oklch(15% 0.008 260)", "oklch(25% 0.008 260)", "oklch(34% 0.008 260)", "oklch(46% 0.008 260)", "oklch(58% 0.008 260)", "oklch(71% 0.008 260)", "oklch(84% 0.008 260)", "oklch(95% 0.008 260)"] },
-      "seam-strong": { "role": "neutral", "displayName": "Seam Strong", "canonical": "#33363b", "tonalRamp": ["oklch(18% 0.01 260)", "oklch(30% 0.01 260)", "oklch(40% 0.01 260)", "oklch(50% 0.01 260)", "oklch(61% 0.01 260)", "oklch(72% 0.01 260)", "oklch(84% 0.01 260)", "oklch(95% 0.01 260)"] },
-      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#eeeff0", "tonalRamp": ["oklch(15% 0.002 260)", "oklch(28% 0.002 260)", "oklch(42% 0.002 260)", "oklch(55% 0.002 260)", "oklch(68% 0.002 260)", "oklch(80% 0.002 260)", "oklch(90% 0.002 260)", "oklch(96% 0.002 260)"] },
-      "ink-dim": { "role": "neutral", "displayName": "Ink Dim", "canonical": "#a2a5aa", "tonalRamp": ["oklch(15% 0.005 255)", "oklch(28% 0.005 255)", "oklch(42% 0.005 255)", "oklch(55% 0.005 255)", "oklch(70% 0.005 255)", "oklch(80% 0.005 255)", "oklch(89% 0.005 255)", "oklch(95% 0.005 255)"] },
-      "ink-faint": { "role": "neutral", "displayName": "Ink Faint", "canonical": "#7a7e84", "tonalRamp": ["oklch(15% 0.008 255)", "oklch(27% 0.008 255)", "oklch(40% 0.008 255)", "oklch(58% 0.008 255)", "oklch(68% 0.008 255)", "oklch(79% 0.008 255)", "oklch(88% 0.008 255)", "oklch(95% 0.008 255)"] },
-      "action": { "role": "primary", "displayName": "Signal Orange", "canonical": "#ff4d00", "tonalRamp": ["oklch(20% 0.09 38)", "oklch(30% 0.13 38)", "oklch(42% 0.17 38)", "oklch(53% 0.21 38)", "oklch(64% 0.24 38)", "oklch(74% 0.19 45)", "oklch(85% 0.11 50)", "oklch(95% 0.04 55)"] },
-      "good": { "role": "secondary", "displayName": "Confirm Green", "canonical": "#2fd05e", "tonalRamp": ["oklch(20% 0.07 150)", "oklch(32% 0.11 150)", "oklch(45% 0.15 150)", "oklch(57% 0.18 150)", "oklch(70% 0.2 150)", "oklch(79% 0.17 150)", "oklch(88% 0.11 150)", "oklch(96% 0.04 150)"] },
-      "low": { "role": "secondary", "displayName": "Low Amber", "canonical": "#ffb020", "tonalRamp": ["oklch(22% 0.06 80)", "oklch(35% 0.09 80)", "oklch(48% 0.12 80)", "oklch(62% 0.14 80)", "oklch(75% 0.16 80)", "oklch(83% 0.14 82)", "oklch(90% 0.09 85)", "oklch(96% 0.04 88)"] },
-      "high": { "role": "secondary", "displayName": "Over Red", "canonical": "#ff3b30", "tonalRamp": ["oklch(20% 0.09 27)", "oklch(31% 0.14 27)", "oklch(43% 0.18 27)", "oklch(54% 0.22 27)", "oklch(63% 0.23 29)", "oklch(73% 0.17 29)", "oklch(84% 0.1 29)", "oklch(95% 0.04 29)"] },
-      "info": { "role": "secondary", "displayName": "Info Cyan", "canonical": "#39c2e8", "tonalRamp": ["oklch(20% 0.05 220)", "oklch(32% 0.08 220)", "oklch(45% 0.1 220)", "oklch(58% 0.12 220)", "oklch(72% 0.12 220)", "oklch(80% 0.1 220)", "oklch(88% 0.07 220)", "oklch(95% 0.03 220)"] }
-    },
-    "typographyMeta": {
-      "readout": { "displayName": "Seven-Segment Readout", "purpose": "Exactly one element in the app: the Home TODAY kcal master readout. Live tint #f2ede2, idle ink-faint '----'." },
-      "title": { "displayName": "Title", "purpose": "Archivo medium; product names and state headings inside modules." },
-      "body": { "displayName": "Body", "purpose": "The spoken voice: sentences and instructions, usually ink-dim. Never carries numbers." },
-      "data": { "displayName": "Data", "purpose": "The measured voice: every value, unit, timestamp, provenance line. Always tabular-nums." },
-      "label": { "displayName": "Silkscreen", "purpose": "Uppercase mono micro-label that self-labels every module, key, and nav item." }
-    },
-    "shadows": [
-      { "name": "key-ledge", "value": "0 2px 0 0 #a33200", "purpose": "The single shadow in the system: the machined lower edge of the orange action key. Collapses to 0 with translateY(2px) on :active. Structural pressed-key device; never used off keys." }
-    ],
-    "motion": [
-      { "name": "led-sweep", "value": "opacity 0->1, 90ms ease-out per cell, 40ms stagger left-to-right", "purpose": "Success LEDs light in sequence on genuine completion (scan resolving, reward stamp)." },
-      { "name": "stamp-in", "value": "160ms cubic-bezier(0.16, 1, 0.3, 1), scale 1.06 -> 1 with fade", "purpose": "The reward stamp lands like a press. Crisp exponential ease-out, never springy." },
-      { "name": "key-press", "value": "transform 60ms ease-out, filter 120ms ease-out", "purpose": "Keys depress 1-2px and brighten on :active." },
-      { "name": "reduced-motion", "value": "@media (prefers-reduced-motion: reduce) { animation: none }", "purpose": "Both authored moments are disabled entirely under reduced motion." }
-    ],
-    "breakpoints": [
-      { "name": "shell-max", "value": "28rem", "purpose": "max-w-md single-column console shell; the world is mobile-first with a centered column on wider viewports." }
+ "schemaVersion": 2,
+ "generatedAt": "2026-08-14T00:00:00Z",
+ "title": "Design System: Jabba",
+ "extensions": {
+  "colorMeta": {
+   "chassis": {
+    "role": "neutral",
+    "displayName": "Chassis",
+    "canonical": "#0a0b0c",
+    "tonalRamp": [
+     "oklch(12% 0.004 250)",
+     "oklch(18% 0.004 250)",
+     "oklch(28% 0.004 250)",
+     "oklch(40% 0.004 250)",
+     "oklch(55% 0.004 250)",
+     "oklch(70% 0.004 250)",
+     "oklch(84% 0.004 250)",
+     "oklch(95% 0.004 250)"
     ]
+   },
+   "plate": {
+    "role": "neutral",
+    "displayName": "Plate",
+    "canonical": "#141517",
+    "tonalRamp": [
+     "oklch(15% 0.005 255)",
+     "oklch(21% 0.005 255)",
+     "oklch(30% 0.005 255)",
+     "oklch(42% 0.005 255)",
+     "oklch(56% 0.005 255)",
+     "oklch(70% 0.005 255)",
+     "oklch(84% 0.005 255)",
+     "oklch(95% 0.005 255)"
+    ]
+   },
+   "plate-raised": {
+    "role": "neutral",
+    "displayName": "Plate Raised",
+    "canonical": "#1a1c1f",
+    "tonalRamp": [
+     "oklch(17% 0.006 255)",
+     "oklch(23% 0.006 255)",
+     "oklch(32% 0.006 255)",
+     "oklch(44% 0.006 255)",
+     "oklch(57% 0.006 255)",
+     "oklch(71% 0.006 255)",
+     "oklch(85% 0.006 255)",
+     "oklch(95% 0.006 255)"
+    ]
+   },
+   "plate-well": {
+    "role": "neutral",
+    "displayName": "Plate Well",
+    "canonical": "#101113",
+    "tonalRamp": [
+     "oklch(13% 0.005 255)",
+     "oklch(19% 0.005 255)",
+     "oklch(29% 0.005 255)",
+     "oklch(41% 0.005 255)",
+     "oklch(55% 0.005 255)",
+     "oklch(69% 0.005 255)",
+     "oklch(83% 0.005 255)",
+     "oklch(95% 0.005 255)"
+    ]
+   },
+   "seam": {
+    "role": "neutral",
+    "displayName": "Seam",
+    "canonical": "#26282c",
+    "tonalRamp": [
+     "oklch(15% 0.008 260)",
+     "oklch(25% 0.008 260)",
+     "oklch(34% 0.008 260)",
+     "oklch(46% 0.008 260)",
+     "oklch(58% 0.008 260)",
+     "oklch(71% 0.008 260)",
+     "oklch(84% 0.008 260)",
+     "oklch(95% 0.008 260)"
+    ]
+   },
+   "seam-strong": {
+    "role": "neutral",
+    "displayName": "Seam Strong",
+    "canonical": "#33363b",
+    "tonalRamp": [
+     "oklch(18% 0.01 260)",
+     "oklch(30% 0.01 260)",
+     "oklch(40% 0.01 260)",
+     "oklch(50% 0.01 260)",
+     "oklch(61% 0.01 260)",
+     "oklch(72% 0.01 260)",
+     "oklch(84% 0.01 260)",
+     "oklch(95% 0.01 260)"
+    ]
+   },
+   "ink": {
+    "role": "neutral",
+    "displayName": "Ink",
+    "canonical": "#eeeff0",
+    "tonalRamp": [
+     "oklch(15% 0.002 260)",
+     "oklch(28% 0.002 260)",
+     "oklch(42% 0.002 260)",
+     "oklch(55% 0.002 260)",
+     "oklch(68% 0.002 260)",
+     "oklch(80% 0.002 260)",
+     "oklch(90% 0.002 260)",
+     "oklch(96% 0.002 260)"
+    ]
+   },
+   "ink-dim": {
+    "role": "neutral",
+    "displayName": "Ink Dim",
+    "canonical": "#a2a5aa",
+    "tonalRamp": [
+     "oklch(15% 0.005 255)",
+     "oklch(28% 0.005 255)",
+     "oklch(42% 0.005 255)",
+     "oklch(55% 0.005 255)",
+     "oklch(70% 0.005 255)",
+     "oklch(80% 0.005 255)",
+     "oklch(89% 0.005 255)",
+     "oklch(95% 0.005 255)"
+    ]
+   },
+   "ink-faint": {
+    "role": "neutral",
+    "displayName": "Ink Faint",
+    "canonical": "#7a7e84",
+    "tonalRamp": [
+     "oklch(15% 0.008 255)",
+     "oklch(27% 0.008 255)",
+     "oklch(40% 0.008 255)",
+     "oklch(58% 0.008 255)",
+     "oklch(68% 0.008 255)",
+     "oklch(79% 0.008 255)",
+     "oklch(88% 0.008 255)",
+     "oklch(95% 0.008 255)"
+    ]
+   },
+   "action": {
+    "role": "primary",
+    "displayName": "Signal Orange",
+    "canonical": "#ff4d00",
+    "tonalRamp": [
+     "oklch(20% 0.09 38)",
+     "oklch(30% 0.13 38)",
+     "oklch(42% 0.17 38)",
+     "oklch(53% 0.21 38)",
+     "oklch(64% 0.24 38)",
+     "oklch(74% 0.19 45)",
+     "oklch(85% 0.11 50)",
+     "oklch(95% 0.04 55)"
+    ]
+   },
+   "good": {
+    "role": "secondary",
+    "displayName": "Confirm Green",
+    "canonical": "#2fd05e",
+    "tonalRamp": [
+     "oklch(20% 0.07 150)",
+     "oklch(32% 0.11 150)",
+     "oklch(45% 0.15 150)",
+     "oklch(57% 0.18 150)",
+     "oklch(70% 0.2 150)",
+     "oklch(79% 0.17 150)",
+     "oklch(88% 0.11 150)",
+     "oklch(96% 0.04 150)"
+    ]
+   },
+   "low": {
+    "role": "secondary",
+    "displayName": "Low Amber",
+    "canonical": "#ffb020",
+    "tonalRamp": [
+     "oklch(22% 0.06 80)",
+     "oklch(35% 0.09 80)",
+     "oklch(48% 0.12 80)",
+     "oklch(62% 0.14 80)",
+     "oklch(75% 0.16 80)",
+     "oklch(83% 0.14 82)",
+     "oklch(90% 0.09 85)",
+     "oklch(96% 0.04 88)"
+    ]
+   },
+   "high": {
+    "role": "secondary",
+    "displayName": "Over Red",
+    "canonical": "#ff3b30",
+    "tonalRamp": [
+     "oklch(20% 0.09 27)",
+     "oklch(31% 0.14 27)",
+     "oklch(43% 0.18 27)",
+     "oklch(54% 0.22 27)",
+     "oklch(63% 0.23 29)",
+     "oklch(73% 0.17 29)",
+     "oklch(84% 0.1 29)",
+     "oklch(95% 0.04 29)"
+    ]
+   },
+   "info": {
+    "role": "secondary",
+    "displayName": "Info Cyan",
+    "canonical": "#39c2e8",
+    "tonalRamp": [
+     "oklch(20% 0.05 220)",
+     "oklch(32% 0.08 220)",
+     "oklch(45% 0.1 220)",
+     "oklch(58% 0.12 220)",
+     "oklch(72% 0.12 220)",
+     "oklch(80% 0.1 220)",
+     "oklch(88% 0.07 220)",
+     "oklch(95% 0.03 220)"
+    ]
+   }
   },
-  "components": [
-    {
-      "name": "Module",
-      "kind": "card",
-      "refersTo": "module",
-      "description": "A seam-bordered instrument plate that self-labels with a silkscreen micro-label and sets data in the mono voice.",
-      "html": "<section class=\"ds-module\"><h2 class=\"ds-silkscreen\">Streak</h2><p class=\"ds-data\">05<span class=\"ds-data-faint\">/07</span> <span class=\"ds-data-unit\">DAYS</span></p></section>",
-      "css": ".ds-module { background: var(--color-plate, #141517); border: 1px solid var(--color-seam, #26282c); border-radius: 6px; padding: 16px 20px 20px; } .ds-silkscreen { font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink-faint, #7a7e84); margin: 0; font-weight: 400; } .ds-data { font-family: 'Fragment Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; color: var(--color-ink, #eeeff0); font-size: 1.25rem; margin: 10px 0 0; } .ds-data-faint { color: var(--color-ink-faint, #7a7e84); } .ds-data-unit { font-size: 11px; letter-spacing: 0.08em; color: var(--color-ink-dim, #a2a5aa); }"
+  "typographyMeta": {
+   "readout": {
+    "displayName": "Seven-Segment Readout",
+    "purpose": "Exactly one element in the app: the Home TODAY kcal master readout. Live tint #f2ede2, idle ink-faint '----'."
+   },
+   "title": {
+    "displayName": "Title",
+    "purpose": "voice-title 550/1.25rem for screen titles; voice-item 500/1.125rem for entity names. Tokenized as classes; views never set raw sizes."
+   },
+   "body": {
+    "displayName": "Body",
+    "purpose": "The spoken voice: sentences and instructions, usually ink-dim. Never carries numbers."
+   },
+   "data": {
+    "displayName": "Data",
+    "purpose": "The measured voice: every value, unit, timestamp, provenance line. Always tabular-nums."
+   },
+   "label": {
+    "displayName": "Silkscreen",
+    "purpose": "Uppercase mono micro-label that self-labels every module, key, and nav item."
+   },
+   "ramp": {
+    "spoken": {
+     "display": "contextual (2.6rem stamp)",
+     "title": "1.25rem",
+     "item": "1.125rem",
+     "body": "0.9375rem",
+     "caption": "0.875rem",
+     "micro": "0.75rem"
     },
-    {
-      "name": "Action Key",
-      "kind": "button",
-      "refersTo": "key-action",
-      "description": "The primary console key: solid signal orange, black mono caption, machined lower edge that collapses when pressed.",
-      "html": "<button class=\"ds-key-action\">Yes, add it</button>",
-      "css": ".ds-key-action { display: block; width: 100%; background: var(--color-action, #ff4d00); color: #000; border: 1px solid transparent; border-radius: 6px; padding: 14px 16px; font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.875rem; letter-spacing: 0.14em; text-transform: uppercase; text-align: center; box-shadow: 0 2px 0 0 #a33200; cursor: pointer; transition: transform 60ms ease-out, box-shadow 60ms ease-out; } .ds-key-action:active { transform: translateY(2px); box-shadow: 0 0 0 0 #a33200; } .ds-key-action:focus-visible { outline: 2px solid var(--color-action, #ff4d00); outline-offset: 2px; }"
+    "measured": {
+     "xl": "2.25rem",
+     "lg": "1.25rem",
+     "md": "0.875rem",
+     "sm": "0.75rem",
+     "micro": "0.625rem",
+     "keycap": "0.8125rem",
+     "keycap-sm": "0.6875rem",
+     "silkscreen": "0.6875rem"
     },
-    {
-      "name": "Key",
-      "kind": "button",
-      "refersTo": "key",
-      "description": "A default console key: raised plate, seam border, silkscreen caption; depresses and brightens on press.",
-      "html": "<button class=\"ds-key\">Wrong product</button>",
-      "css": ".ds-key { display: block; width: 100%; background: var(--color-plate-raised, #1a1c1f); color: var(--color-ink-dim, #a2a5aa); border: 1px solid var(--color-seam, #26282c); border-radius: 6px; padding: 14px 16px; font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.875rem; letter-spacing: 0.14em; text-transform: uppercase; text-align: center; cursor: pointer; transition: filter 120ms ease-out, transform 60ms ease-out; } .ds-key:hover { border-color: var(--color-seam-strong, #33363b); } .ds-key:active { transform: translateY(1px); filter: brightness(1.15); } .ds-key:focus-visible { outline: 2px solid var(--color-action, #ff4d00); outline-offset: 2px; }"
+    "trackings": {
+     "silkscreen": "0.14em",
+     "keycap": "0.12em",
+     "chip": "0.08em",
+     "data-small": "0.02em"
     },
-    {
-      "name": "Band Chip",
-      "kind": "chip",
-      "refersTo": "chip",
-      "description": "Qualitative band indicator: solid signal fill with black text (GOOD/LOW/HIGH), or seam-strong border with NO DATA when unknown.",
-      "html": "<span class=\"ds-chip ds-chip-good\">GOOD</span> <span class=\"ds-chip ds-chip-low\">LOW</span> <span class=\"ds-chip ds-chip-high\">HIGH</span> <span class=\"ds-chip ds-chip-unknown\">NO DATA</span>",
-      "css": ".ds-chip { display: inline-block; font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.2rem 0.55rem; border-radius: 4px; border: 1px solid transparent; } .ds-chip-good { background: var(--color-good, #2fd05e); color: #000; } .ds-chip-low { background: var(--color-low, #ffb020); color: #000; } .ds-chip-high { background: var(--color-high, #ff3b30); color: #000; } .ds-chip-unknown { border-color: var(--color-seam-strong, #33363b); color: var(--color-ink-faint, #7a7e84); }"
-    },
-    {
-      "name": "Input Well",
-      "kind": "input",
-      "refersTo": "input-well",
-      "description": "A recessed data-entry well: plate-well fill, seam border, mono text; the border turns signal orange on focus, no glow.",
-      "html": "<label class=\"ds-silkscreen-label\" for=\"ds-qty\">Unit</label><input id=\"ds-qty\" class=\"ds-input\" value=\"1 UNIT\">",
-      "css": ".ds-silkscreen-label { display: block; font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink-faint, #7a7e84); margin-bottom: 6px; } .ds-input { width: 100%; box-sizing: border-box; background: var(--color-plate-well, #101113); color: var(--color-ink, #eeeff0); border: 1px solid var(--color-seam, #26282c); border-radius: 5px; padding: 10px 12px; font-family: 'Fragment Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.875rem; } .ds-input:focus { outline: none; border-color: var(--color-action, #ff4d00); }"
-    },
-    {
-      "name": "Bottom Control Strip",
-      "kind": "nav",
-      "refersTo": "key",
-      "description": "The five-key navigation strip on a seam-topped chassis plate; the orange SCAN key is taller and raised above the row.",
-      "html": "<nav class=\"ds-navstrip\"><a class=\"ds-nav-key\" aria-current=\"page\"><span class=\"ds-nav-label ds-nav-active\">Home</span></a><a class=\"ds-nav-key\"><span class=\"ds-nav-label\">Pantry</span></a><a class=\"ds-nav-scan\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2\"/><path d=\"M7 12h0.01M10.5 12h0.01M14 12h0.01M17 12h0.01\" stroke-width=\"2.4\"/></svg><span class=\"ds-nav-label-scan\">Scan</span></a><a class=\"ds-nav-key\"><span class=\"ds-nav-label\">Eat</span></a><a class=\"ds-nav-key\"><span class=\"ds-nav-label\">Health</span></a></nav>",
-      "css": ".ds-navstrip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: end; padding: 12px; background: rgba(10, 11, 12, 0.95); border-top: 1px solid var(--color-seam, #26282c); } .ds-nav-key { display: flex; align-items: center; justify-content: center; height: 56px; background: var(--color-plate-raised, #1a1c1f); border: 1px solid var(--color-seam, #26282c); border-radius: 6px; text-decoration: none; cursor: pointer; transition: transform 60ms ease-out; } .ds-nav-key:active { transform: translateY(1px); } .ds-nav-label { font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink-faint, #7a7e84); } .ds-nav-active { color: var(--color-ink, #eeeff0); } .ds-nav-scan { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 68px; margin-top: -12px; background: var(--color-action, #ff4d00); color: #000; border-radius: 6px; box-shadow: 0 2px 0 0 #a33200; text-decoration: none; cursor: pointer; transition: transform 60ms ease-out, box-shadow 60ms ease-out; } .ds-nav-scan:active { transform: translateY(2px); box-shadow: none; } .ds-nav-label-scan { font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; }"
-    },
-    {
-      "name": "LED Streak Row",
-      "kind": "custom",
-      "refersTo": "module",
-      "description": "Sequencer-style LED cells: lit orange for logged days, unlit wells for gaps. Success variants sweep left to right.",
-      "html": "<div class=\"ds-ledrow\" aria-hidden=\"true\"><span class=\"ds-led ds-led-on\"></span><span class=\"ds-led ds-led-on\"></span><span class=\"ds-led ds-led-on\"></span><span class=\"ds-led\"></span><span class=\"ds-led ds-led-on\"></span><span class=\"ds-led\"></span><span class=\"ds-led\"></span></div>",
-      "css": ".ds-ledrow { display: flex; gap: 6px; } .ds-led { width: 10px; height: 10px; border-radius: 2px; background: var(--color-plate-well, #101113); border: 1px solid var(--color-seam, #26282c); } .ds-led-on { background: var(--color-action, #ff4d00); border-color: transparent; }"
-    },
-    {
-      "name": "Meter",
-      "kind": "custom",
-      "refersTo": "module",
-      "description": "A 3px macro meter: seam track, ink-faint fill by default, a band signal color only when the band is known and meaningful.",
-      "html": "<div class=\"ds-meter\"><span style=\"width: 62%\"></span></div>",
-      "css": ".ds-meter { height: 3px; border-radius: 2px; background: var(--color-seam, #26282c); overflow: hidden; } .ds-meter > span { display: block; height: 100%; border-radius: 2px; background: var(--color-ink-faint, #7a7e84); }"
-    },
-    {
-      "name": "Reward Stamp",
-      "kind": "custom",
-      "refersTo": "module",
-      "description": "The earned-success moment: a full green field with black check and declaration, stamping in with an LED sweep. Fires only on genuine completion.",
-      "html": "<div class=\"ds-stamp\"><div class=\"ds-stamp-row\"><svg width=\"64\" height=\"64\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12.5l5.5 5.5L20 6.5\"/></svg><p class=\"ds-stamp-text\">Added to<br>pantry</p></div><div class=\"ds-stamp-leds\" aria-hidden=\"true\"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>",
-      "css": ".ds-stamp { background: var(--color-good, #2fd05e); color: #000; border-radius: 6px; padding: 28px 24px 16px; animation: ds-stamp-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both; } .ds-stamp-row { display: flex; align-items: center; gap: 20px; } .ds-stamp-text { font-family: 'Archivo', system-ui, sans-serif; font-size: 2.2rem; font-weight: 700; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; margin: 0; } .ds-stamp-leds { display: flex; justify-content: space-between; margin-top: 24px; } .ds-stamp-leds > span { width: 10px; height: 10px; border-radius: 2px; background: #000; opacity: 0.25; animation: ds-led 90ms ease-out both; } .ds-stamp-leds > span:nth-child(2) { animation-delay: 40ms; } .ds-stamp-leds > span:nth-child(3) { animation-delay: 80ms; } .ds-stamp-leds > span:nth-child(4) { animation-delay: 120ms; } .ds-stamp-leds > span:nth-child(5) { animation-delay: 160ms; } .ds-stamp-leds > span:nth-child(6) { animation-delay: 200ms; } .ds-stamp-leds > span:nth-child(7) { animation-delay: 240ms; } .ds-stamp-leds > span:nth-child(8) { animation-delay: 280ms; } .ds-stamp-leds > span:nth-child(9) { animation-delay: 320ms; } .ds-stamp-leds > span:nth-child(10) { animation-delay: 360ms; } .ds-stamp-leds > span:nth-child(11) { animation-delay: 400ms; } .ds-stamp-leds > span:nth-child(12) { animation-delay: 440ms; } @keyframes ds-stamp-in { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: scale(1); } } @keyframes ds-led { from { opacity: 0; } to { opacity: 0.25; } } @media (prefers-reduced-motion: reduce) { .ds-stamp, .ds-stamp-leds > span { animation: none; } }"
+    "weights": {
+     "display": 700,
+     "title": 550,
+     "item": 500,
+     "base": 400
     }
+   }
+  },
+  "shadows": [
+   {
+    "name": "key-ledge",
+    "value": "0 2px 0 0 #a33200",
+    "purpose": "The single shadow in the system: the machined lower edge of the orange action key. Collapses to 0 with translateY(2px) on :active. Structural pressed-key device; never used off keys."
+   }
   ],
-  "narrative": {
-    "northStar": "The Kitchen Instrument Console",
-    "overview": "Jabba's app surface is a piece of dark tabletop hardware, not a wellness feed. Every screen is a matte near-black chassis carrying seam-separated module plates; every module silkscreens its own uppercase mono micro-label in the top-left, the way a synthesizer labels a knob. Numbers are instrument readings — tabular mono everywhere, and one seven-segment master readout for the day's kilocalories. Color is functional signal, never mood: five fixed-meaning lamps on an otherwise achromatic machine.\n\nThe console is the user's, not the brand's: the status bar carries the user's name, and the machine reports only what it actually measured. When the machine doesn't know, it says so — '----', 'NO DATA', an unlit LED, an empty meter track — never a fabricated zero. When the user genuinely completes the loop, the reward fires as hardware: a full green field, an LED sweep, a stamped check, counters that tick. Nothing celebratory happens without a real trigger.\n\nThis is one committed dark world. There is no light mode and no appearance toggle; html.dark is hard-set and the browser chrome (selection, caret, scrollbar, focus ring) is tuned to the console.",
-    "keyCharacteristics": [
-      "Matte near-black chassis; plates separated by 1px hairline seams; no ambient shadows.",
-      "Every module self-labels with a silkscreen mono micro-label.",
-      "If it's measured, it's mono; if it's spoken, it's grotesk.",
-      "Five fixed-meaning signal colors on small areas; the machine is otherwise achromatic.",
-      "Honest unknowns: '----' / 'NO DATA' / empty tracks, never invented zeros.",
-      "Rewards are hardware events (green field, LED sweep, stamp, ticking counters), earned only."
-    ],
-    "rules": [
-      { "name": "The Fixed-Meaning Rule", "body": "The five signals carry fixed semantics (action, good, low, high, info) on small areas only. A signal color is never decorative, never a background wash, and never re-assigned. The single exception is the earned success stamp's full green field.", "section": "colors" },
-      { "name": "The Black-on-Signal Rule", "body": "Text and glyphs sitting on any signal fill are pure black (#000). Signals are lamps; lamps don't carry grey type.", "section": "colors" },
-      { "name": "The One-Fill Band Grammar", "body": "Qualitative band chips share one grammar: solid signal fill + black text (GOOD/OK → green, OK at 70% opacity; LOW → amber; HIGH → red). Unknown bands get no fill — seam-strong border, ink-faint text, label 'NO DATA'.", "section": "colors" },
-      { "name": "The Measured/Spoken Rule", "body": "If it's measured, it's mono; if it's spoken, it's grotesk. No number ever renders in Archivo; no sentence ever renders in Fragment Mono.", "section": "typography" },
-      { "name": "The One Readout Rule", "body": "DSEG7 appears exactly once in the app: the Home kcal master readout. A second seven-segment element anywhere devalues the gauge.", "section": "typography" },
-      { "name": "The Seam Rule", "body": "Separation is always a 1px seam or a tonal step, never a drop shadow, glow, or blur (backdrop-blur on the chassis bars is the sole blur, and it blurs content, not edges).", "section": "elevation" },
-      { "name": "The Crisp Motion Rule", "body": "All motion is short (60–160ms base) exponential ease-out — never springy, bouncy, or looping. The LED sweep and the stamp are the only authored moments; both die under prefers-reduced-motion.", "section": "components" },
-      { "name": "The Honest Blank Rule", "body": "An unknown value renders as '----' (or '—', an unlit LED, an empty seam-colored track) in ink-faint. The machine never draws a zero, a guessed bar, or a placeholder number for data it doesn't hold.", "section": "components" }
-    ],
-    "dos": [
-      "Do open every module with a silkscreen micro-label (Fragment Mono 11px, 0.14em, uppercase, ink-faint) at top-left; modules self-identify.",
-      "Do set every measured value in Fragment Mono with tabular-nums, with units small and ink-dim beside the number, and provenance in an 11px uppercase mono line.",
-      "Do separate with 1px seams and tonal steps (well/plate/raised); keep the 12px module rhythm.",
-      "Do put black type on any signal fill, and keep signal areas small — a chip, an LED, a marker line, a key.",
-      "Do render unknowns as '----' / 'NO DATA' / unlit cells, and quantize charts into cell stacks and tick scales.",
-      "Do respect prefers-reduced-motion for every authored animation."
-    ],
-    "donts": [
-      "Don't add drop shadows, glows, or gradients; the only shadow is the action key's machined ledge, and it stays on keys.",
-      "Don't use signal colors decoratively, as washes, or with shifted meanings; the only large signal field is the earned green success stamp.",
-      "Don't fire reward grammar (green field, LED sweep, stamp, ticking counters) without a genuine success trigger, and never use confetti or springy easing.",
-      "Don't set a number in Archivo or a sentence in Fragment Mono, and never use DSEG7 outside the single Home kcal readout.",
-      "Don't introduce a light mode, an appearance toggle, or pill radii (>6px corners); the world is one committed dark console.",
-      "Don't use icon fonts or filled glyph icons; icons are inline stroked SVGs in currentColor."
-    ]
+  "motion": [
+   {
+    "name": "led-sweep",
+    "value": "opacity 0->1, 90ms ease-out per cell, 40ms stagger left-to-right",
+    "purpose": "Success LEDs light in sequence on genuine completion (scan resolving, reward stamp)."
+   },
+   {
+    "name": "stamp-in",
+    "value": "160ms cubic-bezier(0.16, 1, 0.3, 1), scale 1.06 -> 1 with fade",
+    "purpose": "The reward stamp lands like a press. Crisp exponential ease-out, never springy."
+   },
+   {
+    "name": "key-press",
+    "value": "transform 60ms ease-out, filter 120ms ease-out",
+    "purpose": "Keys depress 1-2px and brighten on :active."
+   },
+   {
+    "name": "reduced-motion",
+    "value": "@media (prefers-reduced-motion: reduce) { animation: none }",
+    "purpose": "Both authored moments are disabled entirely under reduced motion."
+   }
+  ],
+  "breakpoints": [
+   {
+    "name": "shell-max",
+    "value": "28rem",
+    "purpose": "max-w-md single-column console shell; the world is mobile-first with a centered column on wider viewports."
+   }
+  ]
+ },
+ "components": [
+  {
+   "name": "Module",
+   "kind": "card",
+   "refersTo": "module",
+   "description": "A seam-bordered instrument plate that self-labels with a silkscreen micro-label and sets data in the mono voice.",
+   "html": "<section class=\"ds-module\"><h2 class=\"ds-silkscreen\">Streak</h2><p class=\"ds-data\">05<span class=\"ds-data-faint\">/07</span> <span class=\"ds-data-unit\">DAYS</span></p></section>",
+   "css": ".ds-module { background: var(--color-plate, #141517); border: 1px solid var(--color-seam, #26282c); border-radius: 6px; padding: 16px 20px 20px; } .ds-silkscreen { font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink-faint, #7a7e84); margin: 0; font-weight: 400; } .ds-data { font-family: 'Fragment Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; color: var(--color-ink, #eeeff0); font-size: 1.25rem; margin: 10px 0 0; } .ds-data-faint { color: var(--color-ink-faint, #7a7e84); } .ds-data-unit { font-size: 11px; letter-spacing: 0.08em; color: var(--color-ink-dim, #a2a5aa); }"
+  },
+  {
+   "name": "Action Key",
+   "kind": "button",
+   "refersTo": "key-action",
+   "description": "The primary console key: solid signal orange, black mono caption, machined lower edge that collapses when pressed.",
+   "html": "<button class=\"ds-key-action\">Yes, add it</button>",
+   "css": ".ds-key-action { display: block; width: 100%; background: var(--color-action, #ff4d00); color: #000; border: 1px solid transparent; border-radius: 6px; padding: 14px 16px; font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.875rem; letter-spacing: 0.14em; text-transform: uppercase; text-align: center; box-shadow: 0 2px 0 0 #a33200; cursor: pointer; transition: transform 60ms ease-out, box-shadow 60ms ease-out; } .ds-key-action:active { transform: translateY(2px); box-shadow: 0 0 0 0 #a33200; } .ds-key-action:focus-visible { outline: 2px solid var(--color-action, #ff4d00); outline-offset: 2px; }"
+  },
+  {
+   "name": "Key",
+   "kind": "button",
+   "refersTo": "key",
+   "description": "A default console key: raised plate, seam border, silkscreen caption; depresses and brightens on press.",
+   "html": "<button class=\"ds-key\">Wrong product</button>",
+   "css": ".ds-key { display: block; width: 100%; background: var(--color-plate-raised, #1a1c1f); color: var(--color-ink-dim, #a2a5aa); border: 1px solid var(--color-seam, #26282c); border-radius: 6px; padding: 14px 16px; font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.875rem; letter-spacing: 0.14em; text-transform: uppercase; text-align: center; cursor: pointer; transition: filter 120ms ease-out, transform 60ms ease-out; } .ds-key:hover { border-color: var(--color-seam-strong, #33363b); } .ds-key:active { transform: translateY(1px); filter: brightness(1.15); } .ds-key:focus-visible { outline: 2px solid var(--color-action, #ff4d00); outline-offset: 2px; }"
+  },
+  {
+   "name": "Band Chip",
+   "kind": "chip",
+   "refersTo": "chip",
+   "description": "Qualitative band indicator: solid signal fill with black text (GOOD/LOW/HIGH), or seam-strong border with NO DATA when unknown.",
+   "html": "<span class=\"ds-chip ds-chip-good\">GOOD</span> <span class=\"ds-chip ds-chip-low\">LOW</span> <span class=\"ds-chip ds-chip-high\">HIGH</span> <span class=\"ds-chip ds-chip-unknown\">NO DATA</span>",
+   "css": ".ds-chip { display: inline-block; font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.2rem 0.55rem; border-radius: 4px; border: 1px solid transparent; } .ds-chip-good { background: var(--color-good, #2fd05e); color: #000; } .ds-chip-low { background: var(--color-low, #ffb020); color: #000; } .ds-chip-high { background: var(--color-high, #ff3b30); color: #000; } .ds-chip-unknown { border-color: var(--color-seam-strong, #33363b); color: var(--color-ink-faint, #7a7e84); }"
+  },
+  {
+   "name": "Input Well",
+   "kind": "input",
+   "refersTo": "input-well",
+   "description": "A recessed data-entry well: plate-well fill, seam border, mono text; the border turns signal orange on focus, no glow.",
+   "html": "<label class=\"ds-silkscreen-label\" for=\"ds-qty\">Unit</label><input id=\"ds-qty\" class=\"ds-input\" value=\"1 UNIT\">",
+   "css": ".ds-silkscreen-label { display: block; font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink-faint, #7a7e84); margin-bottom: 6px; } .ds-input { width: 100%; box-sizing: border-box; background: var(--color-plate-well, #101113); color: var(--color-ink, #eeeff0); border: 1px solid var(--color-seam, #26282c); border-radius: 5px; padding: 10px 12px; font-family: 'Fragment Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 0.875rem; } .ds-input:focus { outline: none; border-color: var(--color-action, #ff4d00); }"
+  },
+  {
+   "name": "Bottom Control Strip",
+   "kind": "nav",
+   "refersTo": "key",
+   "description": "The five-key navigation strip on a seam-topped chassis plate; the orange SCAN key is taller and raised above the row.",
+   "html": "<nav class=\"ds-navstrip\"><a class=\"ds-nav-key\" aria-current=\"page\"><span class=\"ds-nav-label ds-nav-active\">Home</span></a><a class=\"ds-nav-key\"><span class=\"ds-nav-label\">Pantry</span></a><a class=\"ds-nav-scan\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2\"/><path d=\"M7 12h0.01M10.5 12h0.01M14 12h0.01M17 12h0.01\" stroke-width=\"2.4\"/></svg><span class=\"ds-nav-label-scan\">Scan</span></a><a class=\"ds-nav-key\"><span class=\"ds-nav-label\">Eat</span></a><a class=\"ds-nav-key\"><span class=\"ds-nav-label\">Health</span></a></nav>",
+   "css": ".ds-navstrip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: end; padding: 12px; background: rgba(10, 11, 12, 0.95); border-top: 1px solid var(--color-seam, #26282c); } .ds-nav-key { display: flex; align-items: center; justify-content: center; height: 56px; background: var(--color-plate-raised, #1a1c1f); border: 1px solid var(--color-seam, #26282c); border-radius: 6px; text-decoration: none; cursor: pointer; transition: transform 60ms ease-out; } .ds-nav-key:active { transform: translateY(1px); } .ds-nav-label { font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-ink-faint, #7a7e84); } .ds-nav-active { color: var(--color-ink, #eeeff0); } .ds-nav-scan { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 68px; margin-top: -12px; background: var(--color-action, #ff4d00); color: #000; border-radius: 6px; box-shadow: 0 2px 0 0 #a33200; text-decoration: none; cursor: pointer; transition: transform 60ms ease-out, box-shadow 60ms ease-out; } .ds-nav-scan:active { transform: translateY(2px); box-shadow: none; } .ds-nav-label-scan { font-family: 'Fragment Mono', ui-monospace, monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; }"
+  },
+  {
+   "name": "LED Streak Row",
+   "kind": "custom",
+   "refersTo": "module",
+   "description": "Sequencer-style LED cells: lit orange for logged days, unlit wells for gaps. Success variants sweep left to right.",
+   "html": "<div class=\"ds-ledrow\" aria-hidden=\"true\"><span class=\"ds-led ds-led-on\"></span><span class=\"ds-led ds-led-on\"></span><span class=\"ds-led ds-led-on\"></span><span class=\"ds-led\"></span><span class=\"ds-led ds-led-on\"></span><span class=\"ds-led\"></span><span class=\"ds-led\"></span></div>",
+   "css": ".ds-ledrow { display: flex; gap: 6px; } .ds-led { width: 10px; height: 10px; border-radius: 2px; background: var(--color-plate-well, #101113); border: 1px solid var(--color-seam, #26282c); } .ds-led-on { background: var(--color-action, #ff4d00); border-color: transparent; }"
+  },
+  {
+   "name": "Meter",
+   "kind": "custom",
+   "refersTo": "module",
+   "description": "A 3px macro meter: seam track, ink-faint fill by default, a band signal color only when the band is known and meaningful.",
+   "html": "<div class=\"ds-meter\"><span style=\"width: 62%\"></span></div>",
+   "css": ".ds-meter { height: 3px; border-radius: 2px; background: var(--color-seam, #26282c); overflow: hidden; } .ds-meter > span { display: block; height: 100%; border-radius: 2px; background: var(--color-ink-faint, #7a7e84); }"
+  },
+  {
+   "name": "Reward Stamp",
+   "kind": "custom",
+   "refersTo": "module",
+   "description": "The earned-success moment: a full green field with black check and declaration, stamping in with an LED sweep. Fires only on genuine completion.",
+   "html": "<div class=\"ds-stamp\"><div class=\"ds-stamp-row\"><svg width=\"64\" height=\"64\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12.5l5.5 5.5L20 6.5\"/></svg><p class=\"ds-stamp-text\">Added to<br>pantry</p></div><div class=\"ds-stamp-leds\" aria-hidden=\"true\"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>",
+   "css": ".ds-stamp { background: var(--color-good, #2fd05e); color: #000; border-radius: 6px; padding: 28px 24px 16px; animation: ds-stamp-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both; } .ds-stamp-row { display: flex; align-items: center; gap: 20px; } .ds-stamp-text { font-family: 'Archivo', system-ui, sans-serif; font-size: 2.2rem; font-weight: 700; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; margin: 0; } .ds-stamp-leds { display: flex; justify-content: space-between; margin-top: 24px; } .ds-stamp-leds > span { width: 10px; height: 10px; border-radius: 2px; background: #000; opacity: 0.25; animation: ds-led 90ms ease-out both; } .ds-stamp-leds > span:nth-child(2) { animation-delay: 40ms; } .ds-stamp-leds > span:nth-child(3) { animation-delay: 80ms; } .ds-stamp-leds > span:nth-child(4) { animation-delay: 120ms; } .ds-stamp-leds > span:nth-child(5) { animation-delay: 160ms; } .ds-stamp-leds > span:nth-child(6) { animation-delay: 200ms; } .ds-stamp-leds > span:nth-child(7) { animation-delay: 240ms; } .ds-stamp-leds > span:nth-child(8) { animation-delay: 280ms; } .ds-stamp-leds > span:nth-child(9) { animation-delay: 320ms; } .ds-stamp-leds > span:nth-child(10) { animation-delay: 360ms; } .ds-stamp-leds > span:nth-child(11) { animation-delay: 400ms; } .ds-stamp-leds > span:nth-child(12) { animation-delay: 440ms; } @keyframes ds-stamp-in { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: scale(1); } } @keyframes ds-led { from { opacity: 0; } to { opacity: 0.25; } } @media (prefers-reduced-motion: reduce) { .ds-stamp, .ds-stamp-leds > span { animation: none; } }"
   }
+ ],
+ "narrative": {
+  "northStar": "The Kitchen Instrument Console",
+  "overview": "Jabba's app surface is a piece of dark tabletop hardware, not a wellness feed. Every screen is a matte near-black chassis carrying seam-separated module plates; every module silkscreens its own uppercase mono micro-label in the top-left, the way a synthesizer labels a knob. Numbers are instrument readings \u2014 tabular mono everywhere, and one seven-segment master readout for the day's kilocalories. Color is functional signal, never mood: five fixed-meaning lamps on an otherwise achromatic machine.\n\nThe console is the user's, not the brand's: the status bar carries the user's name, and the machine reports only what it actually measured. When the machine doesn't know, it says so \u2014 '----', 'NO DATA', an unlit LED, an empty meter track \u2014 never a fabricated zero. When the user genuinely completes the loop, the reward fires as hardware: a full green field, an LED sweep, a stamped check, counters that tick. Nothing celebratory happens without a real trigger.\n\nThis is one committed dark world. There is no light mode and no appearance toggle; html.dark is hard-set and the browser chrome (selection, caret, scrollbar, focus ring) is tuned to the console.",
+  "keyCharacteristics": [
+   "Matte near-black chassis; plates separated by 1px hairline seams; no ambient shadows.",
+   "Every module self-labels with a silkscreen mono micro-label.",
+   "If it's measured, it's mono; if it's spoken, it's grotesk.",
+   "Five fixed-meaning signal colors on small areas; the machine is otherwise achromatic.",
+   "Honest unknowns: '----' / 'NO DATA' / empty tracks, never invented zeros.",
+   "Rewards are hardware events (green field, LED sweep, stamp, ticking counters), earned only."
+  ],
+  "rules": [
+   {
+    "name": "The Fixed-Meaning Rule",
+    "body": "The five signals carry fixed semantics (action, good, low, high, info) on small areas only. A signal color is never decorative, never a background wash, and never re-assigned. The single exception is the earned success stamp's full green field.",
+    "section": "colors"
+   },
+   {
+    "name": "The Black-on-Signal Rule",
+    "body": "Text and glyphs sitting on any signal fill are pure black (#000). Signals are lamps; lamps don't carry grey type.",
+    "section": "colors"
+   },
+   {
+    "name": "The One-Fill Band Grammar",
+    "body": "Qualitative band chips share one grammar: solid signal fill + black text (GOOD/OK \u2192 green, OK at 70% opacity; LOW \u2192 amber; HIGH \u2192 red). Unknown bands get no fill \u2014 seam-strong border, ink-faint text, label 'NO DATA'.",
+    "section": "colors"
+   },
+   {
+    "name": "The Measured/Spoken Rule",
+    "body": "If it's measured, it's mono; if it's spoken, it's grotesk. No number ever renders in Archivo; no sentence ever renders in Fragment Mono.",
+    "section": "typography"
+   },
+   {
+    "name": "The One Readout Rule",
+    "body": "DSEG7 appears exactly once in the app: the Home kcal master readout. A second seven-segment element anywhere devalues the gauge.",
+    "section": "typography"
+   },
+   {
+    "name": "The Seam Rule",
+    "body": "Separation is always a 1px seam or a tonal step, never a drop shadow, glow, or blur (backdrop-blur on the chassis bars is the sole blur, and it blurs content, not edges).",
+    "section": "elevation"
+   },
+   {
+    "name": "The Crisp Motion Rule",
+    "body": "All motion is short (60\u2013160ms base) exponential ease-out \u2014 never springy, bouncy, or looping. The LED sweep and the stamp are the only authored moments; both die under prefers-reduced-motion.",
+    "section": "components"
+   },
+   {
+    "name": "The Honest Blank Rule",
+    "body": "An unknown value renders as '----' (or '\u2014', an unlit LED, an empty seam-colored track) in ink-faint. The machine never draws a zero, a guessed bar, or a placeholder number for data it doesn't hold.",
+    "section": "components"
+   }
+  ],
+  "dos": [
+   "Do open every module with a silkscreen micro-label (Fragment Mono 11px, 0.14em, uppercase, ink-faint) at top-left; modules self-identify.",
+   "Do set every measured value in Fragment Mono with tabular-nums, with units small and ink-dim beside the number, and provenance in an 11px uppercase mono line.",
+   "Do separate with 1px seams and tonal steps (well/plate/raised); keep the 12px module rhythm.",
+   "Do put black type on any signal fill, and keep signal areas small \u2014 a chip, an LED, a marker line, a key.",
+   "Do render unknowns as '----' / 'NO DATA' / unlit cells, and quantize charts into cell stacks and tick scales.",
+   "Do respect prefers-reduced-motion for every authored animation."
+  ],
+  "donts": [
+   "Don't add drop shadows, glows, or gradients; the only shadow is the action key's machined ledge, and it stays on keys.",
+   "Don't use signal colors decoratively, as washes, or with shifted meanings; the only large signal field is the earned green success stamp.",
+   "Don't fire reward grammar (green field, LED sweep, stamp, ticking counters) without a genuine success trigger, and never use confetti or springy easing.",
+   "Don't set a number in Archivo or a sentence in Fragment Mono, and never use DSEG7 outside the single Home kcal readout.",
+   "Don't introduce a light mode, an appearance toggle, or pill radii (>6px corners); the world is one committed dark console.",
+   "Don't use icon fonts or filled glyph icons; icons are inline stroked SVGs in currentColor."
+  ]
+ }
 }

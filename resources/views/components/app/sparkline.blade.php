@@ -45,7 +45,7 @@
 @if (! empty($labels))
     <div class="mt-1 flex justify-between px-0.5">
         @foreach ($labels as $label)
-            <span class="silkscreen flex-1 text-center !text-[9px]">{{ $label }}</span>
+            <span class="data-micro flex-1 text-center text-ink-faint uppercase">{{ $label }}</span>
         @endforeach
     </div>
 @endif

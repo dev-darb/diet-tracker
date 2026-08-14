@@ -37,7 +37,7 @@
                     <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
                     <path d="M7 12h0.01M10.5 12h0.01M14 12h0.01M17 12h0.01" stroke-width="2.4" />
                 </svg>
-                <span class="font-mono text-[11px] font-medium tracking-[0.14em] uppercase">Scan</span>
+                <span class="keycap-sm font-medium">Scan</span>
             </a>
 
             @foreach ([2, 3] as $i)

@@ -35,11 +35,11 @@
                 <div class="flex items-center justify-between px-5 py-3">
                     <a href="{{ route('home') }}" class="flex items-baseline gap-2.5">
                         <span class="inline-block size-2 rounded-full bg-action" aria-hidden="true"></span>
-                        <span class="data text-sm tracking-[0.14em] text-ink uppercase">{{ str(auth()->user()?->name ?? 'Guest')->before(' ') }}</span>
+                        <span class="data-md max-w-32 truncate tracking-[0.14em] text-ink uppercase">{{ str(auth()->user()?->name ?? 'Guest')->before(' ') }}</span>
                         <span class="silkscreen">Food OS</span>
                     </a>
                     <div class="flex items-center gap-3">
-                        <span class="data text-xs tracking-[0.1em] text-ink-dim uppercase">{{ now()->format('D j M') }}</span>
+                        <span class="data-sm text-ink-dim uppercase">{{ now()->format('D j M') }}</span>
                         <a href="{{ route('profile') }}"
                            aria-label="Profile and settings"
                            class="key flex size-8 items-center justify-center text-xs font-medium text-ink-dim {{ request()->routeIs('profile') ? 'text-action' : '' }}">

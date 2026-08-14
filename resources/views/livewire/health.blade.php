@@ -32,8 +32,8 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
 
     <div class="space-y-3">
         <div class="px-1">
-            <h1 class="text-xl font-medium tracking-tight text-ink">Health</h1>
-            <p class="mt-0.5 text-sm text-ink-dim">Today and this week. Trends arrive as your history grows.</p>
+            <h1 class="voice-title text-ink">Health</h1>
+            <p class="voice-caption mt-0.5 text-ink-dim">Today and this week. Trends arrive as your history grows.</p>
         </div>
 
         @if (! $week['has_data'] && ! $today['has_data'])
@@ -46,12 +46,12 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
             <section class="module px-5 pb-5 pt-4">
                 <div class="flex items-baseline justify-between">
                     <h2 class="silkscreen">This week</h2>
-                    <span class="data text-[11px] text-ink-faint uppercase">{{ \Illuminate\Support\Carbon::parse($week['start'])->format('j M') }} – {{ \Illuminate\Support\Carbon::parse($week['end'])->format('j M') }}</span>
+                    <span class="data-sm text-ink-faint uppercase">{{ \Illuminate\Support\Carbon::parse($week['start'])->format('j M') }} – {{ \Illuminate\Support\Carbon::parse($week['end'])->format('j M') }}</span>
                 </div>
 
                 <p class="mt-4 flex items-baseline gap-2">
-                    <span class="data text-3xl text-ink">{{ $week['averages']['calories']['value'] === null ? '----' : number_format((float) $week['averages']['calories']['value'], 0, '', '') }}</span>
-                    <span class="data text-xs text-ink-dim uppercase">KCAL/DAY AVG</span>
+                    <span class="data-xl text-ink">{{ $week['averages']['calories']['value'] === null ? '----' : number_format((float) $week['averages']['calories']['value'], 0, '', '') }}</span>
+                    <span class="data-sm text-ink-dim uppercase">KCAL/DAY AVG</span>
                 </p>
 
                 {{-- Weekly calorie sparkline (last 7 days). --}}
@@ -73,19 +73,19 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
                         @php($trend = $week['trends'][$key])
                         <div class="py-3">
                             <h3 class="silkscreen">{{ $meta['label'] }}</h3>
-                            <p class="data mt-1 text-lg text-ink">
-                                {{ $avg['value'] === null ? '----' : rtrim(rtrim(number_format((float) $avg['value'], 1), '0'), '.') }}<span class="text-[10px] text-ink-faint"> {{ $meta['unit'] }}</span>
+                            <p class="data-lg mt-1 text-ink">
+                                {{ $avg['value'] === null ? '----' : rtrim(rtrim(number_format((float) $avg['value'], 1), '0'), '.') }}<span class="data-micro text-ink-faint"> {{ $meta['unit'] }}</span>
                             </p>
                             @if ($trend['comparable'])
-                                <p class="data mt-0.5 text-[11px] {{ $trend['direction'] === 'up' ? 'text-good' : ($trend['direction'] === 'down' ? 'text-low' : 'text-ink-faint') }}">
+                                <p class="data-sm mt-0.5 {{ $trend['direction'] === 'up' ? 'text-good' : ($trend['direction'] === 'down' ? 'text-low' : 'text-ink-faint') }}">
                                     {{ $trend['direction'] === 'up' ? '↑' : ($trend['direction'] === 'down' ? '↓' : '→') }}
                                     {{ number_format(abs((float) $trend['delta']) * 100, 0) }}% VS LAST WK
                                 </p>
                             @else
-                                <p class="data mt-0.5 text-[11px] text-ink-faint uppercase">No prior week</p>
+                                <p class="data-sm mt-0.5 text-ink-faint uppercase">No prior week</p>
                             @endif
                             @if ($avg['partial'])
-                                <p class="data text-[10px] text-ink-faint uppercase">Partial — some days not stated</p>
+                                <p class="data-micro text-ink-faint uppercase">Partial — some days not stated</p>
                             @endif
                         </div>
                     @endforeach
@@ -96,20 +96,20 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
             <section class="module grid grid-cols-3 divide-x divide-seam" aria-label="Weekly counters">
                 <div class="px-4 py-3.5">
                     <h3 class="silkscreen">Foods</h3>
-                    <p class="data mt-1.5 text-xl text-ink">{{ $week['food_variety'] }}</p>
-                    <p class="mt-0.5 text-[11px] text-ink-dim">distinct</p>
+                    <p class="data-lg mt-1.5 text-ink">{{ $week['food_variety'] }}</p>
+                    <p class="voice-micro mt-0.5 text-ink-dim">distinct</p>
                 </div>
                 <div class="px-4 py-3.5">
                     <h3 class="silkscreen">Logged</h3>
-                    <p class="data mt-1.5 text-xl text-ink">{{ $week['meal_regularity']['days_logged'] }}<span class="text-sm text-ink-faint">/{{ $week['meal_regularity']['days'] }}</span></p>
-                    <p class="mt-0.5 text-[11px] text-ink-dim">days</p>
+                    <p class="data-lg mt-1.5 text-ink">{{ $week['meal_regularity']['days_logged'] }}<span class="data-md text-ink-faint">/{{ $week['meal_regularity']['days'] }}</span></p>
+                    <p class="voice-micro mt-0.5 text-ink-dim">days</p>
                 </div>
                 <div class="px-4 py-3.5">
                     <h3 class="silkscreen">Fruit+Veg</h3>
-                    <p class="data mt-1.5 text-xl text-ink">
+                    <p class="data-lg mt-1.5 text-ink">
                         {{ $week['fruit_veg']['known'] ? rtrim(rtrim(number_format((float) $week['fruit_veg']['portions_per_day'], 1), '0'), '.') : '----' }}
                     </p>
-                    <p class="mt-0.5 text-[11px] text-ink-dim">portions/day</p>
+                    <p class="voice-micro mt-0.5 text-ink-dim">portions/day</p>
                 </div>
             </section>
 
@@ -121,10 +121,10 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
                 <section class="module px-5 pb-4 pt-4">
                     <h2 class="silkscreen">Today</h2>
                     <p class="mt-2 flex items-baseline gap-2">
-                        <span class="data text-2xl text-ink">{{ $today['totals']['calories'] === null ? '----' : number_format((float) $today['totals']['calories'], 0, '', '') }}</span>
-                        <span class="data text-xs text-ink-dim uppercase">KCAL so far</span>
+                        <span class="data-lg text-ink">{{ $today['totals']['calories'] === null ? '----' : number_format((float) $today['totals']['calories'], 0, '', '') }}</span>
+                        <span class="data-sm text-ink-dim uppercase">KCAL so far</span>
                     </p>
-                    <p class="data mt-1 text-[11px] text-ink-faint uppercase">{{ $today['food_variety'] }} distinct {{ $today['food_variety'] === 1 ? 'food' : 'foods' }} today</p>
+                    <p class="data-sm mt-1 text-ink-faint uppercase">{{ $today['food_variety'] }} distinct {{ $today['food_variety'] === 1 ? 'food' : 'foods' }} today</p>
                 </section>
             @endif
 
@@ -135,9 +135,9 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
             <section class="module px-5 py-4">
                 <div class="flex items-center justify-between">
                     <h2 class="silkscreen">Trends</h2>
-                    <span class="data text-[11px] text-ink-faint uppercase">Standby</span>
+                    <span class="data-sm text-ink-faint uppercase">Standby</span>
                 </div>
-                <p class="mt-2 text-xs leading-relaxed text-ink-dim">Longer-term trends switch on here once you've logged a few weeks.</p>
+                <p class="voice-caption mt-2 text-ink-dim">Longer-term trends switch on here once you've logged a few weeks.</p>
             </section>
 
             <x-app.health-disclaimer />
