@@ -115,7 +115,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                     </div>
                 @else
                     <div class="mt-3">
-                        <input type="search" wire:model.live.debounce.300ms="productSearch" placeholder="Search products…" aria-label="Search products"
+                        <input type="search" wire:model.live.debounce.300ms="productSearch" placeholder="Search products…" aria-label="Search products" maxlength="80"
                                class="w-full rounded-[5px] border border-seam bg-plate-well px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-action focus:outline-none">
                         @if (count($matches) > 0)
                             <ul class="mt-2 divide-y divide-seam overflow-hidden rounded-[5px] border border-seam">
@@ -139,7 +139,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                 <div class="mt-4 flex items-end gap-3">
                     <div class="w-24">
                         <label class="silkscreen" for="add-qty">Quantity</label>
-                        <input id="add-qty" type="number" step="any" min="0" inputmode="decimal" wire:model="addQuantity"
+                        <input id="add-qty" type="number" step="any" min="0" max="100000" inputmode="decimal" wire:model="addQuantity"
                                class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
                     </div>
                     <div class="flex-1">
@@ -154,7 +154,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                 </div>
                 @error('addQuantity') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
 
-                <button type="button" wire:click="add"
+                <button type="button" wire:click="add" wire:loading.attr="disabled"
                         class="key key-action keycap mt-4 w-full px-4 py-3 text-center">
                     Add to pantry
                 </button>

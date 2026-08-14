@@ -166,14 +166,17 @@
         font-size: 1.125rem;
         font-weight: 500;
         line-height: 1.35;
+        overflow-wrap: break-word;
     }
     .voice-body {
         font-size: 0.9375rem;
         line-height: 1.6;
+        overflow-wrap: break-word;
     }
     .voice-caption {
         font-size: 0.875rem;
         line-height: 1.5;
+        overflow-wrap: break-word;
     }
     .voice-micro {
         font-size: 0.75rem;
@@ -188,7 +191,7 @@
     }
     .data-xl { font-size: 2.25rem; line-height: 1.1; }
     .data-lg { font-size: 1.25rem; line-height: 1.2; }
-    .data-md { font-size: 0.875rem; line-height: 1.45; }
+    .data-md { font-size: 0.875rem; line-height: 1.45; overflow-wrap: break-word; }
     .data-sm { font-size: 0.75rem; line-height: 1.5; letter-spacing: 0.02em; }
     .data-micro { font-size: 0.625rem; line-height: 1.4; letter-spacing: 0.02em; }
 
@@ -231,6 +234,12 @@
     .key:active {
         transform: translateY(1px);
         filter: brightness(1.15);
+    }
+    .key:disabled, .key[disabled] {
+        cursor: not-allowed;
+        opacity: 0.45;
+        transform: none;
+        filter: none;
     }
 
     /* The primary action key: solid signal orange, machined edge. */

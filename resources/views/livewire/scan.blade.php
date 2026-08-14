@@ -420,7 +420,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                     <p x-show="uploadError" x-cloak class="border-l border-high bg-plate-well px-3 py-2 text-xs leading-relaxed text-ink-dim" x-text="uploadError"></p>
 
                     <button type="button" x-show="barcodeFound || uploaded" x-cloak
-                            wire:click="analyze"
+                            wire:click="analyze" wire:loading.attr="disabled"
                             class="key key-action w-full keycap px-4 py-3.5 text-center">
                         Identify product
                     </button>
@@ -486,7 +486,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                     </div>
 
                     <div class="space-y-2">
-                        <button type="button" wire:click="yesAddIt"
+                        <button type="button" wire:click="yesAddIt" wire:loading.attr="disabled"
                                 class="key key-action w-full keycap px-4 py-3.5 text-center">
                             Yes, add it
                         </button>
@@ -526,7 +526,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         @error('unit') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                     </div>
 
-                    <button type="button" wire:click="addToPantry"
+                    <button type="button" wire:click="addToPantry" wire:loading.attr="disabled"
                             class="key key-action w-full keycap px-4 py-3.5 text-center">
                         Add to pantry
                     </button>

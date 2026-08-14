@@ -175,15 +175,15 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         <section class="module px-5 pb-5 pt-4">
             <h2 class="silkscreen">Consume — logs it to today</h2>
             <div class="mt-3 grid grid-cols-3 gap-2">
-                <button type="button" wire:click="consumeOne" @disabled($outOfStock)
+                <button type="button" wire:click="consumeOne" wire:loading.attr="disabled" @disabled($outOfStock)
                         class="key key-action keycap-sm whitespace-nowrap px-3 py-3.5 text-center disabled:cursor-not-allowed disabled:opacity-40">
                     I ate one
                 </button>
-                <button type="button" wire:click="consumeHalf" @disabled($outOfStock)
+                <button type="button" wire:click="consumeHalf" wire:loading.attr="disabled" @disabled($outOfStock)
                         class="key keycap-sm whitespace-nowrap px-3 py-3.5 text-center text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
                     Half
                 </button>
-                <button type="button" wire:click="consumeAll" @disabled($outOfStock)
+                <button type="button" wire:click="consumeAll" wire:loading.attr="disabled" @disabled($outOfStock)
                         class="key keycap-sm whitespace-nowrap px-3 py-3.5 text-center text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
                     All
                 </button>
@@ -191,10 +191,10 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
             <div class="mt-3 flex items-end gap-3">
                 <div class="w-36">
                     <label class="silkscreen whitespace-nowrap" for="consume-amount">Custom ({{ $pantryItem->quantity_unit->shortLabel() }})</label>
-                    <input id="consume-amount" type="number" step="any" min="0" inputmode="decimal" wire:model="consumeAmount"
+                    <input id="consume-amount" type="number" step="any" min="0" max="100000" inputmode="decimal" wire:model="consumeAmount"
                            class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
                 </div>
-                <button type="button" wire:click="consume" @disabled($outOfStock)
+                <button type="button" wire:click="consume" wire:loading.attr="disabled" @disabled($outOfStock)
                         class="key keycap-sm px-4 py-3 text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
                     Consume amount
                 </button>
@@ -208,10 +208,10 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
             <div class="mt-3 flex items-end gap-3">
                 <div class="w-28">
                     <label class="silkscreen" for="new-quantity">True amount</label>
-                    <input id="new-quantity" type="number" step="any" min="0" inputmode="decimal" wire:model="newQuantity"
+                    <input id="new-quantity" type="number" step="any" min="0" max="100000" inputmode="decimal" wire:model="newQuantity"
                            class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
                 </div>
-                <button type="button" wire:click="changeQuantity"
+                <button type="button" wire:click="changeQuantity" wire:loading.attr="disabled"
                         class="key keycap-sm px-4 py-3 text-ink-dim">
                     Update
                 </button>
@@ -221,7 +221,7 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
             <div class="mt-4 border-t border-seam pt-4">
                 @if ($confirmRemove)
                     <div class="flex items-center gap-3">
-                        <button type="button" wire:click="remove"
+                        <button type="button" wire:click="remove" wire:loading.attr="disabled"
                                 class="key keycap border-high bg-high px-4 py-2.5 text-black">
                             Confirm remove
                         </button>
@@ -237,13 +237,13 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         </section>
 
         {{-- The logged win gets the green stamp; a stock correction is a quiet save. --}}
-        <div x-show="toast === 'logged'" x-cloak class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
+        <div x-show="toast === 'logged'" x-cloak role="status" class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
             <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md bg-good px-4 py-3 text-black">
                 <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg>
                 <span class="keycap">Logged to today</span>
             </div>
         </div>
-        <div x-show="toast === 'saved'" x-cloak class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
+        <div x-show="toast === 'saved'" x-cloak role="status" class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
             <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md border border-seam bg-plate-raised px-4 py-3 text-ink">
                 <span class="keycap">Stock corrected</span>
             </div>

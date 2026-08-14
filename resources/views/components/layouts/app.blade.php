@@ -4,6 +4,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
         @include('partials.head')
+        <style>[x-cloak]{display:none!important}</style>
     </head>
     <body class="min-h-dvh bg-chassis font-sans text-ink antialiased">
         <!--
@@ -53,6 +54,19 @@
             <main class="flex-1 px-4 pb-32 pt-4">
                 {{ $slot }}
             </main>
+
+            {{-- Link lamp: when the connection drops, say so before a change is lost. --}}
+            <div x-data="{ online: navigator.onLine }"
+                 x-on:online.window="online = true"
+                 x-on:offline.window="online = false"
+                 x-show="! online" x-cloak
+                 role="status"
+                 class="fixed inset-x-0 bottom-[6.5rem] z-40 mx-auto max-w-md px-4">
+                <div class="flex items-center gap-2.5 rounded-md border border-high bg-plate px-4 py-2.5">
+                    <span class="size-2 shrink-0 rounded-full bg-high" aria-hidden="true"></span>
+                    <p class="data-sm text-ink uppercase">Link down — changes won't save until you're back online</p>
+                </div>
+            </div>
 
             {{-- Bottom navigation control strip (brief §5) --}}
             <x-app.bottom-nav />
