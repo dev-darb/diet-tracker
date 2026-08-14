@@ -352,7 +352,8 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                      }">
 
                     {{-- The capture well: a viewfinder, not a form. --}}
-                    <label class="module block cursor-pointer px-5 pb-5 pt-4">
+                    <div class="module px-5 pb-0 pt-4">
+                    <label class="block cursor-pointer">
                         <span class="silkscreen">Scan</span>
                         <div class="relative mt-3 flex min-h-56 flex-col items-center justify-center overflow-hidden rounded-[5px] border border-seam bg-plate-well px-6 py-10 text-center transition hover:border-seam-strong">
                             {{-- Viewfinder corner brackets --}}
@@ -374,6 +375,27 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         <input type="file" accept="image/*" capture="environment" class="sr-only"
                                x-on:change="handle($event)">
                     </label>
+
+                    {{-- Panel printing: the process and the machinery, silkscreened
+                         onto the face (TE hardware prints its diagrams). --}}
+                    <div class="-mx-5 mt-4 grid grid-cols-3 divide-x divide-seam border-t border-seam" aria-hidden="true">
+                        <div class="px-4 py-3">
+                            <p class="silkscreen">01</p>
+                            <p class="voice-micro mt-0.5 text-ink-dim">Scan the pack</p>
+                        </div>
+                        <div class="px-4 py-3">
+                            <p class="silkscreen">02</p>
+                            <p class="voice-micro mt-0.5 text-ink-dim">Confirm the match</p>
+                        </div>
+                        <div class="px-4 py-3">
+                            <p class="silkscreen">03</p>
+                            <p class="voice-micro mt-0.5 text-ink-dim">Stocked &amp; counted</p>
+                        </div>
+                    </div>
+                    <p class="data-sm -mx-5 border-t border-seam px-5 py-3 text-ink-faint uppercase">
+                        On-device barcode reader · Open Food Facts DB
+                    </p>
+                    </div>
 
                     @error('photo') <p class="px-1 text-xs text-high">{{ $message }}</p> @enderror
 

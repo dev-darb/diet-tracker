@@ -130,7 +130,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                 <section class="module px-0 pb-1 pt-4">
                     <div class="flex items-baseline justify-between px-5">
                         <h2 class="silkscreen">{{ $group['label'] }}</h2>
-                        <span class="data-sm text-ink-dim">
+                        <span class="data-sm {{ $group['label'] === 'Today' ? 'text-ink' : 'text-ink-faint' }}">
                             {{ $group['calories'] === null ? '----' : number_format($group['calories']).' KCAL' }}
                         </span>
                     </div>

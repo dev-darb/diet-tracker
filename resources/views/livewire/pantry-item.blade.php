@@ -111,7 +111,7 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
     }
 }; ?>
 
-    <div class="space-y-3" x-data="{ toast: false }"
+    <div class="space-y-5" x-data="{ toast: false }"
          x-on:item-changed.window="toast = true; setTimeout(() => toast = false, 2000)">
 
         <a href="{{ route('pantry') }}" class="keycap-sm inline-flex items-center gap-1.5 px-1 text-ink-dim transition hover:text-ink">
@@ -142,7 +142,7 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         </section>
 
         {{-- Nutrition (computed by NutritionCalculator for what's currently held) --}}
-        <section class="module px-5 pb-2 pt-4">
+        <section class="module -mt-3 px-5 pb-2 pt-4">
             <h2 class="silkscreen">Nutrition in what you have</h2>
             @if ($hasNutrition)
                 <div class="mt-2 grid grid-cols-2 gap-x-6">

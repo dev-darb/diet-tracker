@@ -29,7 +29,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
     }
 }; ?>
 
-    <div class="space-y-3">
+    <div class="space-y-5">
 
         {{-- TODAY — the master readout (brief §9.3). Scale axis is the typical
              adult reference intake range; geometry only, no maths here. --}}
@@ -60,20 +60,9 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                 </div>
             </div>
 
+            {{-- Macro readings live on the same faceplate as the master gauge:
+                 one instrument cluster, seam-divided (comp A). --}}
             @if ($today['has_data'])
-                <p class="data-sm mt-4 border-t border-seam pt-3 text-ink-faint uppercase">
-                    {{ $today['food_variety'] }} {{ $today['food_variety'] === 1 ? 'food' : 'foods' }} logged{{ $lastLoggedAt ? ' · last '.\Illuminate\Support\Carbon::parse($lastLoggedAt)->format('H:i') : '' }}
-                </p>
-            @else
-                <p class="voice-body mt-4 border-t border-seam pt-3 text-ink-dim">
-                    Nothing logged yet — scan what you bought or log what you ate, and today's readout wakes up.
-                </p>
-            @endif
-        </section>
-
-        {{-- Macro tiles: bars show each macro's share of today's largest, a
-             relative composition reading, not a target. --}}
-        @if ($today['has_data'])
             @php($bandFill = [
                 \App\Services\NutritionAnalyticsService::BAND_GOOD => 'var(--color-good)',
                 \App\Services\NutritionAnalyticsService::BAND_OK => 'var(--color-good)',
@@ -90,46 +79,56 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                         : null,
                 ]))
             @php($macroMax = max(array_filter($macros->pluck('value')->all(), fn ($v) => $v !== null) ?: [0]))
-            <section class="module grid grid-cols-3 divide-x divide-seam" aria-label="Macronutrients today">
+            <div class="-mx-5 mt-5 grid grid-cols-3 divide-x divide-seam border-t border-seam" aria-label="Macronutrients today">
                 @foreach ($macros as $m)
                     <div class="px-4 py-3.5">
                         <h3 class="silkscreen">{{ $m['label'] }}</h3>
                         <p class="data-lg mt-1.5 text-ink">
-                            {{ $m['value'] === null ? '—' : rtrim(rtrim(number_format((float) $m['value'], 1), '0'), '.') }}<span class="text-xs text-ink-dim">g</span>
+                            {{ $m['value'] === null ? '—' : rtrim(rtrim(number_format((float) $m['value'], 1), '0'), '.') }}<span class="data-micro text-ink-dim">g</span>
                         </p>
                         <div class="meter mt-2.5">
                             <span style="width: {{ $m['value'] !== null && $macroMax > 0 ? round($m['value'] / $macroMax * 100) : 0 }}%; {{ $m['fill'] ? 'background:'.$m['fill'] : '' }}"></span>
                         </div>
                     </div>
                 @endforeach
-            </section>
-        @endif
-
-        {{-- STREAK — days logged across the rolling week, sequencer cells. --}}
-        <section class="module flex items-center justify-between px-5 py-3.5">
-            <div class="flex items-center gap-4">
-                <h2 class="silkscreen">Streak</h2>
-                <div class="flex gap-1.5" aria-hidden="true">
-                    @foreach ($streakDays as $day)
-                        <span class="led {{ $day['has_data'] ? 'led-on' : '' }}"></span>
-                    @endforeach
-                </div>
             </div>
-            <p class="data-md text-ink">
-                {{ str_pad((string) $daysLogged, 2, '0', STR_PAD_LEFT) }}<span class="text-ink-faint">/07</span>
-                <span class="data-sm ml-1 text-ink-dim uppercase">days</span>
+            <p class="data-sm -mx-5 border-t border-seam px-5 pt-3 text-ink-faint uppercase">
+                {{ $today['food_variety'] }} {{ $today['food_variety'] === 1 ? 'food' : 'foods' }} logged{{ $lastLoggedAt ? ' · last '.\Illuminate\Support\Carbon::parse($lastLoggedAt)->format('H:i') : '' }}
             </p>
+            @else
+                <p class="voice-body mt-4 border-t border-seam pt-3 text-ink-dim">
+                    Nothing logged yet — scan what you bought or log what you ate, and today's readout wakes up.
+                </p>
+            @endif
         </section>
 
-        {{-- Component indicators (brief §9.5): Good / OK / Low / Slightly high. --}}
+        {{-- ASSESS — component indicators (brief §9.5): qualitative bands. --}}
         @if ($today['has_data'])
             <section aria-label="How today looks">
                 <x-app.indicators :indicators="$today['indicators']" label="Indicators" />
             </section>
         @endif
 
-        {{-- Your focus this week — the top AI (or deterministic) insight (brief §9.6). --}}
-        <livewire:insight-card />
+        {{-- MOTIVATE + GUIDE — the streak strip and the focus printout pair. --}}
+        <div class="space-y-2">
+            <section class="module flex items-center justify-between px-5 py-3.5">
+                <div class="flex items-center gap-4">
+                    <h2 class="silkscreen">Streak</h2>
+                    <div class="flex gap-1.5" aria-hidden="true">
+                        @foreach ($streakDays as $day)
+                            <span class="led {{ $day['has_data'] ? 'led-on' : '' }}"></span>
+                        @endforeach
+                    </div>
+                </div>
+                <p class="data-md text-ink">
+                    {{ str_pad((string) $daysLogged, 2, '0', STR_PAD_LEFT) }}<span class="text-ink-faint">/07</span>
+                    <span class="data-sm ml-1 text-ink-dim uppercase">days</span>
+                </p>
+            </section>
+
+            {{-- Your focus this week — the top AI (or deterministic) insight (brief §9.6). --}}
+            <livewire:insight-card />
+        </div>
 
         @if ($today['has_data'])
             <x-app.health-disclaimer />

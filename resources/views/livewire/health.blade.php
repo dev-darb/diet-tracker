@@ -30,7 +30,7 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
     }
 }; ?>
 
-    <div class="space-y-3">
+    <div class="space-y-5">
         <div class="px-1">
             <h1 class="voice-title text-ink">Health</h1>
             <p class="voice-caption mt-0.5 text-ink-dim">Today and this week. Trends arrive as your history grows.</p>
@@ -90,54 +90,55 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
                         </div>
                     @endforeach
                 </div>
+                {{-- Weekly counters share the faceplate: one measurement cluster. --}}
+                <div class="-mx-5 -mb-5 mt-4 grid grid-cols-3 divide-x divide-seam border-t border-seam" aria-label="Weekly counters">
+                    <div class="px-4 py-3.5">
+                        <h3 class="silkscreen">Foods</h3>
+                        <p class="data-lg mt-1.5 text-ink">{{ $week['food_variety'] }}</p>
+                        <p class="voice-micro mt-0.5 text-ink-dim">distinct</p>
+                    </div>
+                    <div class="px-4 py-3.5">
+                        <h3 class="silkscreen">Logged</h3>
+                        <p class="data-lg mt-1.5 text-ink">{{ $week['meal_regularity']['days_logged'] }}<span class="data-md text-ink-faint">/{{ $week['meal_regularity']['days'] }}</span></p>
+                        <p class="voice-micro mt-0.5 text-ink-dim">days</p>
+                    </div>
+                    <div class="px-4 py-3.5">
+                        <h3 class="silkscreen">Fruit+Veg</h3>
+                        <p class="data-lg mt-1.5 text-ink">
+                            {{ $week['fruit_veg']['known'] ? rtrim(rtrim(number_format((float) $week['fruit_veg']['portions_per_day'], 1), '0'), '.') : '----' }}
+                        </p>
+                        <p class="voice-micro mt-0.5 text-ink-dim">portions/day</p>
+                    </div>
+                </div>
             </section>
 
-            {{-- Variety / regularity / fruit & veg counters. --}}
-            <section class="module grid grid-cols-3 divide-x divide-seam" aria-label="Weekly counters">
-                <div class="px-4 py-3.5">
-                    <h3 class="silkscreen">Foods</h3>
-                    <p class="data-lg mt-1.5 text-ink">{{ $week['food_variety'] }}</p>
-                    <p class="voice-micro mt-0.5 text-ink-dim">distinct</p>
-                </div>
-                <div class="px-4 py-3.5">
-                    <h3 class="silkscreen">Logged</h3>
-                    <p class="data-lg mt-1.5 text-ink">{{ $week['meal_regularity']['days_logged'] }}<span class="data-md text-ink-faint">/{{ $week['meal_regularity']['days'] }}</span></p>
-                    <p class="voice-micro mt-0.5 text-ink-dim">days</p>
-                </div>
-                <div class="px-4 py-3.5">
-                    <h3 class="silkscreen">Fruit+Veg</h3>
-                    <p class="data-lg mt-1.5 text-ink">
-                        {{ $week['fruit_veg']['known'] ? rtrim(rtrim(number_format((float) $week['fruit_veg']['portions_per_day'], 1), '0'), '.') : '----' }}
-                    </p>
-                    <p class="voice-micro mt-0.5 text-ink-dim">portions/day</p>
-                </div>
-            </section>
-
-            {{-- Component indicators over the week (brief §9.5). --}}
-            <x-app.indicators :indicators="$week['indicators']" label="Weekly indicators" />
-
-            {{-- TODAY mini-view (brief §9.2/§9.3). --}}
+            {{-- TODAY echo pairs tight with the week cluster: both are measurements. --}}
             @if ($today['has_data'])
-                <section class="module px-5 pb-4 pt-4">
-                    <h2 class="silkscreen">Today</h2>
-                    <p class="mt-2 flex items-baseline gap-2">
-                        <span class="data-lg text-ink">{{ $today['totals']['calories'] === null ? '----' : number_format((float) $today['totals']['calories'], 0, '', '') }}</span>
-                        <span class="data-sm text-ink-dim uppercase">KCAL so far</span>
-                    </p>
-                    <p class="data-sm mt-1 text-ink-faint uppercase">{{ $today['food_variety'] }} distinct {{ $today['food_variety'] === 1 ? 'food' : 'foods' }} today</p>
+                <section class="module -mt-3 flex items-baseline justify-between px-5 py-3.5">
+                    <div class="flex items-baseline gap-3">
+                        <h2 class="silkscreen">Today</h2>
+                        <p class="flex items-baseline gap-2">
+                            <span class="data-lg text-ink">{{ $today['totals']['calories'] === null ? '----' : number_format((float) $today['totals']['calories'], 0, '', '') }}</span>
+                            <span class="data-sm text-ink-dim uppercase">KCAL so far</span>
+                        </p>
+                    </div>
+                    <p class="data-sm text-ink-faint uppercase">{{ $today['food_variety'] }} {{ $today['food_variety'] === 1 ? 'food' : 'foods' }}</p>
                 </section>
             @endif
 
-            {{-- Your focus this week — prioritised, pantry-aware insight (brief §9.6). --}}
+            {{-- ASSESS — component indicators over the week (brief §9.5). --}}
+            <x-app.indicators :indicators="$week['indicators']" label="Weekly indicators" />
+
+            {{-- GUIDE — prioritised, pantry-aware insight (brief §9.6). --}}
             <livewire:insight-card />
 
-            {{-- Trends horizon — stub for MVP (brief §9.2: Today + Week suffice). --}}
-            <section class="module px-5 py-4">
+            {{-- Trends horizon: an unpowered bay, recessed, not a plate (§9.2). --}}
+            <section class="rounded-md border border-seam bg-plate-well px-5 py-3.5">
                 <div class="flex items-center justify-between">
                     <h2 class="silkscreen">Trends</h2>
                     <span class="data-sm text-ink-faint uppercase">Standby</span>
                 </div>
-                <p class="voice-caption mt-2 text-ink-dim">Longer-term trends switch on here once you've logged a few weeks.</p>
+                <p class="voice-micro mt-1.5 text-ink-faint">Longer-term trends switch on here once you've logged a few weeks.</p>
             </section>
 
             <x-app.health-disclaimer />
