@@ -4,11 +4,14 @@ namespace App\Providers;
 
 use App\AI\Contracts\DietInsightGenerator;
 use App\AI\Contracts\EatingOutEstimator;
+use App\AI\Contracts\MealPhotoInterpreter;
 use App\AI\Contracts\ProductIdentifier;
 use App\AI\Local\RuleBasedDietInsightGenerator;
 use App\AI\Local\UnavailableEatingOutEstimator;
+use App\AI\Local\UnavailableMealPhotoInterpreter;
 use App\AI\OpenRouter\PrismDietInsightGenerator;
 use App\AI\OpenRouter\PrismEatingOutEstimator;
+use App\AI\OpenRouter\PrismMealPhotoInterpreter;
 use App\AI\OpenRouter\PrismProductIdentifier;
 use App\Services\AiJobLogger;
 use Illuminate\Support\ServiceProvider;
@@ -83,6 +86,21 @@ class AiServiceProvider extends ServiceProvider
                     model: $config['model'],
                 )
                 : new UnavailableEatingOutEstimator;
+        });
+
+        // Meal-photo interpretation (capture flow Phase B). Same grace rule:
+        // no gateway key -> the photo shortcut is simply not offered.
+        $this->app->bind(MealPhotoInterpreter::class, function ($app): MealPhotoInterpreter {
+            $config = $app['config']->get('ai.meal_interpreter');
+            $key = $app['config']->get('prism.providers.'.$config['provider'].'.api_key');
+
+            return filled($key)
+                ? new PrismMealPhotoInterpreter(
+                    logger: $app->make(AiJobLogger::class),
+                    provider: $config['provider'],
+                    model: $config['model'],
+                )
+                : new UnavailableMealPhotoInterpreter;
         });
     }
 

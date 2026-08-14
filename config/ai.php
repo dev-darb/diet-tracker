@@ -57,6 +57,8 @@ return [
         'model' => env('AI_PRODUCT_RESEARCHER_MODEL', 'openai/gpt-4o'),
     ],
 
+    // Meal-photo interpretation (capture flow Phase B): plate photo + pantry
+    // candidates -> dish name + matched components. Needs a VISION model.
     'meal_interpreter' => [
         'provider' => env('AI_MEAL_INTERPRETER_PROVIDER', $gateway),
         'model' => env('AI_MEAL_INTERPRETER_MODEL', 'openai/gpt-4o-mini'),

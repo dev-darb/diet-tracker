@@ -385,3 +385,6 @@ textarea:focus[data-flux-control],
 select:focus[data-flux-control] {
     @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
 }
+
+/* Alpine: hide x-cloak elements until Alpine initialises. */
+[x-cloak] { display: none !important; }
