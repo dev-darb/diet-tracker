@@ -24,6 +24,7 @@ class ConsumptionItem extends Model
         'product_version_id',
         'quantity',
         'unit',
+        'portion_label',
         'calories',
         'protein',
         'carbs',

@@ -49,7 +49,7 @@ class ConsumptionUiTest extends TestCase
         $item = $this->stockedItem();
 
         Volt::actingAs($this->user)->test('pantry-item', ['pantryItem' => $item])
-            ->call('consumeOne')
+            ->call('consumePortion', 0)
             ->assertHasNoErrors();
 
         // A consumption event now exists (not just a bare ledger row).

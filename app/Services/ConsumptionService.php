@@ -58,6 +58,9 @@ class ConsumptionService
      *
      * @param  QuantityUnit|null  $unit  defaults to the item's own unit; when
      *                                   given it must equal the item's unit.
+     * @param  string|null  $portionLabel  natural-language wording of the portion
+     *                                     ("one (48 g)") snapshotted for history
+     *                                     display; presentation only, never maths.
      */
     public function consumePantryItem(
         User $user,
@@ -65,6 +68,7 @@ class ConsumptionService
         float $quantity,
         ?QuantityUnit $unit = null,
         ?Carbon $consumedAt = null,
+        ?string $portionLabel = null,
     ): ConsumptionEvent {
         if ($quantity <= 0) {
             throw new InvalidArgumentException('A positive quantity is required to consume.');
@@ -73,7 +77,7 @@ class ConsumptionService
         $unit = $this->resolveUnit($item, $unit);
         $consumedAt ??= now();
 
-        return DB::transaction(function () use ($user, $item, $quantity, $unit, $consumedAt) {
+        return DB::transaction(function () use ($user, $item, $quantity, $unit, $consumedAt, $portionLabel) {
             $product = $item->canonicalProduct;
             $version = $this->pantryNutrition->currentVersion($product);
             $contribution = $this->contributionFor($product, $version, $quantity, $unit);
@@ -91,6 +95,7 @@ class ConsumptionService
                 'product_version_id' => $version?->id,
                 'quantity' => $quantity,
                 'unit' => $unit,
+                'portion_label' => $portionLabel,
                 ...$contribution->toArray(2),
             ]);
 
@@ -137,6 +142,9 @@ class ConsumptionService
             $line->update([
                 'quantity' => $quantity,
                 'unit' => $resolvedUnit,
+                // An edited amount is a custom amount — the original natural-
+                // language portion ("half the pack") no longer describes it.
+                'portion_label' => null,
                 ...$contribution->toArray(2),
             ]);
 

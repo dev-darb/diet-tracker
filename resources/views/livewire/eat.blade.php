@@ -14,9 +14,12 @@ use Livewire\Volt\Component;
  * ConsumptionService so snapshots + the pantry ledger stay consistent — this
  * component never mutates consumption or ledger rows directly.
  */
-new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Component {
+new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Component
+{
     public ?int $editingId = null;
+
     public string $editQuantity = '';
+
     public string $editTime = '';
 
     public ?int $inspectingId = null;
@@ -143,9 +146,15 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                     <span class="data-sm w-10 shrink-0 text-ink-faint">{{ $event->consumed_at->format('H:i') }}</span>
                                     <div class="min-w-0 flex-1">
                                         <p class="data-md leading-snug text-ink uppercase">{{ $event->name ?: 'Consumption' }}</p>
+                                        {{-- Echo the user's own portion language when we have it
+                                             ("half the pack (200 g)"), falling back to qty + unit. --}}
                                         <p class="data-sm mt-0.5 text-ink-faint">
-                                            {{ rtrim(rtrim(number_format((float) ($line->quantity ?? 0), 3, '.', ''), '0'), '.') }}
-                                            <span class="uppercase">{{ $line?->unit?->shortLabelFor((float) ($line->quantity ?? 0)) ?? '' }}</span>
+                                            @if ($line?->portion_label)
+                                                {{ $line->portion_label }}
+                                            @else
+                                                {{ rtrim(rtrim(number_format((float) ($line->quantity ?? 0), 3, '.', ''), '0'), '.') }}
+                                                <span class="uppercase">{{ $line?->unit?->shortLabelFor((float) ($line->quantity ?? 0)) ?? '' }}</span>
+                                            @endif
                                         </p>
                                     </div>
                                     <span class="data-md shrink-0 whitespace-nowrap text-ink">
@@ -173,7 +182,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                         @foreach ($event->items as $component)
                                             <div class="flex items-center justify-between gap-3 py-1 text-xs">
                                                 <span class="voice-micro min-w-0 truncate text-ink-dim">{{ $component->canonicalProduct?->name ?? 'Item' }}
-                                                    <span class="data-sm text-ink-faint">· {{ rtrim(rtrim(number_format((float) $component->quantity, 3, '.', ''), '0'), '.') }} <span class="uppercase">{{ $component->unit->shortLabel() }}</span></span>
+                                                    <span class="data-sm text-ink-faint">· @if ($component->portion_label){{ $component->portion_label }}@else{{ rtrim(rtrim(number_format((float) $component->quantity, 3, '.', ''), '0'), '.') }} <span class="uppercase">{{ $component->unit->shortLabel() }}</span>@endif</span>
                                                 </span>
                                                 <span class="data-sm shrink-0 text-ink-dim">
                                                     {{ $component->protein === null ? '--' : number_format((float) $component->protein, 1) }}P ·

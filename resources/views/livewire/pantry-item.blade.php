@@ -4,6 +4,7 @@ use App\Models\PantryItem;
 use App\Services\ConsumptionService;
 use App\Services\PantryNutritionService;
 use App\Services\PantryService;
+use App\Services\PortionSuggestionService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -17,11 +18,14 @@ use Livewire\Volt\Component;
  * snapshotted consumption event AND deducted from the ledger (brief §8.1–§8.3);
  * Change quantity / Remove stay on PantryService (pure inventory corrections).
  */
-new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Component {
+new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Component
+{
     public PantryItem $pantryItem;
 
     public string $consumeAmount = '1';
+
     public string $newQuantity = '';
+
     public bool $confirmRemove = false;
 
     public function mount(PantryItem $pantryItem): void
@@ -32,27 +36,21 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         $this->newQuantity = $this->currentQuantityString();
     }
 
-    public function consumeOne(ConsumptionService $service): void
+    /**
+     * Consume via a natural-portion chip. The chip list is re-derived
+     * server-side from its index — the client never supplies a quantity, so the
+     * amount eaten is always the deterministic one the service computed.
+     */
+    public function consumePortion(PortionSuggestionService $portions, ConsumptionService $service, int $index): void
     {
-        $this->applyConsume($service, 1.0);
-    }
+        $options = $portions->suggestionsFor($this->pantryItem, Auth::user());
+        $choice = $options[$index] ?? null;
 
-    public function consumeHalf(ConsumptionService $service): void
-    {
-        $balance = (float) $this->pantryItem->current_quantity;
-
-        if ($balance > 0) {
-            $this->applyConsume($service, round($balance / 2, 3));
+        if ($choice === null || $choice['quantity'] <= 0) {
+            return;
         }
-    }
 
-    public function consumeAll(ConsumptionService $service): void
-    {
-        $balance = (float) $this->pantryItem->current_quantity;
-
-        if ($balance > 0) {
-            $this->applyConsume($service, round($balance, 3));
-        }
+        $this->applyConsume($service, $choice['quantity'], $choice['record']);
     }
 
     public function consume(ConsumptionService $service): void
@@ -81,9 +79,9 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         $this->redirectRoute('pantry');
     }
 
-    private function applyConsume(ConsumptionService $service, float $amount): void
+    private function applyConsume(ConsumptionService $service, float $amount, ?string $portionLabel = null): void
     {
-        $service->consumePantryItem(Auth::user(), $this->pantryItem, $amount);
+        $service->consumePantryItem(Auth::user(), $this->pantryItem, $amount, portionLabel: $portionLabel);
         $this->refreshItem();
         $this->consumeAmount = '1';
         $this->dispatch('consumption-logged');
@@ -100,13 +98,14 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         return rtrim(rtrim(number_format((float) $this->pantryItem->current_quantity, 3, '.', ''), '0'), '.');
     }
 
-    public function with(PantryNutritionService $nutrition): array
+    public function with(PantryNutritionService $nutrition, PortionSuggestionService $portions): array
     {
         $values = $nutrition->currentNutrition($this->pantryItem);
 
         return [
             'nutrition' => $values?->rounded(1),
             'hasNutrition' => $values !== null,
+            'portions' => $portions->suggestionsFor($this->pantryItem, Auth::user()),
         ];
     }
 }; ?>
@@ -171,19 +170,21 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         {{-- Consume — the daily action, and a win when it lands. --}}
         @php($outOfStock = (float) $pantryItem->current_quantity <= 0)
         <x-app.module label="Consume — logs it to today">
-            <div class="mt-3 grid grid-cols-3 gap-2">
-                <button type="button" wire:click="consumeOne" wire:loading.attr="disabled" @disabled($outOfStock)
-                        class="key key-action keycap-sm whitespace-nowrap px-3 py-3.5 text-center disabled:cursor-not-allowed disabled:opacity-40">
-                    I ate one
-                </button>
-                <button type="button" wire:click="consumeHalf" wire:loading.attr="disabled" @disabled($outOfStock)
-                        class="key keycap-sm whitespace-nowrap px-3 py-3.5 text-center text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
-                    Half
-                </button>
-                <button type="button" wire:click="consumeAll" wire:loading.attr="disabled" @disabled($outOfStock)
-                        class="key keycap-sm whitespace-nowrap px-3 py-3.5 text-center text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
-                    All
-                </button>
+            {{-- Natural portions: chips derived server-side from the product's
+                 pack/serving and the user's own last portion. Labels are
+                 presentation; the quantity is deterministic (PortionSuggestionService). --}}
+            <div class="mt-3 grid grid-cols-2 gap-2">
+                @foreach ($portions as $i => $portion)
+                    @php($tooBig = $portion['quantity'] > (float) $pantryItem->current_quantity + 1e-9)
+                    <button type="button" wire:click="consumePortion({{ $i }})" wire:loading.attr="disabled"
+                            @disabled($outOfStock || $tooBig)
+                            class="key keycap-sm px-3 py-3 text-center disabled:cursor-not-allowed disabled:opacity-40 {{ $i === 0 ? 'key-action' : 'text-ink-dim' }}">
+                        <span class="block">{{ $portion['label'] }}</span>
+                        @if ($portion['hint'] !== null)
+                            <span class="data-micro block text-ink-faint">{{ $portion['hint'] }}</span>
+                        @endif
+                    </button>
+                @endforeach
             </div>
             <div class="mt-3 flex items-end gap-3">
                 <div class="w-36">

@@ -72,7 +72,7 @@ class PantryUiTest extends TestCase
         $item = $service->purchase($this->user, $product, 5, QuantityUnit::Unit);
 
         Volt::actingAs($this->user)->test('pantry-item', ['pantryItem' => $item])
-            ->call('consumeOne')
+            ->call('consumePortion', 0)
             ->assertHasNoErrors();
 
         $item->refresh();
