@@ -153,7 +153,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                              ("half the pack (200 g)"); meals describe their source. --}}
                                         <p class="data-sm mt-0.5 text-ink-faint">
                                             @if ($event->context === \App\Enums\MealContext::EatingOut)
-                                                EATING OUT{{ $event->estimated ? ' · ESTIMATED' : '' }}
+                                                EATING OUT{{ $event->venue ? ' · '.mb_strtoupper($event->venue) : '' }}{{ $event->estimated ? ' · ESTIMATED' : '' }}
                                             @elseif ($event->type === \App\Enums\ConsumptionType::Meal)
                                                 HOME-COOKED · {{ $event->items->count() }} {{ \Illuminate\Support\Str::plural('COMPONENT', $event->items->count()) }}
                                             @elseif ($line?->portion_label)

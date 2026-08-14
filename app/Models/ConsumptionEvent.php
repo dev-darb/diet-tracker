@@ -26,6 +26,7 @@ class ConsumptionEvent extends Model
         'context',
         'estimated',
         'name',
+        'venue',
         'consumed_at',
         'calories',
         'protein',

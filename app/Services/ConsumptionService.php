@@ -201,8 +201,10 @@ class ConsumptionService
         string $name,
         array $figures = [],
         ?Carbon $consumedAt = null,
+        ?string $venue = null,
     ): ConsumptionEvent {
         $name = trim($name);
+        $venue = $venue !== null && trim($venue) !== '' ? mb_substr(trim($venue), 0, 120) : null;
 
         if ($name === '') {
             throw new InvalidArgumentException('An eating-out entry needs a name.');
@@ -226,6 +228,7 @@ class ConsumptionService
             'context' => MealContext::EatingOut,
             'estimated' => true,
             'name' => $name,
+            'venue' => $venue,
             'consumed_at' => $consumedAt ?? now(),
             ...$values,
         ]);

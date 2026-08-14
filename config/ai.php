@@ -67,4 +67,11 @@ return [
         'model' => env('AI_DIET_INSIGHT_MODEL', 'openai/gpt-4o'),
     ],
 
+    // Eating-out estimation (capture flow, BUILD_PLAN §1b tier 3): dish + venue
+    // -> estimated figures. Text-only, so cheap models do well here.
+    'eating_out_estimator' => [
+        'provider' => env('AI_EATING_OUT_PROVIDER', $gateway),
+        'model' => env('AI_EATING_OUT_MODEL', 'openai/gpt-4o-mini'),
+    ],
+
 ];

@@ -67,7 +67,10 @@ three contexts: home-cooked compose from pantry (portion chips), eating-out
 quick log with honest estimates, usuals-from-history (one-tap re-log for eating
 out, prefill-for-confirmation for home-cooked). **B** — photo + AI proposal:
 pantry-grounded recognition for home-cooked, dish-class estimation for eating
-out, landing on the same confirm screens. **C** — portion-from-photo, off-pantry
+out, landing on the same confirm screens. *(Eating-out estimation shipped
+Aug 2026: EatingOutEstimator — dish + venue -> estimated figures with
+confidence + stated basis, chain menus preferred, user confirms/edits, manual
+entry is the keyless fallback. Photo remains open.)* **C** — portion-from-photo, off-pantry
 ingredient suggestions, free-text ("big bowl of the usual porridge").
 
 ---

@@ -3,9 +3,12 @@
 namespace App\Providers;
 
 use App\AI\Contracts\DietInsightGenerator;
+use App\AI\Contracts\EatingOutEstimator;
 use App\AI\Contracts\ProductIdentifier;
 use App\AI\Local\RuleBasedDietInsightGenerator;
+use App\AI\Local\UnavailableEatingOutEstimator;
 use App\AI\OpenRouter\PrismDietInsightGenerator;
+use App\AI\OpenRouter\PrismEatingOutEstimator;
 use App\AI\OpenRouter\PrismProductIdentifier;
 use App\Services\AiJobLogger;
 use Illuminate\Support\ServiceProvider;
@@ -64,6 +67,22 @@ class AiServiceProvider extends ServiceProvider
             return filled($key)
                 ? $app->make(PrismDietInsightGenerator::class)
                 : $app->make(RuleBasedDietInsightGenerator::class);
+        });
+
+        // Eating-out estimation (capture flow, BUILD_PLAN §1b tier 3). Same
+        // grace rule: with no gateway key the flow degrades to optional manual
+        // figures — a meal can always be logged, estimation is an upgrade.
+        $this->app->bind(EatingOutEstimator::class, function ($app): EatingOutEstimator {
+            $config = $app['config']->get('ai.eating_out_estimator');
+            $key = $app['config']->get('prism.providers.'.$config['provider'].'.api_key');
+
+            return filled($key)
+                ? new PrismEatingOutEstimator(
+                    logger: $app->make(AiJobLogger::class),
+                    provider: $config['provider'],
+                    model: $config['model'],
+                )
+                : new UnavailableEatingOutEstimator;
         });
     }
 

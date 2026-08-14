@@ -1,5 +1,6 @@
 <?php
 
+use App\AI\Contracts\EatingOutEstimator;
 use App\Enums\MealContext;
 use App\Models\ConsumptionEvent;
 use App\Models\PantryItem;
@@ -45,6 +46,8 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
     // Eating out
     public string $outName = '';
 
+    public string $outVenue = '';
+
     public string $outCalories = '';
 
     public string $outProtein = '';
@@ -52,6 +55,13 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
     public string $outCarbs = '';
 
     public string $outFat = '';
+
+    /** Set after a successful AI estimate: the stated basis + confidence. */
+    public ?string $estimateBasis = null;
+
+    public ?int $estimateConfidence = null;
+
+    public bool $estimateFailed = false;
 
     // Done
     public string $loggedName = '';
@@ -115,10 +125,39 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         $this->finish($event->name);
     }
 
+    /**
+     * Ask the estimator for the dish's figures (the user should never NEED to
+     * know them). The result pre-fills the editable fields — the user stays in
+     * charge of what gets logged, and failure degrades to manual entry.
+     */
+    public function estimateOut(EatingOutEstimator $estimator): void
+    {
+        $this->validate(['outName' => ['required', 'string', 'max:120']]);
+        $this->estimateFailed = false;
+
+        $estimate = $estimator->estimate($this->outName, trim($this->outVenue) ?: null);
+
+        if ($estimate === null || ! $estimate->hasFigures()) {
+            $this->estimateFailed = true;
+
+            return;
+        }
+
+        $fill = static fn (?float $v): string => $v === null ? '' : rtrim(rtrim(number_format($v, 1, '.', ''), '0'), '.');
+
+        $this->outCalories = $fill($estimate->calories);
+        $this->outProtein = $fill($estimate->protein);
+        $this->outCarbs = $fill($estimate->carbs);
+        $this->outFat = $fill($estimate->fat);
+        $this->estimateBasis = $estimate->basis;
+        $this->estimateConfidence = (int) round($estimate->confidence * 100);
+    }
+
     public function logOut(ConsumptionService $service): void
     {
         $data = $this->validate([
             'outName' => ['required', 'string', 'max:120'],
+            'outVenue' => ['nullable', 'string', 'max:120'],
             'outCalories' => ['nullable', 'numeric', 'min:0', 'max:99999'],
             'outProtein' => ['nullable', 'numeric', 'min:0', 'max:99999'],
             'outCarbs' => ['nullable', 'numeric', 'min:0', 'max:99999'],
@@ -132,7 +171,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
             'protein' => $figure($this->outProtein),
             'carbs' => $figure($this->outCarbs),
             'fat' => $figure($this->outFat),
-        ]);
+        ], venue: trim($this->outVenue) ?: null);
 
         $this->finish($event->name);
     }
@@ -156,7 +195,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                 'saturated_fat' => $usual->saturated_fat !== null ? (float) $usual->saturated_fat : null,
                 'fibre' => $usual->fibre !== null ? (float) $usual->fibre : null,
                 'salt' => $usual->salt !== null ? (float) $usual->salt : null,
-            ]);
+            ], venue: $usual->venue);
 
             $this->finish($event->name);
 
@@ -184,7 +223,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
 
     public function startOver(): void
     {
-        $this->reset(['step', 'components', 'mealName', 'filter', 'outName', 'outCalories', 'outProtein', 'outCarbs', 'outFat', 'loggedName']);
+        $this->reset(['step', 'components', 'mealName', 'filter', 'outName', 'outVenue', 'outCalories', 'outProtein', 'outCarbs', 'outFat', 'estimateBasis', 'estimateConfidence', 'estimateFailed', 'loggedName']);
         $this->resetValidation();
     }
 
@@ -226,7 +265,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         return $item !== null && $item->user_id === Auth::id() ? $item : null;
     }
 
-    public function with(PortionSuggestionService $portions): array
+    public function with(PortionSuggestionService $portions, EatingOutEstimator $estimator): array
     {
         $pantryItems = PantryItem::with('canonicalProduct')
             ->where('user_id', Auth::id())
@@ -271,6 +310,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
             'pantryItems' => $pantryItems,
             'usuals' => $usuals,
             'selected' => $selected,
+            'estimatorAvailable' => $estimator->available(),
         ];
     }
 }; ?>
@@ -379,18 +419,56 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
             </x-app.module>
         @endif
 
-        {{-- STEP — eating out: rough is fine ---------------------------------}}
+        {{-- STEP — eating out: we estimate, you confirm -----------------------}}
         @if ($step === 'out')
-            <x-app.module label="Eating out — rough is fine">
-                <p class="voice-caption mt-2 text-ink-dim">Name it, add any figures you know. Unknowns stay unknown — they're never faked.</p>
+            <x-app.module label="Eating out">
+                <p class="voice-caption mt-2 text-ink-dim">
+                    @if ($estimatorAvailable)
+                        Say what and where — we'll estimate the figures. You just confirm.
+                    @else
+                        Name it; figures are optional. Unknowns stay unknown — they're never faked.
+                    @endif
+                </p>
 
                 <div class="mt-3">
                     <label class="silkscreen" for="out-name">What was it?</label>
-                    <input id="out-name" type="text" maxlength="120" wire:model="outName" placeholder="e.g. Katsu curry at Wagamama"
+                    <input id="out-name" type="text" maxlength="120" wire:model="outName" placeholder="e.g. Chicken katsu curry"
                            class="input-well mt-1.5 w-full">
                     @error('outName') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                 </div>
 
+                <div class="mt-3">
+                    <label class="silkscreen" for="out-venue">Where? <span class="text-ink-faint">(optional — chains estimate best)</span></label>
+                    <input id="out-venue" type="text" maxlength="120" wire:model="outVenue" placeholder="e.g. Wagamama"
+                           class="input-well mt-1.5 w-full">
+                    @error('outVenue') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
+                </div>
+
+                @if ($estimatorAvailable)
+                    <div class="mt-3">
+                        <x-app.console-key wire:click="estimateOut" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="estimateOut">Estimate the figures</span>
+                            <span wire:loading wire:target="estimateOut">Estimating…</span>
+                        </x-app.console-key>
+                    </div>
+
+                    @if ($estimateFailed)
+                        <p class="mt-2 rounded bg-plate-well px-3 py-2 text-xs text-ink-dim">
+                            Couldn't estimate that one — log it without figures, or fill in anything you know.
+                        </p>
+                    @endif
+
+                    @if ($estimateBasis !== null)
+                        <p class="mt-2 rounded bg-plate-well px-3 py-2 text-xs text-ink-dim">
+                            <span class="silkscreen">~ Estimate</span> · {{ $estimateBasis }}
+                            @if ($estimateConfidence !== null)
+                                <span class="data-sm text-ink-faint">· {{ $estimateConfidence }}% confident</span>
+                            @endif
+                        </p>
+                    @endif
+                @endif
+
+                {{-- Figures: pre-filled by the estimate, always editable, always optional. --}}
                 <div class="mt-3 grid grid-cols-2 gap-3">
                     @foreach ([
                         ['outCalories', 'Calories (kcal)'],
