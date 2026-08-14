@@ -11,6 +11,7 @@
     "Top bar: logged-in user's first name + tiny FOOD OS tag replaces JABBA wordmark (brand lives in auth/onboarding only)",
     "STREAK module (seven sequencer-style day cells, filled orange, mono counter) inserted above indicators",
     "Indicator rows carry mono value + colored band chip (from comp B), replacing label-only STATUS list",
-    "Terminal status line kept but may merge into TODAY module footer if space demands"
+    "Terminal status line kept but may merge into TODAY module footer if space demands",
+    "Top bar carries a small initials key (profile/settings route) at far right beside the date \u2014 a shell affordance the comp omits, recorded post-review"
   ]
 }

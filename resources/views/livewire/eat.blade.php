@@ -142,10 +142,10 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                 <div class="flex min-h-[44px] items-center gap-2.5 px-4 py-2.5">
                                     <span class="data w-10 shrink-0 text-[11px] text-ink-faint">{{ $event->consumed_at->format('H:i') }}</span>
                                     <div class="min-w-0 flex-1">
-                                        <p class="data truncate text-sm text-ink uppercase">{{ $event->name ?: 'Consumption' }}</p>
+                                        <p class="data text-sm leading-snug text-ink uppercase">{{ $event->name ?: 'Consumption' }}</p>
                                         <p class="data mt-0.5 text-[11px] text-ink-faint">
                                             {{ rtrim(rtrim(number_format((float) ($line->quantity ?? 0), 3, '.', ''), '0'), '.') }}
-                                            <span class="uppercase">{{ $line?->unit?->shortLabel() ?? '' }}</span>
+                                            <span class="uppercase">{{ $line?->unit?->shortLabelFor((float) ($line->quantity ?? 0)) ?? '' }}</span>
                                         </p>
                                     </div>
                                     <span class="data shrink-0 whitespace-nowrap text-sm text-ink">

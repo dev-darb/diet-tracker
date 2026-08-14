@@ -129,7 +129,7 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
 
             <p class="mt-5 flex items-baseline gap-2">
                 <span class="data text-4xl text-ink">{{ rtrim(rtrim(number_format((float) $pantryItem->current_quantity, 3, '.', ''), '0'), '.') }}</span>
-                <span class="data text-sm text-ink-dim uppercase">{{ $pantryItem->quantity_unit->shortLabel() }} remaining</span>
+                <span class="data text-sm text-ink-dim uppercase">{{ $pantryItem->quantity_unit->shortLabelFor((float) $pantryItem->current_quantity) }} remaining</span>
             </p>
 
             @if ($pantryItem->purchased_at || $pantryItem->expiry_date)

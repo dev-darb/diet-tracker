@@ -186,7 +186,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                                 </span>
                                 <span class="data shrink-0 text-sm text-ink">
                                     {{ rtrim(rtrim(number_format((float) $item->current_quantity, 3, '.', ''), '0'), '.') }}
-                                    <span class="text-[11px] text-ink-faint uppercase">{{ $item->quantity_unit->shortLabel() }}</span>
+                                    <span class="text-[11px] text-ink-faint uppercase">{{ $item->quantity_unit->shortLabelFor((float) $item->current_quantity) }}</span>
                                 </span>
                             </a>
                         </li>

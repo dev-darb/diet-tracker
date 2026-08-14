@@ -541,14 +541,14 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             {{-- STEP 4 — Done: the machine stamps the win (design brief). --------}}
             @if ($step === 'done')
                 <div class="space-y-3">
-                    <div class="stamp-in rounded-md bg-good px-5 pb-3 pt-5 text-black">
-                        <div class="flex items-center gap-4">
-                            <svg class="size-9 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <div class="stamp-in rounded-md bg-good px-6 pb-4 pt-7 text-black">
+                        <div class="flex items-center gap-5">
+                            <svg class="size-20 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M4 12.5l5.5 5.5L20 6.5" />
                             </svg>
-                            <p class="text-2xl font-semibold tracking-tight uppercase">Added to pantry</p>
+                            <p class="text-[2.6rem] font-bold leading-[0.95] tracking-tight uppercase">Added to<br>pantry</p>
                         </div>
-                        <div class="led-sweep mt-4 flex justify-between" aria-hidden="true">
+                        <div class="led-sweep mt-6 flex justify-between" aria-hidden="true">
                             @for ($i = 0; $i < 16; $i++)
                                 <span class="led led-good"></span>
                             @endfor
@@ -558,6 +558,24 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                     <div class="module px-5 pb-4 pt-4">
                         <h2 class="silkscreen">Item</h2>
                         <p class="mt-2 text-lg font-medium text-ink">{{ $addedProductName }}</p>
+                        @php($fmtStamp = fn ($v) => rtrim(rtrim(number_format((float) $v, 1, '.', ''), '0'), '.'))
+                        @php($stamp = $nutrition === null ? null : collect([
+                            $nutrition->calories !== null ? $fmtStamp($nutrition->calories).' KCAL' : null,
+                            $nutrition->protein !== null ? $fmtStamp($nutrition->protein).'P' : null,
+                            $nutrition->carbs !== null ? $fmtStamp($nutrition->carbs).'C' : null,
+                            $nutrition->fat !== null ? $fmtStamp($nutrition->fat).'F' : null,
+                        ])->filter()->implode(' · '))
+                        <p class="data mt-2 text-xs text-ink-dim">
+                            @if ($stamp)
+                                {{ $stamp }}@if ($nutritionBasis) <span class="text-ink-faint uppercase">· {{ $nutritionBasis }}</span> @endif
+                            @else
+                                <span class="text-ink-faint">NUTRITION ----</span>
+                            @endif
+                        </p>
+                        {{-- Provenance is first-class (brief §2.2): only facts we hold. --}}
+                        <p class="data mt-1.5 border-t border-seam pt-2 text-[11px] tracking-[0.06em] text-ink-faint uppercase">
+                            {{ $detectedBarcode !== '' ? 'Barcode '.$detectedBarcode.' · ' : '' }}{{ $isSuggestion ? 'Best guess — confirmed by you' : 'Verified match' }}
+                        </p>
                     </div>
 
                     {{-- Reward strip: the counters that just moved. --}}
@@ -567,8 +585,9 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             +1 ITEM
                         </span>
                         @if ($pantryCount !== null)
-                            <span class="chip border-seam-strong !py-2 text-ink-dim">
-                                ↗ PANTRY {{ $pantryCount }} {{ $pantryCount === 1 ? 'ITEM' : 'ITEMS' }}
+                            <span class="chip inline-flex items-center gap-1.5 border-seam-strong !py-2 text-ink-dim">
+                                <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" /></svg>
+                                PANTRY {{ $pantryCount }} {{ $pantryCount === 1 ? 'ITEM' : 'ITEMS' }}
                             </span>
                         @endif
                     </div>

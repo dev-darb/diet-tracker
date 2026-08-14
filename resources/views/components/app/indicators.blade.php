@@ -8,7 +8,7 @@
 @php
     $chip = [
         \App\Services\NutritionAnalyticsService::BAND_GOOD => 'bg-good text-black',
-        \App\Services\NutritionAnalyticsService::BAND_OK => 'border-good/60 text-good',
+        \App\Services\NutritionAnalyticsService::BAND_OK => 'bg-good/70 text-black',
         \App\Services\NutritionAnalyticsService::BAND_LOW => 'bg-low text-black',
         \App\Services\NutritionAnalyticsService::BAND_SLIGHTLY_HIGH => 'bg-high text-black',
         \App\Services\NutritionAnalyticsService::BAND_UNKNOWN => 'border-seam-strong text-ink-faint',

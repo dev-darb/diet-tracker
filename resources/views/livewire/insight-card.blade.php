@@ -81,18 +81,11 @@ new class extends Component
 
 <div>
     @if ($insight)
-        @php
-            $dot = match ($insight->priority) {
-                'high' => 'bg-low',
-                'medium' => 'bg-info',
-                default => 'bg-ink-faint',
-            };
-        @endphp
 
         <div class="module px-5 pb-4 pt-4">
             <div class="flex items-center justify-between">
                 <h2 class="silkscreen">Focus</h2>
-                <span class="size-2 rounded-full {{ $dot }}" aria-hidden="true"></span>
+                <span class="size-2 rounded-full bg-info" aria-hidden="true"></span>
             </div>
 
             <h3 class="mt-3 text-base font-medium text-ink">{{ $insight->title }}</h3>
