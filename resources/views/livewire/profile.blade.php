@@ -141,46 +141,46 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
          x-on:saved.window="saved = $event.detail.section; setTimeout(() => saved = null, 2500)">
 
         <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Profile</h1>
-            <p class="mt-1 text-sm text-zinc-500">Manage your account and how we personalise your guidance.</p>
+            <h1 class="text-2xl font-semibold tracking-tight text-ink">Profile</h1>
+            <p class="mt-1 text-sm text-ink-dim">Manage your account and how we personalise your guidance.</p>
         </div>
 
         {{-- Account --}}
-        <section class="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
+        <section class="rounded-2xl border border-seam bg-plate p-5 shadow-sm">
             <div class="flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-zinc-900">Account</h2>
+                <h2 class="text-sm font-semibold text-ink">Account</h2>
                 <span x-show="saved === 'account'" x-cloak class="text-xs font-medium text-emerald-600">Saved</span>
             </div>
             <form wire:submit="saveAccount" class="mt-4 space-y-4">
                 <div>
-                    <label class="text-sm font-medium text-zinc-700">Name</label>
+                    <label class="text-sm font-medium text-ink-dim">Name</label>
                     <input type="text" wire:model="name"
-                           class="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                           class="mt-1.5 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                     @error('name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="text-sm font-medium text-zinc-700">Email</label>
+                    <label class="text-sm font-medium text-ink-dim">Email</label>
                     <input type="email" wire:model="email"
-                           class="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                           class="mt-1.5 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                     @error('email') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
-                <button type="submit" class="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
+                <button type="submit" class="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
                     Save account
                 </button>
             </form>
         </section>
 
         {{-- Goal & preferences --}}
-        <section class="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
+        <section class="rounded-2xl border border-seam bg-plate p-5 shadow-sm">
             <div class="flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-zinc-900">Goal &amp; preferences</h2>
+                <h2 class="text-sm font-semibold text-ink">Goal &amp; preferences</h2>
                 <span x-show="saved === 'profile'" x-cloak class="text-xs font-medium text-emerald-600">Saved</span>
             </div>
             <form wire:submit="saveProfile" class="mt-4 space-y-5">
                 <div>
-                    <label class="text-sm font-medium text-zinc-700">Primary goal</label>
+                    <label class="text-sm font-medium text-ink-dim">Primary goal</label>
                     <select wire:model="primary_goal"
-                            class="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            class="mt-1.5 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                         <option value="">Choose a goal…</option>
                         @foreach ($goals as $goal)
                             <option value="{{ $goal['value'] }}">{{ $goal['label'] }}</option>
@@ -190,9 +190,9 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                 </div>
 
                 <div>
-                    <label class="text-sm font-medium text-zinc-700">Dietary pattern</label>
+                    <label class="text-sm font-medium text-ink-dim">Dietary pattern</label>
                     <select wire:model="dietary_pattern"
-                            class="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            class="mt-1.5 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                         <option value="">No preference</option>
                         @foreach ($patterns as $p)
                             <option value="{{ $p['value'] }}">{{ $p['label'] }}</option>
@@ -201,11 +201,11 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-zinc-700">Focus areas</p>
+                    <p class="text-sm font-medium text-ink-dim">Focus areas</p>
                     <div class="mt-2 flex flex-wrap gap-2">
                         @foreach ($preferenceOptions as $option)
                             <button type="button" wire:click="togglePreference('{{ $option }}')"
-                                    class="rounded-full border px-3 py-1.5 text-sm transition {{ in_array($option, $dietary_preferences, true) ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300' }}">
+                                    class="rounded-full border px-3 py-1.5 text-sm transition {{ in_array($option, $dietary_preferences, true) ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-seam bg-plate text-ink-dim hover:border-seam-strong' }}">
                                 {{ $option }}
                             </button>
                         @endforeach
@@ -213,11 +213,11 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-zinc-700">Allergies</p>
+                    <p class="text-sm font-medium text-ink-dim">Allergies</p>
                     <div class="mt-2 flex flex-wrap gap-2">
                         @foreach ($allergyOptions as $option)
                             <button type="button" wire:click="toggleAllergy('{{ $option }}')"
-                                    class="rounded-full border px-3 py-1.5 text-sm transition {{ in_array($option, $allergies, true) ? 'border-red-500 bg-red-500 text-white' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300' }}">
+                                    class="rounded-full border px-3 py-1.5 text-sm transition {{ in_array($option, $allergies, true) ? 'border-red-500 bg-red-500 text-white' : 'border-seam bg-plate text-ink-dim hover:border-seam-strong' }}">
                                 {{ $option }}
                             </button>
                         @endforeach
@@ -225,38 +225,38 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                 </div>
 
                 <div>
-                    <label class="text-sm font-medium text-zinc-700">Foods you avoid</label>
+                    <label class="text-sm font-medium text-ink-dim">Foods you avoid</label>
                     <input type="text" wire:model="avoided_foods" placeholder="e.g. pork, coriander"
-                           class="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                           class="mt-1.5 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                 </div>
 
                 {{-- Basic health profile (optional, progressive disclosure) --}}
-                <div class="rounded-xl bg-zinc-50 p-4">
-                    <p class="text-sm font-medium text-zinc-700">Basic health profile</p>
-                    <p class="mt-0.5 text-xs text-zinc-500">Optional — adding height and weight lets us personalise energy and protein guidance.</p>
+                <div class="rounded-xl bg-plate-well p-4">
+                    <p class="text-sm font-medium text-ink-dim">Basic health profile</p>
+                    <p class="mt-0.5 text-xs text-ink-dim">Optional — adding height and weight lets us personalise energy and protein guidance.</p>
                     <div class="mt-3 grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-xs text-zinc-500">Height (cm)</label>
+                            <label class="text-xs text-ink-dim">Height (cm)</label>
                             <input type="number" inputmode="numeric" wire:model="height_cm"
-                                   class="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             @error('height_cm') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="text-xs text-zinc-500">Weight (kg)</label>
+                            <label class="text-xs text-ink-dim">Weight (kg)</label>
                             <input type="number" inputmode="decimal" step="0.1" wire:model="weight_kg"
-                                   class="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             @error('weight_kg') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="text-xs text-zinc-500">Date of birth</label>
+                            <label class="text-xs text-ink-dim">Date of birth</label>
                             <input type="date" wire:model="date_of_birth"
-                                   class="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             @error('date_of_birth') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="text-xs text-zinc-500">Sex</label>
+                            <label class="text-xs text-ink-dim">Sex</label>
                             <select wire:model="sex"
-                                    class="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                    class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                                 <option value="">—</option>
                                 @foreach ($sexes as $s)
                                     <option value="{{ $s['value'] }}">{{ $s['label'] }}</option>
@@ -264,9 +264,9 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                             </select>
                         </div>
                         <div class="col-span-2">
-                            <label class="text-xs text-zinc-500">Activity level</label>
+                            <label class="text-xs text-ink-dim">Activity level</label>
                             <select wire:model="activity_level"
-                                    class="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                    class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                                 <option value="">—</option>
                                 @foreach ($activityLevels as $a)
                                     <option value="{{ $a['value'] }}">{{ $a['label'] }}</option>
@@ -276,28 +276,28 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                     </div>
                 </div>
 
-                <button type="submit" class="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
+                <button type="submit" class="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
                     Save preferences
                 </button>
             </form>
         </section>
 
         {{-- Security / other settings --}}
-        <section class="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm">
-            <a href="{{ route('settings.password') }}" class="flex items-center justify-between px-5 py-4 transition hover:bg-zinc-50">
-                <span class="text-sm font-medium text-zinc-900">Password</span>
-                <svg class="size-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+        <section class="divide-y divide-seam overflow-hidden rounded-2xl border border-seam bg-plate shadow-sm">
+            <a href="{{ route('settings.password') }}" class="flex items-center justify-between px-5 py-4 transition hover:bg-plate-well">
+                <span class="text-sm font-medium text-ink">Password</span>
+                <svg class="size-4 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
             </a>
-            <a href="{{ route('settings.appearance') }}" class="flex items-center justify-between px-5 py-4 transition hover:bg-zinc-50">
-                <span class="text-sm font-medium text-zinc-900">Appearance</span>
-                <svg class="size-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+            <a href="{{ route('settings.appearance') }}" class="flex items-center justify-between px-5 py-4 transition hover:bg-plate-well">
+                <span class="text-sm font-medium text-ink">Appearance</span>
+                <svg class="size-4 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
             </a>
         </section>
 
         {{-- Privacy / data --}}
-        <section class="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
-            <h2 class="text-sm font-semibold text-zinc-900">Privacy &amp; data</h2>
-            <p class="mt-2 text-xs leading-relaxed text-zinc-500">
+        <section class="rounded-2xl border border-seam bg-plate p-5 shadow-sm">
+            <h2 class="text-sm font-semibold text-ink">Privacy &amp; data</h2>
+            <p class="mt-2 text-xs leading-relaxed text-ink-dim">
                 Your dietary history is private to your account. This app provides general nutrition guidance only
                 and is not medical advice. You can permanently delete your account and all of its data at any time.
             </p>
@@ -306,7 +306,7 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
         {{-- Logout --}}
         <form method="POST" action="{{ route('logout') }}">
             @csrf
-            <button type="submit" class="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
+            <button type="submit" class="w-full rounded-xl border border-seam bg-plate px-4 py-3 text-sm font-semibold text-ink-dim transition hover:bg-plate-well">
                 Log out
             </button>
         </form>

@@ -8,9 +8,63 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+/* ---------------------------------------------------------------------------
+   Jabba console typefaces — self-hosted, no CDN.
+   Archivo carries labels and prose (the silkscreen voice); Fragment Mono
+   carries every measured value (the data voice); DSEG7 carries exactly one
+   element in the app: the TODAY kcal master readout.
+--------------------------------------------------------------------------- */
+@font-face {
+    font-family: 'Archivo';
+    src: url('../../public/fonts/Archivo-Variable.ttf') format('truetype-variations');
+    font-weight: 100 900;
+    font-stretch: 62.5% 125%;
+    font-display: swap;
+}
 
+@font-face {
+    font-family: 'Fragment Mono';
+    src: url('../../public/fonts/FragmentMono-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'DSEG7 Classic';
+    src: url('../../public/fonts/DSEG7Classic-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-display: swap;
+}
+
+@theme {
+    --font-sans: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Fragment Mono', ui-monospace, 'SF Mono', monospace;
+    --font-seg: 'DSEG7 Classic', 'Fragment Mono', monospace;
+
+    /* Chassis material */
+    --color-chassis: #0a0b0c;
+    --color-plate: #141517;
+    --color-plate-raised: #1a1c1f;
+    --color-plate-well: #101113;
+    --color-seam: #26282c;
+    --color-seam-strong: #33363b;
+
+    /* Ink */
+    --color-ink: #eeeff0;
+    --color-ink-dim: #a2a5aa;
+    --color-ink-faint: #7a7e84;
+
+    /* Functional signals — fixed meanings, small areas, never decorative.
+       action = primary action & streaks · good = confirmed/success ·
+       low = under target · high = over target/error · info = information */
+    --color-action: #ff4d00;
+    --color-good: #2fd05e;
+    --color-low: #ffb020;
+    --color-high: #ff3b30;
+    --color-info: #39c2e8;
+
+    /* Legacy zinc ramp kept for Flux-driven pages (auth, settings) that
+       inherit the console world later. */
     --color-zinc-50: #fafafa;
     --color-zinc-100: #f5f5f5;
     --color-zinc-200: #e5e5e5;
@@ -23,27 +77,174 @@
     --color-zinc-900: #171717;
     --color-zinc-950: #0a0a0a;
 
-    --color-accent: var(--color-neutral-800);
-    --color-accent-content: var(--color-neutral-800);
-    --color-accent-foreground: var(--color-white);
+    --color-accent: var(--color-action);
+    --color-accent-content: var(--color-action);
+    --color-accent-foreground: #000000;
 }
 
 @layer theme {
     .dark {
-        --color-accent: var(--color-white);
-        --color-accent-content: var(--color-white);
-        --color-accent-foreground: var(--color-neutral-800);
+        --color-accent: var(--color-action);
+        --color-accent-content: var(--color-action);
+        --color-accent-foreground: #000000;
     }
 }
 
 @layer base {
-
     *,
     ::after,
     ::before,
     ::backdrop,
     ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
+        border-color: var(--color-seam, currentColor);
+    }
+
+    /* The browser surfaces carry the design too. */
+    ::selection {
+        background: var(--color-action);
+        color: #000;
+    }
+
+    html {
+        background: var(--color-chassis);
+        caret-color: var(--color-action);
+        scrollbar-color: var(--color-seam-strong) var(--color-chassis);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-action);
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+}
+
+@layer components {
+    /* An instrument module: a plate seated on the chassis, seam-separated. */
+    .module {
+        background: var(--color-plate);
+        border: 1px solid var(--color-seam);
+        border-radius: 6px;
+    }
+
+    /* Silkscreen micro-label printed on a module, top-left. */
+    .silkscreen {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--color-ink-faint);
+    }
+
+    /* Data voice: every measured value is mono. */
+    .data {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* A physical key on the control strip / a pressable console control. */
+    .key {
+        border: 1px solid var(--color-seam);
+        border-radius: 6px;
+        background: var(--color-plate-raised);
+        transition: filter 120ms ease-out, transform 60ms ease-out;
+    }
+    .key:active {
+        transform: translateY(1px);
+        filter: brightness(1.15);
+    }
+
+    /* The primary action key: solid signal orange, machined edge. */
+    .key-action {
+        background: var(--color-action);
+        border-color: transparent;
+        color: #000;
+        box-shadow: 0 2px 0 0 #a33200;
+    }
+    .key-action:active {
+        transform: translateY(2px);
+        box-shadow: 0 0 0 0 #a33200;
+        filter: none;
+    }
+
+    /* Band chip: the qualitative indicator (GOOD/OK/LOW/HIGH). */
+    .chip {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.08em;
+        padding: 0.2rem 0.55rem;
+        border-radius: 4px;
+        border: 1px solid transparent;
+    }
+
+    /* LED cell used in streak rows and success sweeps. */
+    .led {
+        width: 0.625rem;
+        height: 0.625rem;
+        border-radius: 2px;
+        background: var(--color-plate-well);
+        border: 1px solid var(--color-seam);
+    }
+    .led-on {
+        background: var(--color-action);
+        border-color: transparent;
+    }
+    .led-good {
+        background: #000;
+        border-color: transparent;
+        opacity: 0.25;
+    }
+
+    /* Meter track + fill for macro bars. */
+    .meter {
+        height: 3px;
+        border-radius: 2px;
+        background: var(--color-seam);
+        overflow: hidden;
+    }
+    .meter > span {
+        display: block;
+        height: 100%;
+        border-radius: 2px;
+        background: var(--color-ink-faint);
+    }
+}
+
+/* The one authored motion moment: success sweeps light their LED cells left
+   to right, counters snap in. Crisp and exponential, never springy. */
+@keyframes led-sweep {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+.led-sweep > * {
+    animation: led-sweep 90ms ease-out both;
+}
+.led-sweep > *:nth-child(2)  { animation-delay: 40ms; }
+.led-sweep > *:nth-child(3)  { animation-delay: 80ms; }
+.led-sweep > *:nth-child(4)  { animation-delay: 120ms; }
+.led-sweep > *:nth-child(5)  { animation-delay: 160ms; }
+.led-sweep > *:nth-child(6)  { animation-delay: 200ms; }
+.led-sweep > *:nth-child(7)  { animation-delay: 240ms; }
+.led-sweep > *:nth-child(8)  { animation-delay: 280ms; }
+.led-sweep > *:nth-child(9)  { animation-delay: 320ms; }
+.led-sweep > *:nth-child(10) { animation-delay: 360ms; }
+.led-sweep > *:nth-child(11) { animation-delay: 400ms; }
+.led-sweep > *:nth-child(12) { animation-delay: 440ms; }
+.led-sweep > *:nth-child(13) { animation-delay: 480ms; }
+.led-sweep > *:nth-child(14) { animation-delay: 520ms; }
+.led-sweep > *:nth-child(15) { animation-delay: 560ms; }
+.led-sweep > *:nth-child(16) { animation-delay: 600ms; }
+
+@keyframes stamp-in {
+    from { opacity: 0; transform: scale(1.06); }
+    to { opacity: 1; transform: scale(1); }
+}
+.stamp-in {
+    animation: stamp-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .led-sweep > *, .stamp-in {
+        animation: none;
     }
 }
 
@@ -52,7 +253,7 @@
 }
 
 [data-flux-label] {
-    @apply  !mb-0 !leading-tight;
+    @apply !mb-0 !leading-tight;
 }
 
 input:focus[data-flux-control],
@@ -60,7 +261,3 @@ textarea:focus[data-flux-control],
 select:focus[data-flux-control] {
     @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
 }
-
-/* \[:where(&)\]:size-4 {
-    @apply size-4;
-} */

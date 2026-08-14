@@ -261,32 +261,33 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             'nutrition' => $summary !== null ? $summary['values']->rounded(1) : null,
             'nutritionBasis' => $summary['basis_label'] ?? null,
             'unitOptions' => QuantityUnit::options(),
+            // Reward-strip counter on the done step (design brief: reward the loop).
+            'pantryCount' => $this->step === 'done'
+                ? Auth::user()->pantryItems()->where('current_quantity', '>', 0)->count()
+                : null,
         ];
     }
 }; ?>
 
-    <div class="space-y-5">
+    <div class="space-y-3">
         <style>[x-cloak]{display:none!important}</style>
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Scan</h1>
-            <p class="mt-1 text-sm text-zinc-500">One packaged product at a time. Show the front of the pack clearly.</p>
+
+        {{-- Progress while resolving (brief §7.2, §15). --}}
+        <div wire:loading wire:target="analyze" class="module px-6 py-14 text-center">
+            <div class="led-sweep mx-auto flex w-fit gap-1.5" aria-hidden="true">
+                @for ($i = 0; $i < 10; $i++)
+                    <span class="led led-on"></span>
+                @endfor
+            </div>
+            <p class="silkscreen mt-5">Identifying</p>
+            <p class="mt-2 text-sm text-ink-dim">Checking the barcode and product database…</p>
         </div>
 
-        {{-- Progress spinner while resolving (brief §7.2, §15). --}}
-        <div wire:loading wire:target="analyze" class="flex flex-col items-center justify-center rounded-2xl border border-zinc-100 bg-white px-6 py-16 text-center shadow-sm">
-            <svg class="size-8 animate-spin text-emerald-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-            </svg>
-            <p class="mt-4 text-sm font-medium text-zinc-700">Identifying your product…</p>
-            <p class="mt-1 text-xs text-zinc-500">Checking the barcode and product database.</p>
-        </div>
-
-        <div wire:loading.remove wire:target="analyze">
+        <div wire:loading.remove wire:target="analyze" class="space-y-3">
 
             {{-- STEP 1 — Capture --------------------------------------------------}}
             @if ($step === 'capture')
-                <div class="space-y-4"
+                <div class="space-y-3"
                      x-data="{
                         preview: null,
                         reading: false,
@@ -321,7 +322,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                                 try {
                                     code = await Promise.race([
                                         window.detectBarcode(file),
-                                        new Promise((r) =&gt; setTimeout(() =&gt; r(null), 8000)),
+                                        new Promise((r) => setTimeout(() => r(null), 8000)),
                                     ]);
                                 } catch (_) {}
                                 this.reading = false;
@@ -333,136 +334,141 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             try {
                                 const upload = window.downscaleImage ? await window.downscaleImage(file) : file;
                                 let done = false;
-                                const watchdog = setTimeout(() =&gt; {
+                                const watchdog = setTimeout(() => {
                                     if (done) return;
                                     this.uploading = false;
                                     this.uploadError = 'Photo upload timed out. Add the product manually below, or scan its barcode (which needs no upload).';
                                 }, 20000);
                                 $wire.upload('photo', upload,
-                                    () =&gt; { done = true; clearTimeout(watchdog); this.uploading = false; this.uploaded = true; },
-                                    (message) =&gt; { done = true; clearTimeout(watchdog); this.uploading = false; this.uploadError = 'Photo upload was rejected' + (message ? ' (' + message + ')' : '') + '. Add manually below, or scan the barcode instead.'; },
-                                    (e) =&gt; { this.progress = (e &amp;&amp; e.detail) ? e.detail.progress : this.progress; }
+                                    () => { done = true; clearTimeout(watchdog); this.uploading = false; this.uploaded = true; },
+                                    (message) => { done = true; clearTimeout(watchdog); this.uploading = false; this.uploadError = 'Photo upload was rejected' + (message ? ' (' + message + ')' : '') + '. Add manually below, or scan the barcode instead.'; },
+                                    (e) => { this.progress = (e && e.detail) ? e.detail.progress : this.progress; }
                                 );
                             } catch (err) {
                                 this.uploading = false;
-                                this.uploadError = 'Photo upload error: ' + (err &amp;&amp; err.message ? err.message : err);
+                                this.uploadError = 'Photo upload error: ' + (err && err.message ? err.message : err);
                             }
                         }
                      }">
-                    <label class="block cursor-pointer">
-                        <div class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-12 text-center transition hover:border-emerald-300 hover:bg-emerald-50/40">
+
+                    {{-- The capture well: a viewfinder, not a form. --}}
+                    <label class="module block cursor-pointer px-5 pb-5 pt-4">
+                        <span class="silkscreen">Scan</span>
+                        <div class="relative mt-3 flex min-h-56 flex-col items-center justify-center overflow-hidden rounded-[5px] border border-seam bg-plate-well px-6 py-10 text-center transition hover:border-seam-strong">
+                            {{-- Viewfinder corner brackets --}}
+                            <svg class="pointer-events-none absolute inset-2 text-seam-strong" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                <path d="M0 8V0h4M96 0h4v8M100 92v8h-4M4 100H0v-8" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" transform="scale(1,1)"/>
+                            </svg>
                             <template x-if="preview">
-                                <img :src="preview" alt="Selected product" class="mb-4 max-h-48 rounded-xl object-contain shadow-sm">
+                                <img :src="preview" alt="Selected product" class="mb-4 max-h-44 rounded object-contain">
                             </template>
                             <template x-if="!preview">
-                                <div class="mb-4 flex size-14 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm ring-1 ring-zinc-100">
-                                    <svg class="size-7" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-                                    </svg>
-                                </div>
+                                <svg class="mb-4 size-9 text-ink-faint" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+                                    <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
+                                    <path d="M6.5 12h0.01M9.5 12h0.01M12.5 12h0.01M15.5 12h0.01M18 12h-0.01" stroke-width="2" />
+                                </svg>
                             </template>
-                            <p class="text-sm font-semibold text-zinc-900" x-text="preview ? 'Photo ready' : 'Take or upload a photo'"></p>
-                            <p class="mt-1 text-xs text-zinc-500">Use your camera, or choose an existing image.</p>
+                            <p class="text-sm font-medium text-ink" x-text="preview ? 'Photo ready' : 'Take or upload a photo'"></p>
+                            <p class="mt-1 text-xs text-ink-dim">One packaged product at a time — show the front of the pack.</p>
                         </div>
                         <input type="file" accept="image/*" capture="environment" class="sr-only"
                                x-on:change="handle($event)">
                     </label>
 
-                    @error('photo') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                    @error('photo') <p class="px-1 text-xs text-high">{{ $message }}</p> @enderror
 
-                    {{-- Reading a barcode on-device (this path needs no upload). --}}
-                    <div x-show="reading" x-cloak class="flex items-center gap-2 text-sm text-zinc-500">
-                        <svg class="size-4 animate-spin text-emerald-600" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                        </svg>
-                        Reading barcode…
+                    {{-- On-device barcode read (needs no upload). --}}
+                    <p x-show="reading" x-cloak class="data px-1 text-xs text-ink-dim">READING BARCODE…</p>
+
+                    <div x-show="barcodeFound" x-cloak class="module flex items-center gap-3 px-4 py-3">
+                        <span class="size-2 shrink-0 rounded-full bg-good" aria-hidden="true"></span>
+                        <p class="data min-w-0 truncate text-xs text-ink">BARCODE <span x-text="barcode"></span> <span class="text-ink-faint">· ON-DEVICE</span></p>
                     </div>
 
-                    {{-- Barcode found → keyless Open Food Facts lookup, no upload required. --}}
-                    <div x-show="barcodeFound" x-cloak class="flex items-center gap-2 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700">
-                        <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5v15m3-15v15m3-15v15m4.5-15v15m3-15v15" /></svg>
-                        <span>Barcode detected on-device — <span class="font-semibold tabular-nums" x-text="barcode"></span></span>
-                    </div>
-
-                    {{-- Photo upload — only the AI photo path needs this; the barcode path skips it. --}}
-                    <div x-show="uploading" x-cloak class="space-y-1.5">
-                        <div class="flex items-center justify-between text-xs text-zinc-500">
-                            <span>Uploading photo…</span>
-                            <span class="tabular-nums" x-text="progress + '%'"></span>
+                    {{-- Photo upload — only the AI photo path needs this. --}}
+                    <div x-show="uploading" x-cloak class="module space-y-2 px-4 py-3">
+                        <div class="data flex items-center justify-between text-xs text-ink-dim">
+                            <span>UPLOADING PHOTO</span>
+                            <span x-text="progress + '%'"></span>
                         </div>
-                        <div class="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
-                            <div class="h-full rounded-full bg-emerald-500 transition-all" :style="`width: ${progress}%`"></div>
-                        </div>
+                        <div class="meter"><span class="!bg-action" :style="`width: ${progress}%`"></span></div>
                     </div>
 
-                    <p x-show="uploadError" x-cloak class="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600" x-text="uploadError"></p>
+                    <p x-show="uploadError" x-cloak class="border-l border-high bg-plate-well px-3 py-2 text-xs leading-relaxed text-ink-dim" x-text="uploadError"></p>
 
                     <button type="button" x-show="barcodeFound || uploaded" x-cloak
                             wire:click="analyze"
-                            class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                            class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
                         Identify product
                     </button>
 
-                    <p class="text-center text-xs text-zinc-400">
-                        Prefer to type it in? <a href="{{ route('pantry') }}" class="font-medium text-emerald-600 hover:text-emerald-700">Add to pantry manually</a>
+                    <p class="px-1 text-center text-xs text-ink-faint">
+                        Prefer to type it in? <a href="{{ route('pantry') }}" class="text-ink-dim underline decoration-seam-strong underline-offset-4 transition hover:text-ink">Add to pantry manually</a>
                     </p>
                 </div>
             @endif
 
             {{-- STEP 2 — Confirm "Is this right?" (brief §7.6) --------------------}}
             @if ($step === 'confirm' && $product)
-                <div class="space-y-5">
-                    <div class="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Is this right?</p>
+                <div class="space-y-3">
+                    <div class="module px-5 pb-5 pt-4">
+                        <h2 class="silkscreen">Match — Is this right?</h2>
 
-                        <h2 class="mt-2 text-lg font-semibold text-zinc-900">{{ $product->brand }}</h2>
-                        <p class="text-sm text-zinc-700">{{ $product->name }}</p>
+                        <p class="mt-4 text-lg font-medium leading-snug text-ink">{{ $product->brand }} <span class="text-ink-dim">{{ $product->name }}</span></p>
                         @if ($product->variant)
-                            <p class="text-sm text-zinc-500">{{ $product->variant }}</p>
+                            <p class="mt-0.5 text-sm text-ink-dim">{{ $product->variant }}</p>
                         @endif
-                        @if ($product->pack_size_value)
-                            <p class="mt-0.5 text-xs text-zinc-400">{{ rtrim(rtrim(number_format((float) $product->pack_size_value, 3, '.', ''), '0'), '.') }}{{ $product->pack_size_unit }}</p>
-                        @endif
+
+                        {{-- Provenance is first-class (brief §2.2). --}}
+                        <p class="data mt-3 text-[11px] tracking-[0.06em] text-ink-faint uppercase">
+                            @if ($detectedBarcode !== '') Barcode {{ $detectedBarcode }} · @endif
+                            @if ($product->pack_size_value) {{ rtrim(rtrim(number_format((float) $product->pack_size_value, 3, '.', ''), '0'), '.') }}{{ $product->pack_size_unit }} · @endif
+                            {{ $isSuggestion ? 'Best guess' : 'Matched' }}
+                        </p>
 
                         @if ($isSuggestion)
-                            <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">This is our best guess, not a certain match. Please check it's correct.</p>
+                            <p class="mt-3 border-l border-low bg-plate-well px-3 py-2 text-xs leading-relaxed text-ink-dim">
+                                Best guess, not a certain match — please check it before adding.
+                            </p>
                         @endif
 
                         {{-- Key macros (computed by the nutrition service, never inline maths) --}}
-                        <div class="mt-4 grid grid-cols-2 gap-3">
-                            @php
-                                $kcal = $nutrition?->calories;
-                                $protein = $nutrition?->protein;
-                            @endphp
-                            <div class="rounded-xl bg-zinc-50 px-3 py-2.5">
-                                <p class="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Calories</p>
-                                <p class="mt-0.5 text-sm font-semibold text-zinc-900">
-                                    {{ $kcal !== null ? rtrim(rtrim(number_format($kcal, 1, '.', ''), '0'), '.').' kcal' : 'Not available' }}
+                        <div class="mt-4 grid grid-cols-2 divide-x divide-seam border-t border-seam pt-1">
+                            <div class="py-2.5 pr-4">
+                                <h3 class="silkscreen">Calories</h3>
+                                <p class="data mt-1 text-lg text-ink">
+                                    @if ($nutrition?->calories !== null)
+                                        {{ rtrim(rtrim(number_format($nutrition->calories, 1, '.', ''), '0'), '.') }}<span class="text-xs text-ink-dim"> KCAL</span>
+                                    @else
+                                        ----
+                                    @endif
                                 </p>
                             </div>
-                            <div class="rounded-xl bg-zinc-50 px-3 py-2.5">
-                                <p class="text-[11px] font-medium uppercase tracking-wide text-zinc-400">Protein</p>
-                                <p class="mt-0.5 text-sm font-semibold text-zinc-900">
-                                    {{ $protein !== null ? rtrim(rtrim(number_format($protein, 1, '.', ''), '0'), '.').' g' : 'Not available' }}
+                            <div class="py-2.5 pl-4">
+                                <h3 class="silkscreen">Protein</h3>
+                                <p class="data mt-1 text-lg text-ink">
+                                    @if ($nutrition?->protein !== null)
+                                        {{ rtrim(rtrim(number_format($nutrition->protein, 1, '.', ''), '0'), '.') }}<span class="text-xs text-ink-dim">G</span>
+                                    @else
+                                        ----
+                                    @endif
                                 </p>
                             </div>
                         </div>
                         @if ($nutritionBasis)
-                            <p class="mt-2 text-[11px] text-zinc-400">{{ $nutritionBasis }}</p>
+                            <p class="data mt-1 text-[11px] text-ink-faint"><span class="uppercase">{{ $nutritionBasis }}</span></p>
                         @elseif (! $nutrition)
-                            <p class="mt-2 text-[11px] text-zinc-400">Nutrition isn't available for this product yet.</p>
+                            <p class="mt-1 text-[11px] text-ink-faint">Nutrition isn't available for this product yet.</p>
                         @endif
                     </div>
 
                     <div class="space-y-2">
                         <button type="button" wire:click="yesAddIt"
-                                class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
                             Yes, add it
                         </button>
                         <button type="button" wire:click="wrongProduct"
-                                class="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
+                                class="key w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
                             Wrong product
                         </button>
                     </div>
@@ -471,38 +477,34 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
             {{-- STEP 3 — Quantity (brief §7.7) -----------------------------------}}
             @if ($step === 'quantity' && $product)
-                <div class="space-y-5">
-                    <div class="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
-                        <h2 class="text-sm font-semibold text-zinc-900">How many did you buy?</h2>
-                        <p class="mt-0.5 text-xs text-zinc-500">{{ $product->brand }} — {{ $product->name }}</p>
+                <div class="space-y-3">
+                    <div class="module px-5 pb-5 pt-4">
+                        <h2 class="silkscreen">Quantity — how many did you buy?</h2>
+                        <p class="mt-2 text-sm text-ink-dim">{{ $product->brand }} — {{ $product->name }}</p>
 
-                        <div class="mt-4 flex items-center justify-center gap-5">
+                        <div class="mt-5 flex items-center justify-center gap-4">
                             <button type="button" wire:click="decrement" aria-label="Decrease"
-                                    class="flex size-11 items-center justify-center rounded-full border border-zinc-200 text-lg font-semibold text-zinc-700 transition hover:bg-zinc-50">
-                                −
-                            </button>
-                            <span class="w-12 text-center text-3xl font-bold tabular-nums text-zinc-900">{{ $quantity }}</span>
+                                    class="key flex size-12 items-center justify-center text-lg text-ink">−</button>
+                            <span class="data w-20 border-b border-seam pb-1 text-center text-4xl text-ink">{{ $quantity }}</span>
                             <button type="button" wire:click="increment" aria-label="Increase"
-                                    class="flex size-11 items-center justify-center rounded-full border border-zinc-200 text-lg font-semibold text-zinc-700 transition hover:bg-zinc-50">
-                                +
-                            </button>
+                                    class="key flex size-12 items-center justify-center text-lg text-ink">+</button>
                         </div>
 
-                        <div class="mt-4">
-                            <label class="text-xs font-medium text-zinc-600">Unit</label>
-                            <select wire:model="unit"
-                                    class="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <div class="mt-5">
+                            <label class="silkscreen" for="scan-unit">Unit</label>
+                            <select id="scan-unit" wire:model="unit"
+                                    class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2.5 text-sm text-ink focus:border-action focus:outline-none">
                                 @foreach ($unitOptions as $option)
                                     <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        @error('quantity') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                        @error('unit') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        @error('quantity') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
+                        @error('unit') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                     </div>
 
                     <button type="button" wire:click="addToPantry"
-                            class="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800">
+                            class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
                         Add to pantry
                     </button>
                 </div>
@@ -510,52 +512,75 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
             {{-- Something failed while resolving — actionable, never a blank page --}}
             @if ($step === 'error')
-                <div class="space-y-5">
-                    <div class="flex flex-col items-center rounded-2xl border border-zinc-100 bg-white px-6 py-12 text-center shadow-sm">
-                        <div class="flex size-14 items-center justify-center rounded-2xl bg-red-100 text-red-600">
-                            <svg class="size-7" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-                        </div>
-                        <h2 class="mt-4 text-lg font-semibold text-zinc-900">Something went wrong adding that product</h2>
-                        <p class="mt-1 max-w-xs text-sm text-zinc-500">It's been logged. You can try again, or add the product to your pantry manually.</p>
+                <div class="space-y-3">
+                    <div class="module px-6 py-12 text-center">
+                        <p class="data text-2xl text-high" aria-hidden="true">ERR</p>
+                        <p class="silkscreen mt-2">Resolve failed</p>
+                        <h2 class="mt-5 text-base font-medium text-ink">Something went wrong adding that product</h2>
+                        <p class="mx-auto mt-1.5 max-w-xs text-sm text-ink-dim">It's been logged. Try again, or add the product to your pantry manually.</p>
                         @if ($errorDetail !== '')
-                            <p class="mt-3 max-w-xs break-words rounded-lg bg-red-50 px-3 py-2 text-left text-[11px] text-red-700">
-                                <span class="font-semibold">Technical detail (please share with support):</span> {{ $errorDetail }}
+                            <p class="data mx-auto mt-4 max-w-xs break-words border-l border-high bg-plate-well px-3 py-2 text-left text-[11px] leading-relaxed text-ink-dim">
+                                DETAIL (share with support): {{ $errorDetail }}
                             </p>
                         @endif
                     </div>
 
                     <div class="space-y-2">
                         <button type="button" wire:click="scanAnother"
-                                class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
                             Try another scan
                         </button>
                         <a href="{{ route('pantry') }}"
-                           class="block w-full rounded-xl border border-zinc-200 px-4 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
+                           class="key block w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
                             Add manually
                         </a>
                     </div>
                 </div>
             @endif
 
-            {{-- STEP 4 — Done ---------------------------------------------------}}
+            {{-- STEP 4 — Done: the machine stamps the win (design brief). --------}}
             @if ($step === 'done')
-                <div class="space-y-5">
-                    <div class="flex flex-col items-center rounded-2xl border border-zinc-100 bg-white px-6 py-12 text-center shadow-sm">
-                        <div class="flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                            <svg class="size-7" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                <div class="space-y-3">
+                    <div class="stamp-in rounded-md bg-good px-5 pb-3 pt-5 text-black">
+                        <div class="flex items-center gap-4">
+                            <svg class="size-9 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M4 12.5l5.5 5.5L20 6.5" />
+                            </svg>
+                            <p class="text-2xl font-semibold tracking-tight uppercase">Added to pantry</p>
                         </div>
-                        <h2 class="mt-4 text-lg font-semibold text-zinc-900">Added to your pantry</h2>
-                        <p class="mt-1 text-sm text-zinc-500">{{ $addedProductName }}</p>
+                        <div class="led-sweep mt-4 flex justify-between" aria-hidden="true">
+                            @for ($i = 0; $i < 16; $i++)
+                                <span class="led led-good"></span>
+                            @endfor
+                        </div>
                     </div>
 
-                    <div class="space-y-2">
+                    <div class="module px-5 pb-4 pt-4">
+                        <h2 class="silkscreen">Item</h2>
+                        <p class="mt-2 text-lg font-medium text-ink">{{ $addedProductName }}</p>
+                    </div>
+
+                    {{-- Reward strip: the counters that just moved. --}}
+                    <div class="flex gap-2" aria-label="Progress update">
+                        <span class="chip border-action !py-2 !pl-2.5 text-action">
+                            <span class="mr-1 inline-block size-2 rounded-[2px] bg-action align-baseline" aria-hidden="true"></span>
+                            +1 ITEM
+                        </span>
+                        @if ($pantryCount !== null)
+                            <span class="chip border-seam-strong !py-2 text-ink-dim">
+                                ↗ PANTRY {{ $pantryCount }} {{ $pantryCount === 1 ? 'ITEM' : 'ITEMS' }}
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="space-y-2 pt-1">
                         <button type="button" wire:click="scanAnother"
-                                class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
-                            Scan another
+                                class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
+                            Scan next
                         </button>
                         <a href="{{ route('pantry') }}"
-                           class="block w-full rounded-xl border border-zinc-200 px-4 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
-                            View pantry
+                           class="key block w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
+                            Done
                         </a>
                     </div>
                 </div>
@@ -563,22 +588,21 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
             {{-- Unknown / needs-research fallback (research is Milestone 3) ------}}
             @if ($step === 'unknown')
-                <div class="space-y-5">
-                    <div class="flex flex-col items-center rounded-2xl border border-zinc-100 bg-white px-6 py-12 text-center shadow-sm">
-                        <div class="flex size-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500">
-                            <svg class="size-7" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>
-                        </div>
-                        <h2 class="mt-4 text-lg font-semibold text-zinc-900">We couldn't confidently identify this yet</h2>
-                        <p class="mt-1 max-w-xs text-sm text-zinc-500">Scanning the barcode usually works best. You can also add this product to your pantry manually.</p>
+                <div class="space-y-3">
+                    <div class="module px-6 py-12 text-center">
+                        <p class="data text-2xl text-ink-faint" aria-hidden="true">?---</p>
+                        <p class="silkscreen mt-2">No confident match</p>
+                        <h2 class="mt-5 text-base font-medium text-ink">We couldn't confidently identify this yet</h2>
+                        <p class="mx-auto mt-1.5 max-w-xs text-sm text-ink-dim">Scanning the barcode usually works best. You can also add this product to your pantry manually.</p>
                     </div>
 
                     <div class="space-y-2">
                         <a href="{{ route('pantry') }}"
-                           class="block w-full rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-700">
+                           class="key key-action block w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
                             Add manually
                         </a>
                         <button type="button" wire:click="scanAnother"
-                                class="w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
+                                class="key w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
                             Try another photo
                         </button>
                     </div>
@@ -587,22 +611,21 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
             {{-- Photo identification needs AI configuration (key-absent grace) ---}}
             @if ($step === 'ai_unavailable')
-                <div class="space-y-5">
-                    <div class="flex flex-col items-center rounded-2xl border border-zinc-100 bg-white px-6 py-12 text-center shadow-sm">
-                        <div class="flex size-14 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-                            <svg class="size-7" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
-                        </div>
-                        <h2 class="mt-4 text-lg font-semibold text-zinc-900">Photo identification needs AI configuration</h2>
-                        <p class="mt-1 max-w-xs text-sm text-zinc-500">Scan the barcode instead, or add this product to your pantry manually.</p>
+                <div class="space-y-3">
+                    <div class="module px-6 py-12 text-center">
+                        <p class="data text-2xl text-low" aria-hidden="true">AI--</p>
+                        <p class="silkscreen mt-2">Not configured</p>
+                        <h2 class="mt-5 text-base font-medium text-ink">Photo identification needs AI configuration</h2>
+                        <p class="mx-auto mt-1.5 max-w-xs text-sm text-ink-dim">Scan the barcode instead, or add this product to your pantry manually.</p>
                     </div>
 
                     <div class="space-y-2">
                         <button type="button" wire:click="scanAnother"
-                                class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
                             Scan the barcode
                         </button>
                         <a href="{{ route('pantry') }}"
-                           class="block w-full rounded-xl border border-zinc-200 px-4 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
+                           class="key block w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
                             Add manually
                         </a>
                     </div>
@@ -611,19 +634,21 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
             {{-- Wrong product recorded — retry or manual (brief §7.6) -----------}}
             @if ($step === 'corrected')
-                <div class="space-y-5">
-                    <div class="flex flex-col items-center rounded-2xl border border-zinc-100 bg-white px-6 py-12 text-center shadow-sm">
-                        <h2 class="text-lg font-semibold text-zinc-900">Thanks — we've noted that</h2>
-                        <p class="mt-1 max-w-xs text-sm text-zinc-500">Your correction helps improve product matching. Try another photo, or add the product manually.</p>
+                <div class="space-y-3">
+                    <div class="module px-6 py-12 text-center">
+                        <p class="data text-2xl text-info" aria-hidden="true">LOGD</p>
+                        <p class="silkscreen mt-2">Correction recorded</p>
+                        <h2 class="mt-5 text-base font-medium text-ink">Thanks — we've noted that</h2>
+                        <p class="mx-auto mt-1.5 max-w-xs text-sm text-ink-dim">Your correction helps improve product matching. Try another photo, or add the product manually.</p>
                     </div>
 
                     <div class="space-y-2">
                         <button type="button" wire:click="scanAnother"
-                                class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                class="key key-action w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] uppercase">
                             Try another photo
                         </button>
                         <a href="{{ route('pantry') }}"
-                           class="block w-full rounded-xl border border-zinc-200 px-4 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
+                           class="key block w-full px-4 py-3.5 text-center font-mono text-sm tracking-[0.14em] text-ink-dim uppercase">
                             Add manually
                         </a>
                     </div>
@@ -632,4 +657,3 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
         </div>
     </div>
-

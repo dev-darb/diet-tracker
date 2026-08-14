@@ -8,14 +8,14 @@
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
         @vite(['resources/css/app.css'])
     </head>
-    <body class="min-h-dvh bg-zinc-50 text-zinc-900 antialiased">
-        <div class="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-white px-6 py-10 shadow-sm ring-1 ring-zinc-100">
+    <body class="min-h-dvh bg-plate-well text-ink antialiased">
+        <div class="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-plate px-6 py-10 shadow-sm ring-1 ring-seam">
             <div class="flex flex-1 flex-col justify-center">
                 <span class="flex size-12 items-center justify-center rounded-2xl bg-emerald-600 text-lg font-semibold text-white">P</span>
-                <h1 class="mt-6 text-3xl font-semibold leading-tight tracking-tight text-zinc-900">
+                <h1 class="mt-6 text-3xl font-semibold leading-tight tracking-tight text-ink">
                     Know what you buy, eat, and how it adds up.
                 </h1>
-                <p class="mt-3 text-base leading-relaxed text-zinc-500">
+                <p class="mt-3 text-base leading-relaxed text-ink-dim">
                     Scan your groceries, keep track of what's in your pantry, log what you eat,
                     and get calm, useful guidance about your diet.
                 </p>
@@ -27,10 +27,10 @@
                     Create an account
                 </a>
                 <a href="{{ route('login') }}"
-                   class="block w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
+                   class="block w-full rounded-xl border border-seam bg-plate px-4 py-3 text-center text-sm font-semibold text-ink-dim transition hover:bg-plate-well">
                     Log in
                 </a>
-                <p class="pt-2 text-center text-xs text-zinc-400">General nutrition guidance, not medical advice.</p>
+                <p class="pt-2 text-center text-xs text-ink-faint">General nutrition guidance, not medical advice.</p>
             </div>
         </div>
     </body>

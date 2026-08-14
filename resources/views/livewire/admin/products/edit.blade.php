@@ -133,10 +133,10 @@ new #[Layout('components.layouts.admin', ['title' => 'Edit product'])] class ext
 
     <div class="mx-auto max-w-2xl space-y-6" x-data="{ saved: false }"
          x-on:saved.window="saved = true; setTimeout(() => saved = false, 2500)">
-        <div class="flex items-center gap-2 text-sm text-zinc-500">
-            <a href="{{ route('admin.products.index') }}" class="hover:text-zinc-800">Products</a>
+        <div class="flex items-center gap-2 text-sm text-ink-dim">
+            <a href="{{ route('admin.products.index') }}" class="hover:text-ink">Products</a>
             <span>/</span>
-            <span class="truncate text-zinc-900">{{ $product->brand }} — {{ $product->name }}</span>
+            <span class="truncate text-ink">{{ $product->brand }} — {{ $product->name }}</span>
         </div>
 
         @if (session('status'))
@@ -144,50 +144,50 @@ new #[Layout('components.layouts.admin', ['title' => 'Edit product'])] class ext
         @endif
 
         <div class="flex items-center justify-between">
-            <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Edit product</h1>
+            <h1 class="text-2xl font-semibold tracking-tight text-ink">Edit product</h1>
             <span x-show="saved" x-cloak class="text-sm font-medium text-emerald-600">Saved</span>
         </div>
 
         {{-- Identity --}}
         <form wire:submit="saveIdentity" class="space-y-4">
             @include('livewire.admin.products._identity-fields')
-            <button type="submit" class="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
+            <button type="submit" class="rounded-xl bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
                 Save identity
             </button>
         </form>
 
         {{-- Existing versions --}}
-        <section class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 class="text-sm font-semibold text-zinc-900">Nutrition versions</h2>
+        <section class="rounded-2xl border border-seam bg-plate p-5 shadow-sm">
+            <h2 class="text-sm font-semibold text-ink">Nutrition versions</h2>
             <div class="mt-3 space-y-3">
                 @forelse ($versions as $version)
-                    <div class="rounded-xl border border-zinc-100 bg-zinc-50/60 p-4">
+                    <div class="rounded-xl border border-seam bg-plate-well p-4">
                         <div class="flex items-center justify-between">
-                            <p class="text-sm font-semibold text-zinc-900">
+                            <p class="text-sm font-semibold text-ink">
                                 {{ $version->serving_basis->label() }}
                                 @if ($version->serving_size_value)
-                                    <span class="font-normal text-zinc-500">· serving {{ rtrim(rtrim((string) $version->serving_size_value, '0'), '.') }}{{ $version->serving_size_unit }}</span>
+                                    <span class="font-normal text-ink-dim">· serving {{ rtrim(rtrim((string) $version->serving_size_value, '0'), '.') }}{{ $version->serving_size_unit }}</span>
                                 @endif
                             </p>
-                            <span class="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-zinc-600 ring-1 ring-zinc-200">{{ $version->status->label() }}</span>
+                            <span class="rounded-full bg-plate px-2.5 py-0.5 text-xs font-medium text-ink-dim ring-1 ring-seam">{{ $version->status->label() }}</span>
                         </div>
-                        <p class="mt-2 text-xs text-zinc-600">
+                        <p class="mt-2 text-xs text-ink-dim">
                             {{ (float) $version->calories }} kcal · P {{ (float) $version->protein }}g · C {{ (float) $version->carbs }}g · F {{ (float) $version->fat }}g · Salt {{ (float) $version->salt }}g
                         </p>
-                        <p class="mt-1 text-[11px] text-zinc-400">
+                        <p class="mt-1 text-[11px] text-ink-faint">
                             Effective {{ $version->effective_from?->format('j M Y') }} ·
                             {{ $version->sources->map(fn ($s) => $s->source_type->label())->unique()->implode(', ') ?: 'no source' }}
                         </p>
                     </div>
                 @empty
-                    <p class="text-sm text-zinc-500">No versions yet — add one below.</p>
+                    <p class="text-sm text-ink-dim">No versions yet — add one below.</p>
                 @endforelse
             </div>
         </section>
 
         {{-- Add a version --}}
-        <section class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 class="text-sm font-semibold text-zinc-900">Add a version</h2>
+        <section class="rounded-2xl border border-seam bg-plate p-5 shadow-sm">
+            <h2 class="text-sm font-semibold text-ink">Add a version</h2>
             <form wire:submit="addVersion" class="mt-4 space-y-4">
                 @include('livewire.admin.products._version-fields')
                 <button type="submit" class="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">

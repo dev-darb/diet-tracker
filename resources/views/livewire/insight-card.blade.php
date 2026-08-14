@@ -82,69 +82,63 @@ new class extends Component
 <div>
     @if ($insight)
         @php
-            $priorityRing = match ($insight->priority) {
-                'high' => 'ring-amber-500/30',
-                'medium' => 'ring-emerald-500/25',
-                default => 'ring-zinc-200',
-            };
-            $accent = match ($insight->priority) {
-                'high' => 'bg-amber-500',
-                'medium' => 'bg-emerald-500',
-                default => 'bg-zinc-400',
+            $dot = match ($insight->priority) {
+                'high' => 'bg-low',
+                'medium' => 'bg-info',
+                default => 'bg-ink-faint',
             };
         @endphp
 
-        <div class="overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm ring-1 ring-inset {{ $priorityRing }}">
-            <div class="flex items-start gap-3 px-5 py-4">
-                <span class="mt-1.5 size-2 shrink-0 rounded-full {{ $accent }}"></span>
-                <div class="min-w-0 flex-1">
-                    <p class="text-xs font-medium uppercase tracking-wide text-zinc-400">Your focus this week</p>
-                    <h3 class="mt-1 text-base font-semibold text-zinc-900">{{ $insight->title }}</h3>
-                    <p class="mt-1 text-sm leading-relaxed text-zinc-600">{{ $insight->body }}</p>
-
-                    {{-- Actions (brief §9.6). --}}
-                    <div class="mt-3 flex flex-wrap items-center gap-2">
-                        <button type="button" wire:click="toggleWhy"
-                                class="rounded-full border border-zinc-200 px-3 py-1 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50">
-                            {{ $why ? 'Hide' : 'Why this matters' }}
-                        </button>
-                        @if (! empty($insight->pantry_item_ids))
-                            <button type="button" wire:click="toggleEat"
-                                    class="rounded-full border border-zinc-200 px-3 py-1 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50">
-                                {{ $eat ? 'Hide items' : 'Show me what I could eat' }}
-                            </button>
-                        @endif
-                        <button type="button" wire:click="dismiss"
-                                class="rounded-full px-3 py-1 text-xs font-medium text-zinc-400 transition hover:text-zinc-600">
-                            Dismiss
-                        </button>
-                    </div>
-
-                    @if ($why)
-                        <p class="mt-3 rounded-xl bg-zinc-50 px-3 py-2.5 text-xs leading-relaxed text-zinc-600">
-                            {{ $why_text }}
-                        </p>
-                    @endif
-
-                    @if ($eat && $pantry_items->isNotEmpty())
-                        <ul class="mt-3 space-y-1.5">
-                            @foreach ($pantry_items as $item)
-                                <li class="flex items-center justify-between rounded-xl bg-zinc-50 px-3 py-2">
-                                    <a href="{{ route('pantry.item', $item) }}"
-                                       class="text-sm font-medium text-zinc-800 hover:text-emerald-700">
-                                        {{ trim(($item->canonicalProduct->brand ? $item->canonicalProduct->brand.' ' : '').$item->canonicalProduct->name) }}
-                                    </a>
-                                    <span class="text-xs tabular-nums text-zinc-400">
-                                        {{ rtrim(rtrim(number_format((float) $item->current_quantity, 3), '0'), '.') }} {{ $item->quantity_unit?->value }}
-                                    </span>
-                                </li>
-                            @endforeach
-                        </ul>
-                    @endif
-
-                    <x-app.health-disclaimer class="mt-3" />
-                </div>
+        <div class="module px-5 pb-4 pt-4">
+            <div class="flex items-center justify-between">
+                <h2 class="silkscreen">Focus</h2>
+                <span class="size-2 rounded-full {{ $dot }}" aria-hidden="true"></span>
             </div>
+
+            <h3 class="mt-3 text-base font-medium text-ink">{{ $insight->title }}</h3>
+            <p class="mt-1 text-sm leading-relaxed text-ink-dim">{{ $insight->body }}</p>
+
+            {{-- Actions (brief §9.6). --}}
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+                <button type="button" wire:click="toggleWhy"
+                        class="key px-3 py-1.5 font-mono text-[11px] tracking-[0.08em] text-ink-dim uppercase">
+                    {{ $why ? 'Hide' : 'Why this matters' }}
+                </button>
+                @if (! empty($insight->pantry_item_ids))
+                    <button type="button" wire:click="toggleEat"
+                            class="key px-3 py-1.5 font-mono text-[11px] tracking-[0.08em] text-ink-dim uppercase">
+                        {{ $eat ? 'Hide items' : 'What could I eat' }}
+                    </button>
+                @endif
+                <button type="button" wire:click="dismiss"
+                        class="px-3 py-1.5 font-mono text-[11px] tracking-[0.08em] text-ink-faint uppercase transition hover:text-ink-dim">
+                    Dismiss
+                </button>
+            </div>
+
+            @if ($why)
+                <p class="mt-3 border-l border-info/60 bg-plate-well px-3 py-2.5 text-xs leading-relaxed text-ink-dim">
+                    {{ $why_text }}
+                </p>
+            @endif
+
+            @if ($eat && $pantry_items->isNotEmpty())
+                <ul class="mt-3 divide-y divide-seam border-t border-seam">
+                    @foreach ($pantry_items as $item)
+                        <li class="flex items-center justify-between gap-3 py-2.5">
+                            <a href="{{ route('pantry.item', $item) }}"
+                               class="min-w-0 truncate text-sm text-ink transition hover:text-info">
+                                {{ trim(($item->canonicalProduct->brand ? $item->canonicalProduct->brand.' ' : '').$item->canonicalProduct->name) }}
+                            </a>
+                            <span class="data shrink-0 text-xs text-ink-dim">
+                                {{ rtrim(rtrim(number_format((float) $item->current_quantity, 3), '0'), '.') }} <span class="uppercase">{{ $item->quantity_unit?->value ?? '' }}</span>
+                            </span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+
+            <x-app.health-disclaimer class="mt-4" />
         </div>
     @endif
 </div>

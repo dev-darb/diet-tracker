@@ -49,7 +49,7 @@ class HealthUiTest extends TestCase
             ->assertOk()
             ->assertSee('Today')
             ->assertSee('1,820')
-            ->assertSee('How today looks')
+            ->assertSee('Indicators')
             ->assertSee('Protein')
             ->assertSee('not personalised medical');
     }
@@ -59,7 +59,7 @@ class HealthUiTest extends TestCase
         $this->actingAs($this->user)->get('/home')
             ->assertOk()
             ->assertSee('Today')
-            ->assertSee('once you log what you eat');
+            ->assertSee('Nothing logged yet');
     }
 
     public function test_health_shows_weekly_averages_variety_and_trend(): void
@@ -82,10 +82,10 @@ class HealthUiTest extends TestCase
         $this->actingAs($this->user)->get('/health')
             ->assertOk()
             ->assertSee('This week')
-            ->assertSee('Average intake')
-            ->assertSee('distinct foods')
-            ->assertSee('days logged')
-            ->assertSee('vs last week')
+            ->assertSee('KCAL/DAY')
+            ->assertSee('distinct')
+            ->assertSee('days')
+            ->assertSee('VS LAST WK')
             ->assertSee('Weekly indicators')
             ->assertSee('Trends')
             ->assertSee('not personalised medical');
@@ -97,6 +97,6 @@ class HealthUiTest extends TestCase
     {
         $this->actingAs($this->user)->get('/health')
             ->assertOk()
-            ->assertSee('No insights yet');
+            ->assertSee('No readings yet');
     }
 }

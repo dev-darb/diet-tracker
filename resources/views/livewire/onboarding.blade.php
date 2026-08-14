@@ -156,12 +156,12 @@ new #[Layout('components.layouts.focus')] class extends Component {
     <div class="mb-8">
         <div class="flex items-center justify-between">
             <button type="button" wire:click="back"
-                    class="text-sm font-medium text-zinc-400 transition hover:text-zinc-600 {{ $step === 1 ? 'invisible' : '' }}">
+                    class="text-sm font-medium text-ink-faint transition hover:text-ink-dim {{ $step === 1 ? 'invisible' : '' }}">
                 Back
             </button>
-            <span class="text-xs font-medium text-zinc-400">Step {{ $step }} of {{ self::LAST_STEP }}</span>
+            <span class="text-xs font-medium text-ink-faint">Step {{ $step }} of {{ self::LAST_STEP }}</span>
         </div>
-        <div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+        <div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-plate-raised">
             <div class="h-full rounded-full bg-emerald-600 transition-all duration-300"
                  style="width: {{ ($step / self::LAST_STEP) * 100 }}%"></div>
         </div>
@@ -170,17 +170,17 @@ new #[Layout('components.layouts.focus')] class extends Component {
     {{-- Step 1 — Goal --}}
     @if ($step === 1)
         <div class="flex flex-1 flex-col">
-            <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">What brings you here?</h1>
-            <p class="mt-2 text-sm leading-relaxed text-zinc-500">
+            <h1 class="text-2xl font-semibold tracking-tight text-ink">What brings you here?</h1>
+            <p class="mt-2 text-sm leading-relaxed text-ink-dim">
                 Pick the goal that fits best. You can change it any time — this just helps us tailor your guidance.
             </p>
 
             <div class="mt-6 space-y-2.5">
                 @foreach ($goals as $goal)
                     <button type="button" wire:click="selectGoal('{{ $goal['value'] }}')"
-                            class="w-full rounded-2xl border px-4 py-3.5 text-left transition {{ $primary_goal === $goal['value'] ? 'border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600' : 'border-zinc-200 bg-white hover:border-zinc-300' }}">
-                        <p class="text-sm font-semibold text-zinc-900">{{ $goal['label'] }}</p>
-                        <p class="mt-0.5 text-xs text-zinc-500">{{ $goal['description'] }}</p>
+                            class="w-full rounded-2xl border px-4 py-3.5 text-left transition {{ $primary_goal === $goal['value'] ? 'border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600' : 'border-seam bg-plate hover:border-seam-strong' }}">
+                        <p class="text-sm font-semibold text-ink">{{ $goal['label'] }}</p>
+                        <p class="mt-0.5 text-xs text-ink-dim">{{ $goal['description'] }}</p>
                     </button>
                 @endforeach
             </div>
@@ -191,16 +191,16 @@ new #[Layout('components.layouts.focus')] class extends Component {
     {{-- Step 2 — Preferences & allergies --}}
     @if ($step === 2)
         <div class="flex flex-1 flex-col">
-            <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Any preferences?</h1>
-            <p class="mt-2 text-sm leading-relaxed text-zinc-500">
+            <h1 class="text-2xl font-semibold tracking-tight text-ink">Any preferences?</h1>
+            <p class="mt-2 text-sm leading-relaxed text-ink-dim">
                 Optional — tell us how you eat and anything you're allergic to, so guidance stays relevant and safe.
             </p>
 
             <div class="mt-6 space-y-6">
                 <div>
-                    <label class="text-sm font-medium text-zinc-700">Dietary pattern</label>
+                    <label class="text-sm font-medium text-ink-dim">Dietary pattern</label>
                     <select wire:model="dietary_pattern"
-                            class="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            class="mt-2 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm text-ink focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                         <option value="">No preference</option>
                         @foreach ($patterns as $p)
                             <option value="{{ $p['value'] }}">{{ $p['label'] }}</option>
@@ -209,11 +209,11 @@ new #[Layout('components.layouts.focus')] class extends Component {
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-zinc-700">I'd like to focus on</p>
+                    <p class="text-sm font-medium text-ink-dim">I'd like to focus on</p>
                     <div class="mt-2.5 flex flex-wrap gap-2">
                         @foreach ($preferenceOptions as $option)
                             <button type="button" wire:click="togglePreference('{{ $option }}')"
-                                    class="rounded-full border px-3 py-1.5 text-sm transition {{ in_array($option, $dietary_preferences, true) ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300' }}">
+                                    class="rounded-full border px-3 py-1.5 text-sm transition {{ in_array($option, $dietary_preferences, true) ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-seam bg-plate text-ink-dim hover:border-seam-strong' }}">
                                 {{ $option }}
                             </button>
                         @endforeach
@@ -221,11 +221,11 @@ new #[Layout('components.layouts.focus')] class extends Component {
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-zinc-700">Allergies</p>
+                    <p class="text-sm font-medium text-ink-dim">Allergies</p>
                     <div class="mt-2.5 flex flex-wrap gap-2">
                         @foreach ($allergyOptions as $option)
                             <button type="button" wire:click="toggleAllergy('{{ $option }}')"
-                                    class="rounded-full border px-3 py-1.5 text-sm transition {{ in_array($option, $allergies, true) ? 'border-red-500 bg-red-500 text-white' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300' }}">
+                                    class="rounded-full border px-3 py-1.5 text-sm transition {{ in_array($option, $allergies, true) ? 'border-red-500 bg-red-500 text-white' : 'border-seam bg-plate text-ink-dim hover:border-seam-strong' }}">
                                 {{ $option }}
                             </button>
                         @endforeach
@@ -233,9 +233,9 @@ new #[Layout('components.layouts.focus')] class extends Component {
                 </div>
 
                 <div>
-                    <label class="text-sm font-medium text-zinc-700">Foods you avoid <span class="text-zinc-400">(optional)</span></label>
+                    <label class="text-sm font-medium text-ink-dim">Foods you avoid <span class="text-ink-faint">(optional)</span></label>
                     <input type="text" wire:model="avoided_foods" placeholder="e.g. pork, coriander"
-                           class="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                           class="mt-2 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                 </div>
             </div>
         </div>
@@ -244,8 +244,8 @@ new #[Layout('components.layouts.focus')] class extends Component {
     {{-- Step 3 — Optional body info --}}
     @if ($step === 3)
         <div class="flex flex-1 flex-col">
-            <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">A little about you</h1>
-            <p class="mt-2 text-sm leading-relaxed text-zinc-500">
+            <h1 class="text-2xl font-semibold tracking-tight text-ink">A little about you</h1>
+            <p class="mt-2 text-sm leading-relaxed text-ink-dim">
                 Entirely optional. Adding your height and weight lets us personalise energy and protein guidance —
                 but you can skip this and add it later.
             </p>
@@ -253,30 +253,30 @@ new #[Layout('components.layouts.focus')] class extends Component {
             <div class="mt-6 space-y-5">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="text-sm font-medium text-zinc-700">Height (cm)</label>
+                        <label class="text-sm font-medium text-ink-dim">Height (cm)</label>
                         <input type="number" inputmode="numeric" wire:model="height_cm" placeholder="175"
-                               class="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                               class="mt-2 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                         @error('height_cm') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-sm font-medium text-zinc-700">Weight (kg)</label>
+                        <label class="text-sm font-medium text-ink-dim">Weight (kg)</label>
                         <input type="number" inputmode="decimal" step="0.1" wire:model="weight_kg" placeholder="70"
-                               class="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                               class="mt-2 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                         @error('weight_kg') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="text-sm font-medium text-zinc-700">Date of birth</label>
+                        <label class="text-sm font-medium text-ink-dim">Date of birth</label>
                         <input type="date" wire:model="date_of_birth"
-                               class="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                               class="mt-2 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm text-ink focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                         @error('date_of_birth') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-sm font-medium text-zinc-700">Sex</label>
+                        <label class="text-sm font-medium text-ink-dim">Sex</label>
                         <select wire:model="sex"
-                                class="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                class="mt-2 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm text-ink focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                             <option value="">—</option>
                             @foreach ($sexes as $s)
                                 <option value="{{ $s['value'] }}">{{ $s['label'] }}</option>
@@ -286,9 +286,9 @@ new #[Layout('components.layouts.focus')] class extends Component {
                 </div>
 
                 <div>
-                    <label class="text-sm font-medium text-zinc-700">Activity level</label>
+                    <label class="text-sm font-medium text-ink-dim">Activity level</label>
                     <select wire:model="activity_level"
-                            class="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            class="mt-2 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm text-ink focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                         <option value="">—</option>
                         @foreach ($activityLevels as $a)
                             <option value="{{ $a['value'] }}">{{ $a['label'] }}</option>
@@ -307,31 +307,31 @@ new #[Layout('components.layouts.focus')] class extends Component {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
             </div>
-            <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">You're all set</h1>
-            <p class="mt-2 text-sm leading-relaxed text-zinc-500">
+            <h1 class="text-2xl font-semibold tracking-tight text-ink">You're all set</h1>
+            <p class="mt-2 text-sm leading-relaxed text-ink-dim">
                 Here's what we'll use to personalise your guidance. You can edit any of it later from your profile.
             </p>
 
-            <dl class="mt-6 divide-y divide-zinc-100 rounded-2xl border border-zinc-100">
+            <dl class="mt-6 divide-y divide-seam rounded-2xl border border-seam">
                 <div class="flex items-center justify-between px-4 py-3">
-                    <dt class="text-sm text-zinc-500">Goal</dt>
-                    <dd class="text-sm font-medium text-zinc-900">{{ $primary_goal ? \App\Enums\PrimaryGoal::from($primary_goal)->label() : '—' }}</dd>
+                    <dt class="text-sm text-ink-dim">Goal</dt>
+                    <dd class="text-sm font-medium text-ink">{{ $primary_goal ? \App\Enums\PrimaryGoal::from($primary_goal)->label() : '—' }}</dd>
                 </div>
                 <div class="flex items-center justify-between px-4 py-3">
-                    <dt class="text-sm text-zinc-500">Dietary pattern</dt>
-                    <dd class="text-sm font-medium text-zinc-900">{{ $dietary_pattern ? \App\Enums\DietaryPattern::from($dietary_pattern)->label() : 'No preference' }}</dd>
+                    <dt class="text-sm text-ink-dim">Dietary pattern</dt>
+                    <dd class="text-sm font-medium text-ink">{{ $dietary_pattern ? \App\Enums\DietaryPattern::from($dietary_pattern)->label() : 'No preference' }}</dd>
                 </div>
                 <div class="flex items-start justify-between gap-4 px-4 py-3">
-                    <dt class="text-sm text-zinc-500">Preferences</dt>
-                    <dd class="text-right text-sm font-medium text-zinc-900">{{ count($dietary_preferences) ? implode(', ', $dietary_preferences) : 'None' }}</dd>
+                    <dt class="text-sm text-ink-dim">Preferences</dt>
+                    <dd class="text-right text-sm font-medium text-ink">{{ count($dietary_preferences) ? implode(', ', $dietary_preferences) : 'None' }}</dd>
                 </div>
                 <div class="flex items-start justify-between gap-4 px-4 py-3">
-                    <dt class="text-sm text-zinc-500">Allergies</dt>
-                    <dd class="text-right text-sm font-medium {{ count($allergies) ? 'text-red-600' : 'text-zinc-900' }}">{{ count($allergies) ? implode(', ', $allergies) : 'None' }}</dd>
+                    <dt class="text-sm text-ink-dim">Allergies</dt>
+                    <dd class="text-right text-sm font-medium {{ count($allergies) ? 'text-red-600' : 'text-ink' }}">{{ count($allergies) ? implode(', ', $allergies) : 'None' }}</dd>
                 </div>
             </dl>
 
-            <p class="mt-5 text-xs leading-relaxed text-zinc-400">
+            <p class="mt-5 text-xs leading-relaxed text-ink-faint">
                 This app offers general nutrition guidance only and is not medical advice.
             </p>
         </div>
@@ -346,7 +346,7 @@ new #[Layout('components.layouts.focus')] class extends Component {
             </button>
             @if ($step > 1)
                 <button type="button" wire:click="next"
-                        class="w-full py-1 text-center text-sm font-medium text-zinc-400 transition hover:text-zinc-600">
+                        class="w-full py-1 text-center text-sm font-medium text-ink-faint transition hover:text-ink-dim">
                     Skip for now
                 </button>
             @endif

@@ -112,78 +112,73 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
     }
 }; ?>
 
-    <div class="space-y-5" x-data="{ toast: false }"
+    <div class="space-y-3" x-data="{ toast: false }"
          x-on:consumption-updated.window="toast = true; setTimeout(() => toast = false, 2000)">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Eat</h1>
-            <p class="mt-1 text-sm text-zinc-500">What you've logged. Consume items from your <a href="{{ route('pantry') }}" class="font-medium text-emerald-700 hover:text-emerald-800">pantry</a>.</p>
+        <div class="px-1">
+            <h1 class="text-xl font-medium tracking-tight text-ink">Eat</h1>
+            <p class="mt-0.5 text-sm text-ink-dim">What you've logged. Consume items from your <a href="{{ route('pantry') }}" class="text-ink underline decoration-seam-strong underline-offset-4 transition hover:decoration-action">pantry</a>.</p>
         </div>
 
         @if ($groups->isEmpty())
             <x-app.placeholder
+                status="NO ENTRIES"
                 title="Nothing logged yet"
-                subtitle="Open a pantry item and tap “I ate one”. It'll show up here grouped by day, with what it added to your intake.">
-                <x-slot:icon>
-                    <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3v6.75m0 0a2.25 2.25 0 002.25-2.25V3m-4.5 0v4.5A2.25 2.25 0 008.25 9.75m0 0V21m7.5-18v18m0-18c1.243 0 2.25 1.79 2.25 4v5.25c0 .414-.336.75-.75.75H15.75" />
-                    </svg>
-                </x-slot:icon>
-            </x-app.placeholder>
+                subtitle="Open a pantry item and tap &ldquo;I ate one&rdquo;. It'll show up here as today's log, with what it added to your intake." />
         @else
+            {{-- The day log: a terminal feed, newest day first (comp C grammar). --}}
             @foreach ($groups as $group)
-                <section class="space-y-2">
-                    <div class="flex items-baseline justify-between px-1">
-                        <h2 class="text-sm font-semibold text-zinc-900">{{ $group['label'] }}</h2>
-                        <span class="text-xs font-medium text-zinc-500">
-                            {{ $group['calories'] === null ? '—' : number_format($group['calories']) }} kcal
+                <section class="module px-0 pb-1 pt-4">
+                    <div class="flex items-baseline justify-between px-5">
+                        <h2 class="silkscreen">{{ $group['label'] }}</h2>
+                        <span class="data text-[11px] text-ink-dim">
+                            {{ $group['calories'] === null ? '----' : number_format($group['calories']).' KCAL' }}
                         </span>
                     </div>
 
-                    <div class="overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm">
+                    <ul class="mt-2 divide-y divide-seam">
                         @foreach ($group['events'] as $event)
                             @php($line = $event->items->first())
-                            <div class="border-b border-zinc-100 last:border-b-0">
-                                <div class="flex items-center gap-4 px-5 py-3.5">
-                                    <span class="w-12 shrink-0 text-xs font-medium tabular-nums text-zinc-400">{{ $event->consumed_at->format('H:i') }}</span>
+                            <li>
+                                <div class="flex min-h-[44px] items-center gap-3 px-5 py-2.5">
+                                    <span class="data w-11 shrink-0 text-xs text-ink-faint">{{ $event->consumed_at->format('H:i') }}</span>
                                     <div class="min-w-0 flex-1">
-                                        <p class="truncate text-sm font-semibold text-zinc-900">{{ $event->name ?: 'Consumption' }}</p>
-                                        <p class="mt-0.5 text-xs text-zinc-500">
+                                        <p class="data truncate text-sm text-ink uppercase">{{ $event->name ?: 'Consumption' }}</p>
+                                        <p class="data mt-0.5 text-[11px] text-ink-faint">
                                             {{ rtrim(rtrim(number_format((float) ($line->quantity ?? 0), 3, '.', ''), '0'), '.') }}
-                                            {{ $line?->unit?->shortLabel() }}
+                                            <span class="uppercase">{{ $line?->unit?->shortLabel() ?? '' }}</span>
                                         </p>
                                     </div>
-                                    <span class="whitespace-nowrap text-sm font-semibold tabular-nums text-zinc-900">
-                                        {{ $event->calories === null ? '—' : number_format((float) $event->calories, 0) }}
-                                        <span class="text-xs font-normal text-zinc-500">kcal</span>
+                                    <span class="data shrink-0 whitespace-nowrap text-sm text-ink">
+                                        {{ $event->calories === null ? '----' : number_format((float) $event->calories, 0) }}<span class="text-[10px] text-ink-faint"> KCAL</span>
                                     </span>
-                                    <div class="flex shrink-0 items-center gap-2">
-                                        <button type="button" wire:click="toggleInspect({{ $event->id }})" title="Details"
-                                                class="text-zinc-400 transition hover:text-zinc-700">
-                                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                                    <div class="flex shrink-0 items-center">
+                                        <button type="button" wire:click="toggleInspect({{ $event->id }})" title="Details" aria-label="Details"
+                                                class="flex size-8 items-center justify-center text-ink-faint transition hover:text-ink">
+                                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
                                         </button>
-                                        <button type="button" wire:click="startEdit({{ $event->id }})" title="Edit"
-                                                class="text-zinc-400 transition hover:text-zinc-700">
-                                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
+                                        <button type="button" wire:click="startEdit({{ $event->id }})" title="Edit" aria-label="Edit"
+                                                class="flex size-8 items-center justify-center text-ink-faint transition hover:text-ink">
+                                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
                                         </button>
-                                        <button type="button" wire:click="deleteEntry({{ $event->id }})" wire:confirm="Delete this entry? Your pantry will be restored." title="Delete"
-                                                class="text-zinc-400 transition hover:text-red-600">
-                                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                                        <button type="button" wire:click="deleteEntry({{ $event->id }})" wire:confirm="Delete this entry? Your pantry will be restored." title="Delete" aria-label="Delete"
+                                                class="flex size-8 items-center justify-center text-ink-faint transition hover:text-high">
+                                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                                         </button>
                                     </div>
                                 </div>
 
                                 {{-- Inspect components (single items show the product; meals arrive in M5) --}}
                                 @if ($inspectingId === $event->id)
-                                    <div class="border-t border-zinc-100 bg-zinc-50/60 px-5 py-3">
+                                    <div class="border-t border-seam bg-plate-well px-5 py-3">
                                         @foreach ($event->items as $component)
-                                            <div class="flex items-center justify-between py-1 text-xs">
-                                                <span class="text-zinc-600">{{ $component->canonicalProduct?->name ?? 'Item' }}
-                                                    <span class="text-zinc-400">· {{ rtrim(rtrim(number_format((float) $component->quantity, 3, '.', ''), '0'), '.') }} {{ $component->unit->shortLabel() }}</span>
+                                            <div class="flex items-center justify-between gap-3 py-1 text-xs">
+                                                <span class="min-w-0 truncate text-ink-dim">{{ $component->canonicalProduct?->name ?? 'Item' }}
+                                                    <span class="data text-ink-faint">· {{ rtrim(rtrim(number_format((float) $component->quantity, 3, '.', ''), '0'), '.') }} <span class="uppercase">{{ $component->unit->shortLabel() }}</span></span>
                                                 </span>
-                                                <span class="tabular-nums text-zinc-500">
-                                                    P {{ $component->protein === null ? '—' : number_format((float) $component->protein, 1) }} ·
-                                                    C {{ $component->carbs === null ? '—' : number_format((float) $component->carbs, 1) }} ·
-                                                    F {{ $component->fat === null ? '—' : number_format((float) $component->fat, 1) }}
+                                                <span class="data shrink-0 text-ink-dim">
+                                                    P {{ $component->protein === null ? '--' : number_format((float) $component->protein, 1) }} ·
+                                                    C {{ $component->carbs === null ? '--' : number_format((float) $component->carbs, 1) }} ·
+                                                    F {{ $component->fat === null ? '--' : number_format((float) $component->fat, 1) }}
                                                 </span>
                                             </div>
                                         @endforeach
@@ -192,37 +187,39 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
 
                                 {{-- Edit quantity + time --}}
                                 @if ($editingId === $event->id)
-                                    <div class="border-t border-zinc-100 bg-zinc-50/60 px-5 py-4">
+                                    <div class="border-t border-seam bg-plate-well px-5 py-4">
                                         <div class="flex flex-wrap items-end gap-3">
                                             <div class="w-24">
-                                                <label class="text-xs font-medium text-zinc-600">Amount</label>
-                                                <input type="number" step="any" min="0" inputmode="decimal" wire:model="editQuantity"
-                                                       class="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                                <label class="silkscreen" for="edit-qty-{{ $event->id }}">Amount</label>
+                                                <input id="edit-qty-{{ $event->id }}" type="number" step="any" min="0" inputmode="decimal" wire:model="editQuantity"
+                                                       class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
                                             </div>
-                                            <div class="flex-1 min-w-[10rem]">
-                                                <label class="text-xs font-medium text-zinc-600">Time</label>
-                                                <input type="datetime-local" wire:model="editTime"
-                                                       class="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                            <div class="min-w-[10rem] flex-1">
+                                                <label class="silkscreen" for="edit-time-{{ $event->id }}">Time</label>
+                                                <input id="edit-time-{{ $event->id }}" type="datetime-local" wire:model="editTime"
+                                                       class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate px-3 py-2 text-sm text-ink [color-scheme:dark] focus:border-action focus:outline-none">
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <button type="button" wire:click="saveEdit"
-                                                        class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">Save</button>
-                                                <button type="button" wire:click="cancelEdit" class="text-sm font-medium text-zinc-500 hover:text-zinc-800">Cancel</button>
+                                                        class="key key-action px-4 py-2.5 font-mono text-[13px] tracking-[0.1em] uppercase">Save</button>
+                                                <button type="button" wire:click="cancelEdit" class="font-mono text-[11px] tracking-[0.08em] text-ink-dim uppercase transition hover:text-ink">Cancel</button>
                                             </div>
                                         </div>
-                                        @error('editQuantity') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                                        @error('editTime') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                        @error('editQuantity') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
+                                        @error('editTime') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                                     </div>
                                 @endif
-                            </div>
+                            </li>
                         @endforeach
-                    </div>
+                    </ul>
                 </section>
             @endforeach
         @endif
 
-        <div x-show="toast" x-cloak class="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-md px-5">
-            <div class="rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg">Updated</div>
+        <div x-show="toast" x-cloak class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
+            <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md bg-good px-4 py-3 text-black">
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg>
+                <span class="font-mono text-sm tracking-[0.14em] uppercase">Updated</span>
+            </div>
         </div>
     </div>
-

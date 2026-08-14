@@ -59,7 +59,7 @@ class InsightCardUiTest extends TestCase
 
         $this->actingAs($this->user)->get('/home')
             ->assertOk()
-            ->assertSee('Your focus this week')
+            ->assertSee('Focus')
             ->assertSee('Mornflake Oats')
             ->assertSee('Why this matters')
             ->assertSee('Dismiss');
@@ -70,8 +70,8 @@ class InsightCardUiTest extends TestCase
         $this->seedFibreGap();
 
         Volt::actingAs($this->user)->test('insight-card')
-            ->assertSee('Your focus this week')
-            ->assertSee('Show me what I could eat')
+            ->assertSee('Focus')
+            ->assertSee('What could I eat')
             ->assertSet('why', false)
             ->call('toggleWhy')
             ->assertSet('why', true)
@@ -86,9 +86,9 @@ class InsightCardUiTest extends TestCase
         $this->seedFibreGap();
 
         Volt::actingAs($this->user)->test('insight-card')
-            ->assertSee('Your focus this week')
+            ->assertSee('Focus')
             ->call('dismiss')
-            ->assertDontSee('Your focus this week');
+            ->assertDontSee('Focus');
 
         // Persisted: the page no longer shows it either.
         $this->assertNull(app(InsightService::class)->currentInsight($this->user));
@@ -98,6 +98,6 @@ class InsightCardUiTest extends TestCase
     {
         $this->actingAs($this->user)->get('/home')
             ->assertOk()
-            ->assertDontSee('Your focus this week');
+            ->assertDontSee('Focus');
     }
 }

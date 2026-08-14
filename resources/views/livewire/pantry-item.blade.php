@@ -111,136 +111,135 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
     }
 }; ?>
 
-    <div class="space-y-5" x-data="{ toast: false }"
+    <div class="space-y-3" x-data="{ toast: false }"
          x-on:item-changed.window="toast = true; setTimeout(() => toast = false, 2000)">
 
-        <a href="{{ route('pantry') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-800">
-            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+        <a href="{{ route('pantry') }}" class="inline-flex items-center gap-1.5 px-1 font-mono text-[11px] tracking-[0.14em] text-ink-dim uppercase transition hover:text-ink">
+            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
             Pantry
         </a>
 
-        {{-- Identity + current quantity --}}
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">{{ $pantryItem->canonicalProduct->brand }}</h1>
-            <p class="mt-0.5 text-base text-zinc-700">{{ $pantryItem->canonicalProduct->name }}</p>
+        {{-- Identity + current quantity readout --}}
+        <section class="module px-5 pb-5 pt-4">
+            <h2 class="silkscreen">Item</h2>
+            <h1 class="mt-3 text-lg font-medium leading-snug text-ink">{{ $pantryItem->canonicalProduct->brand }} <span class="text-ink-dim">{{ $pantryItem->canonicalProduct->name }}</span></h1>
             @if ($pantryItem->canonicalProduct->variant)
-                <p class="mt-0.5 text-sm text-zinc-500">{{ $pantryItem->canonicalProduct->variant }}</p>
+                <p class="mt-0.5 text-sm text-ink-dim">{{ $pantryItem->canonicalProduct->variant }}</p>
             @endif
 
-            <div class="mt-4 flex items-baseline gap-2">
-                <span class="text-3xl font-bold tabular-nums text-emerald-700">{{ rtrim(rtrim(number_format((float) $pantryItem->current_quantity, 3, '.', ''), '0'), '.') }}</span>
-                <span class="text-sm font-medium text-zinc-500">{{ $pantryItem->quantity_unit->shortLabel() }} remaining</span>
-            </div>
+            <p class="mt-5 flex items-baseline gap-2">
+                <span class="data text-4xl text-ink">{{ rtrim(rtrim(number_format((float) $pantryItem->current_quantity, 3, '.', ''), '0'), '.') }}</span>
+                <span class="data text-sm text-ink-dim uppercase">{{ $pantryItem->quantity_unit->shortLabel() }} remaining</span>
+            </p>
 
-            <dl class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-zinc-500">
-                @if ($pantryItem->purchased_at)
-                    <div><dt class="inline">Purchased</dt> <dd class="inline font-medium text-zinc-700">{{ $pantryItem->purchased_at->format('j M Y') }}</dd></div>
-                @endif
-                @if ($pantryItem->expiry_date)
-                    <div><dt class="inline">Expires</dt> <dd class="inline font-medium text-zinc-700">{{ $pantryItem->expiry_date->format('j M Y') }}</dd></div>
-                @endif
-            </dl>
-        </div>
+            @if ($pantryItem->purchased_at || $pantryItem->expiry_date)
+                <p class="data mt-3 text-[11px] tracking-[0.06em] text-ink-faint uppercase">
+                    @if ($pantryItem->purchased_at) Purchased {{ $pantryItem->purchased_at->format('j M Y') }} @endif
+                    @if ($pantryItem->purchased_at && $pantryItem->expiry_date) · @endif
+                    @if ($pantryItem->expiry_date) Expires {{ $pantryItem->expiry_date->format('j M Y') }} @endif
+                </p>
+            @endif
+        </section>
 
         {{-- Nutrition (computed by NutritionCalculator for what's currently held) --}}
-        <section class="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
-            <h2 class="text-sm font-semibold text-zinc-900">Nutrition in what you have</h2>
+        <section class="module px-5 pb-2 pt-4">
+            <h2 class="silkscreen">Nutrition in what you have</h2>
             @if ($hasNutrition)
-                <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div class="mt-2 grid grid-cols-2 gap-x-6">
                     @foreach ([
-                        ['Calories', $nutrition->calories, 'kcal'],
-                        ['Protein', $nutrition->protein, 'g'],
-                        ['Carbs', $nutrition->carbs, 'g'],
-                        ['Sugars', $nutrition->sugars, 'g'],
-                        ['Fat', $nutrition->fat, 'g'],
-                        ['Saturated', $nutrition->saturatedFat, 'g'],
-                        ['Fibre', $nutrition->fibre, 'g'],
-                        ['Salt', $nutrition->salt, 'g'],
+                        ['Calories', $nutrition->calories, 'KCAL'],
+                        ['Protein', $nutrition->protein, 'G'],
+                        ['Carbs', $nutrition->carbs, 'G'],
+                        ['Sugars', $nutrition->sugars, 'G'],
+                        ['Fat', $nutrition->fat, 'G'],
+                        ['Saturated', $nutrition->saturatedFat, 'G'],
+                        ['Fibre', $nutrition->fibre, 'G'],
+                        ['Salt', $nutrition->salt, 'G'],
                     ] as [$label, $value, $unit])
-                        <div class="rounded-xl bg-zinc-50 px-3 py-2.5">
-                            <p class="text-[11px] font-medium uppercase tracking-wide text-zinc-400">{{ $label }}</p>
-                            <p class="mt-0.5 text-sm font-semibold text-zinc-900">{{ rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.') }} <span class="text-xs font-normal text-zinc-500">{{ $unit }}</span></p>
+                        <div class="flex items-baseline justify-between border-b border-seam py-2 last:border-b-0 [&:nth-last-child(2)]:border-b-0">
+                            <span class="text-sm text-ink-dim">{{ $label }}</span>
+                            <span class="data text-sm text-ink">
+                                @if ($value !== null){{ rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.') }}<span class="text-[10px] text-ink-faint"> {{ $unit }}</span>@else <span class="text-ink-faint">----</span>@endif
+                            </span>
                         </div>
                     @endforeach
                 </div>
             @else
-                <p class="mt-2 text-sm text-zinc-500">Nutrition isn't available for this item yet.</p>
+                <p class="mt-2 pb-2 text-sm text-ink-dim">Nutrition isn't available for this item yet.</p>
             @endif
         </section>
 
-        {{-- Actions --}}
-        <section class="space-y-4 rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
-            <h2 class="text-sm font-semibold text-zinc-900">Actions</h2>
-
-            {{-- Consume — records a snapshotted consumption event + deducts stock --}}
-            @php($outOfStock = (float) $pantryItem->current_quantity <= 0)
-            <div class="space-y-3">
-                <p class="text-xs font-medium text-zinc-600">Consume <span class="font-normal text-zinc-400">(logs it to today)</span></p>
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" wire:click="consumeOne" @disabled($outOfStock)
-                            class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40">
-                        I ate one
-                    </button>
-                    <button type="button" wire:click="consumeHalf" @disabled($outOfStock)
-                            class="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40">
-                        Half
-                    </button>
-                    <button type="button" wire:click="consumeAll" @disabled($outOfStock)
-                            class="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40">
-                        All
-                    </button>
-                </div>
-                <div class="flex items-end gap-3">
-                    <div class="w-24">
-                        <label class="text-xs font-medium text-zinc-600">Custom ({{ $pantryItem->quantity_unit->shortLabel() }})</label>
-                        <input type="number" step="any" min="0" inputmode="decimal" wire:model="consumeAmount"
-                               class="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                    </div>
-                    <button type="button" wire:click="consume" @disabled($outOfStock)
-                            class="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40">
-                        Consume amount
-                    </button>
-                </div>
-                @error('consumeAmount') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+        {{-- Consume — the daily action, and a win when it lands. --}}
+        @php($outOfStock = (float) $pantryItem->current_quantity <= 0)
+        <section class="module px-5 pb-5 pt-4">
+            <h2 class="silkscreen">Consume — logs it to today</h2>
+            <div class="mt-3 grid grid-cols-3 gap-2">
+                <button type="button" wire:click="consumeOne" @disabled($outOfStock)
+                        class="key key-action px-3 py-3 text-center font-mono text-[13px] tracking-[0.1em] uppercase disabled:cursor-not-allowed disabled:opacity-40">
+                    I ate one
+                </button>
+                <button type="button" wire:click="consumeHalf" @disabled($outOfStock)
+                        class="key px-3 py-3 text-center font-mono text-[13px] tracking-[0.1em] text-ink-dim uppercase disabled:cursor-not-allowed disabled:opacity-40">
+                    Half
+                </button>
+                <button type="button" wire:click="consumeAll" @disabled($outOfStock)
+                        class="key px-3 py-3 text-center font-mono text-[13px] tracking-[0.1em] text-ink-dim uppercase disabled:cursor-not-allowed disabled:opacity-40">
+                    All
+                </button>
             </div>
-
-            {{-- Change quantity --}}
-            <div class="space-y-2 border-t border-zinc-100 pt-4">
-                <p class="text-xs font-medium text-zinc-600">Change quantity <span class="font-normal text-zinc-400">(set the true amount)</span></p>
-                <div class="flex items-end gap-3">
-                    <div class="w-28">
-                        <input type="number" step="any" min="0" inputmode="decimal" wire:model="newQuantity"
-                               class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                    </div>
-                    <button type="button" wire:click="changeQuantity"
-                            class="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
-                        Update
-                    </button>
+            <div class="mt-3 flex items-end gap-3">
+                <div class="w-28">
+                    <label class="silkscreen" for="consume-amount">Custom ({{ $pantryItem->quantity_unit->shortLabel() }})</label>
+                    <input id="consume-amount" type="number" step="any" min="0" inputmode="decimal" wire:model="consumeAmount"
+                           class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
                 </div>
-                @error('newQuantity') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                <button type="button" wire:click="consume" @disabled($outOfStock)
+                        class="key px-4 py-2.5 font-mono text-[13px] tracking-[0.1em] text-ink-dim uppercase disabled:cursor-not-allowed disabled:opacity-40">
+                    Consume amount
+                </button>
             </div>
+            @error('consumeAmount') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
+        </section>
 
-            {{-- Remove --}}
-            <div class="border-t border-zinc-100 pt-4">
+        {{-- Inventory corrections --}}
+        <section class="module px-5 pb-5 pt-4">
+            <h2 class="silkscreen">Correct stock</h2>
+            <div class="mt-3 flex items-end gap-3">
+                <div class="w-28">
+                    <label class="silkscreen" for="new-quantity">True amount</label>
+                    <input id="new-quantity" type="number" step="any" min="0" inputmode="decimal" wire:model="newQuantity"
+                           class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
+                </div>
+                <button type="button" wire:click="changeQuantity"
+                        class="key px-4 py-2.5 font-mono text-[13px] tracking-[0.1em] text-ink-dim uppercase">
+                    Update
+                </button>
+            </div>
+            @error('newQuantity') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
+
+            <div class="mt-4 border-t border-seam pt-4">
                 @if ($confirmRemove)
                     <div class="flex items-center gap-3">
                         <button type="button" wire:click="remove"
-                                class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700">
+                                class="key border-high bg-high px-4 py-2.5 font-mono text-[13px] tracking-[0.1em] text-black uppercase">
                             Confirm remove
                         </button>
-                        <button type="button" wire:click="$set('confirmRemove', false)" class="text-sm font-medium text-zinc-500 hover:text-zinc-800">Cancel</button>
+                        <button type="button" wire:click="$set('confirmRemove', false)" class="font-mono text-[11px] tracking-[0.08em] text-ink-dim uppercase transition hover:text-ink">Cancel</button>
                     </div>
                 @else
                     <button type="button" wire:click="$set('confirmRemove', true)"
-                            class="text-sm font-semibold text-red-600 hover:text-red-700">
+                            class="font-mono text-[11px] tracking-[0.08em] text-high uppercase transition hover:brightness-125">
                         Remove from pantry
                     </button>
                 @endif
             </div>
         </section>
 
-        <div x-show="toast" x-cloak class="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-md px-5">
-            <div class="rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg">Pantry updated</div>
+        {{-- The logged win, stamped. --}}
+        <div x-show="toast" x-cloak class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
+            <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md bg-good px-4 py-3 text-black">
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg>
+                <span class="font-mono text-sm tracking-[0.14em] uppercase">Logged</span>
+            </div>
         </div>
     </div>
-
