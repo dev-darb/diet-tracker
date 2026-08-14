@@ -150,8 +150,15 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                     <div class="min-w-0 flex-1">
                                         <p class="data-md leading-snug text-ink uppercase">{{ $event->name ?: 'Consumption' }}</p>
                                         {{-- Echo the user's own portion language when we have it
-                                             ("half the pack (200 g)"); meals describe their source. --}}
-                                        <p class="data-sm mt-0.5 text-ink-faint">
+                                             ("half the pack (200 g)"); meals describe their source.
+                                             Every row leads with its context glyph (icon rule: whole list or none). --}}
+                                        <p class="data-sm mt-0.5 flex items-center gap-1.5 text-ink-faint">
+                                            <x-app.icon :name="match (true) {
+                                                $event->context === \App\Enums\MealContext::EatingOut => 'storefront',
+                                                $event->type === \App\Enums\ConsumptionType::Meal => 'pan',
+                                                default => 'basket',
+                                            }" class="size-3.5 shrink-0 text-ink-faint" />
+                                            <span class="min-w-0 truncate">
                                             @if ($event->context === \App\Enums\MealContext::EatingOut)
                                                 EATING OUT{{ $event->venue ? ' · '.mb_strtoupper($event->venue) : '' }}{{ $event->estimated ? ' · ESTIMATED' : '' }}
                                             @elseif ($event->type === \App\Enums\ConsumptionType::Meal)
@@ -162,6 +169,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                                 {{ rtrim(rtrim(number_format((float) ($line->quantity ?? 0), 3, '.', ''), '0'), '.') }}
                                                 <span class="uppercase">{{ $line?->unit?->shortLabelFor((float) ($line->quantity ?? 0)) ?? '' }}</span>
                                             @endif
+                                            </span>
                                         </p>
                                     </div>
                                     {{-- Estimated figures wear their tilde honestly (brief §2.1). --}}

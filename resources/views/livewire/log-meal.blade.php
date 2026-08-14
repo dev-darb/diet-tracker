@@ -426,9 +426,15 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                 <p class="voice-caption mt-2 text-ink-dim">Every meal counts towards your picture — even rough ones.</p>
 
                 <div class="mt-4 space-y-2">
-                    <x-app.console-key primary wire:click="chooseHomeCooked">Home-cooked</x-app.console-key>
-                    <x-app.console-key wire:click="chooseEatingOut">Eating out</x-app.console-key>
-                    <x-app.console-key :href="route('scan')">Packaged — scan it</x-app.console-key>
+                    <x-app.console-key primary wire:click="chooseHomeCooked">
+                        <span class="flex items-center justify-center gap-2"><x-app.icon name="pan" />Home-cooked</span>
+                    </x-app.console-key>
+                    <x-app.console-key wire:click="chooseEatingOut">
+                        <span class="flex items-center justify-center gap-2"><x-app.icon name="storefront" />Eating out</span>
+                    </x-app.console-key>
+                    <x-app.console-key :href="route('scan')">
+                        <span class="flex items-center justify-center gap-2"><x-app.icon name="barcode" />Packaged — scan it</span>
+                    </x-app.console-key>
                 </div>
             </x-app.module>
 

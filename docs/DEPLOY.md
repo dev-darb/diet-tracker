@@ -32,11 +32,11 @@ Laravel Cloud auto-injects `DB_*` and `REDIS_*` from the resources you provision
 
 | Key | Value | Notes |
 |---|---|---|
-| `APP_NAME` | `Pantry & Nutrition` | |
+| `APP_NAME` | `foody` | |
 | `APP_ENV` | `production` | |
 | `APP_KEY` | *(generate)* | Click "generate" in Cloud, or run `php artisan key:generate --show` in the console and paste it. Required. |
 | `APP_DEBUG` | `false` | Never `true` in production. |
-| `APP_URL` | `https://<your-app>.laravel.cloud` | Your assigned URL. |
+| `APP_URL` | `https://foody.gg` | The custom domain (Environment -> Domains); the *.laravel.cloud URL keeps working. |
 | `SESSION_DRIVER` | `redis` | |
 | `CACHE_STORE` | `redis` | |
 | `QUEUE_CONNECTION` | `redis` | No worker needed yet (M0–2 have no queued jobs); a worker gets added when M3/M7 land. |

@@ -1,5 +1,5 @@
 ---
-name: Jabba
+name: foody
 description: A personal food intelligence console — every number an instrument readout, every fact carrying provenance.
 colors:
   chassis: "#0a0b0c"
@@ -136,13 +136,17 @@ components:
     padding: "10px 12px"
 ---
 
-# Design System: Jabba
+# Design System: foody
+
+> **Rename (Aug 2026):** the product is now **foody**, home `foody.gg` — the
+> design world previously codenamed "Jabba" is unchanged; only the name and the
+> status-bar wordmark (FOODY silkscreen) moved.
 
 ## Overview
 
 **Creative North Star: "The Kitchen Instrument Console"**
 
-Jabba's app surface is a piece of dark tabletop hardware, not a wellness feed. Every screen is a matte near-black chassis carrying seam-separated module plates; every module silkscreens its own uppercase mono micro-label in the top-left, the way a synthesizer labels a knob. Numbers are instrument readings — tabular mono everywhere, and one seven-segment master readout for the day's kilocalories. Color is functional signal, never mood: five fixed-meaning lamps on an otherwise achromatic machine.
+foody's app surface is a piece of dark tabletop hardware, not a wellness feed. Every screen is a matte near-black chassis carrying seam-separated module plates; every module silkscreens its own uppercase mono micro-label in the top-left, the way a synthesizer labels a knob. Numbers are instrument readings — tabular mono everywhere, and one seven-segment master readout for the day's kilocalories. Color is functional signal, never mood: five fixed-meaning lamps on an otherwise achromatic machine.
 
 The console is the user's, not the brand's: the status bar carries the user's name, and the machine reports only what it actually measured. When the machine doesn't know, it says so — `----`, `NO DATA`, an unlit LED, an empty meter track — never a fabricated zero. When the user genuinely completes the loop, the reward fires as hardware: a full green field, an LED sweep, a stamped check, counters that tick. Nothing celebratory happens without a real trigger.
 
@@ -219,7 +223,7 @@ Roles are tokenized classes in `resources/css/app.css`; views never set raw size
 
 ## Layout
 
-A mobile-first single column: `max-w-md` centered on the chassis (seam-edged with `md:border-x` on wider viewports), full-height flex shell. Sticky top status bar (orange live dot + user's first name + FOOD OS silkscreen, date, profile key; seam-bottomed, `bg-chassis/95` + backdrop-blur) and a fixed bottom control strip with safe-area-inset padding; main content gets `px-4 pt-4 pb-32` clearance.
+A mobile-first single column: `max-w-md` centered on the chassis (seam-edged with `md:border-x` on wider viewports), full-height flex shell. Sticky top status bar (orange live dot + user's first name + FOODY silkscreen, date, profile key; seam-bottomed, `bg-chassis/95` + backdrop-blur) and a fixed bottom control strip with safe-area-inset padding; main content gets `px-4 pt-4 pb-32` clearance.
 
 **The Faceplate Rule.** Readings that belong to one instrument share one plate, divided internally by seams (`divide-x`/`divide-y`, edge-to-edge via negative margins) — never a stack of adjacent cards. Home's TODAY cluster (readout + scale + macro row + provenance footer) and Health's THIS WEEK cluster (average + sparkline + metric grid + counters row) are the canonical faceplates. One hero cluster per screen.
 

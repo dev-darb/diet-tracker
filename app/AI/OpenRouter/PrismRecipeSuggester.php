@@ -25,8 +25,8 @@ use Throwable;
  * and pantry grounding, upgrade suggestions, short steps).
  *
  * The model plans meals; it never touches the ledger or the deterministic
- * maths. The optional wellness note is population-level, food-first guidance
- * only — never medical advice (brief §9.10). Failures report + return null.
+ * maths, and it NEVER suggests supplements or vitamins (founder call, Aug
+ * 2026; brief §9.10). Failures report + return null.
  */
 class PrismRecipeSuggester implements RecipeSuggester
 {
@@ -112,9 +112,8 @@ class PrismRecipeSuggester implements RecipeSuggester
             description: "A full day of meal ideas from the user's pantry.",
             properties: [
                 new ArraySchema('suggestions', 'Exactly four ideas: one breakfast, one lunch, one dinner, one snack.', $suggestion),
-                new StringSchema('wellness_note', 'ONE optional short general-wellbeing line, UK population guidance flavour, food-first (e.g. oily fish for omega-3; NHS suggests considering vitamin D October-March). NEVER medical advice, doses, or condition-specific claims. Null if nothing worth saying.', nullable: true),
             ],
-            requiredFields: ['suggestions', 'wellness_note'],
+            requiredFields: ['suggestions'],
         );
     }
 
@@ -141,9 +140,7 @@ class PrismRecipeSuggester implements RecipeSuggester
           snack-sized.
         - Keep recipes genuinely simple: 3-8 short steps, everyday techniques.
         - approx figures are rough per-serving estimates only; use null when unguessable.
-        - wellness_note: at most ONE short food-first general note in the style of UK public
-          health guidance. No medical claims, no doses, no supplements beyond what NHS
-          population guidance mentions (e.g. vitamin D in winter). Null if nothing useful.
+        - Never suggest, mention, or recommend supplements or vitamins in any form.
         PROMPT;
     }
 

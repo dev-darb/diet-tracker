@@ -11,5 +11,5 @@
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-{{-- Jabba is a single committed dark world: the appearance toggle is retired
+{{-- foody is a single committed dark world: the appearance toggle is retired
      and the `dark` class is fixed on <html> (design brief, Aug 2026). --}}

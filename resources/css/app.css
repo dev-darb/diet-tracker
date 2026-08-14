@@ -9,7 +9,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------------------------------------------------------------------------
-   Jabba console typefaces — self-hosted, no CDN.
+   foody console typefaces — self-hosted, no CDN.
    Archivo carries labels and prose (the silkscreen voice); Fragment Mono
    carries every measured value (the data voice); DSEG7 carries exactly one
    element in the app: the TODAY kcal master readout.

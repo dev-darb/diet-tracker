@@ -14,6 +14,14 @@
         \App\Services\NutritionAnalyticsService::BAND_UNKNOWN => 'border-seam-strong text-ink-faint',
     ];
     $fmt = fn ($v) => rtrim(rtrim(number_format((float) $v, 1), '0'), '.');
+    $icon = [
+        'protein' => 'egg',
+        'fibre' => 'wheat',
+        'fruit_veg' => 'apple',
+        'saturated_fat' => 'droplet',
+        'salt' => 'shaker',
+        'food_variety' => 'grid',
+    ];
 @endphp
 
 <div class="module px-5 pb-2 pt-4">
@@ -23,6 +31,7 @@
             {{-- Every target carries its receipt (NutritionTargetsService basis):
                  tap/hover a row to see where the number comes from. --}}
             <li class="flex items-center gap-3 py-2.5" @isset($indicator['basis']) title="{{ $indicator['basis'] }}" @endisset>
+                <x-app.icon :name="$icon[$indicator['key']] ?? 'grid'" class="size-4 shrink-0 text-ink-faint" />
                 <span class="voice-caption min-w-0 flex-1 truncate text-ink">
                     {{ $indicator['label'] }}
                     @if ($indicator['personalised'] ?? false)

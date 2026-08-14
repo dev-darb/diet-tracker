@@ -24,8 +24,8 @@ use Tests\TestCase;
 /**
  * AI chef — the Pantry's default face. Standardised recipe format: structured
  * ingredients (pantry rows lit, everything else shopping-list honesty),
- * upgrades worth buying, an optional food-first wellness note (labelled
- * non-medical). Grounding: only offered ids may be claimed; keyless -> the
+ * upgrades worth buying — and deliberately NO supplement/vitamin suggestions
+ * (founder call). Grounding: only offered ids may be claimed; keyless -> the
  * pantry defaults to Stock and the chef shows a quiet note.
  */
 class AiChefTest extends TestCase
@@ -79,7 +79,7 @@ class AiChefTest extends TestCase
             'steps' => ['Sear the chicken', 'Simmer in coconut milk 15 min'],
             'approx_calories' => 650,
             'approx_protein' => 45,
-        ]], 'Oily fish once a week is an easy omega-3 win.');
+        ]]);
     }
 
     public function test_prism_suggester_grounds_ingredient_ids_and_orders_slots(): void
@@ -94,7 +94,6 @@ class AiChefTest extends TestCase
                             ['name' => 'Honey', 'amount' => '1 tsp', 'pantry_item_id' => 999], // never offered -> demoted to null
                         ], 'upgrades' => ['Blueberries on top'], 'steps' => ['Simmer the oats'], 'approx_calories' => 320, 'approx_protein' => 12],
                     ],
-                    'wellness_note' => 'NHS suggests considering vitamin D October to March.',
                 ])
                 ->withFinishReason(FinishReason::Stop)
                 ->withUsage(new Usage(300, 200))
@@ -114,7 +113,6 @@ class AiChefTest extends TestCase
         $this->assertSame(1, $breakfast['ingredients'][0]['pantry_item_id']);
         $this->assertNull($breakfast['ingredients'][1]['pantry_item_id']); // invented id stripped
         $this->assertSame(['Blueberries on top'], $breakfast['upgrades']);
-        $this->assertSame('NHS suggests considering vitamin D October to March.', $ideas->wellnessNote);
 
         $this->assertDatabaseHas('ai_jobs', ['task_type' => 'recipe_suggestion', 'result_status' => 'suggested']);
     }
@@ -134,9 +132,7 @@ class AiChefTest extends TestCase
             ->assertSee('In stock')                    // lit pantry row
             ->assertSee('To get')                      // honest shopping row
             ->assertSee('Fresh coriander lifts the curry')
-            ->assertSee('~650 KCAL')
-            ->assertSee('omega-3')                     // wellness note
-            ->assertSee('not medical advice');
+            ->assertSee('~650 KCAL');
     }
 
     public function test_results_are_cached_for_the_day_and_fresh_ideas_bypasses(): void

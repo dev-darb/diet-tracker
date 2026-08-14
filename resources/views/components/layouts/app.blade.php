@@ -31,13 +31,13 @@
         <div class="mx-auto flex min-h-dvh w-full max-w-md flex-col md:border-x md:border-seam">
 
             {{-- Top status bar: this is the user's console, so it carries their
-                 name — the Jabba brand lives on the welcome/auth surfaces only. --}}
+                 name — the foody brand rides quietly beside it. --}}
             <header class="sticky top-0 z-20 border-b border-seam bg-chassis/95 backdrop-blur">
                 <div class="flex items-center justify-between px-5 py-3">
                     <a href="{{ route('home') }}" class="flex items-baseline gap-2.5">
                         <span class="inline-block size-2 rounded-full bg-action" aria-hidden="true"></span>
                         <span class="data-md max-w-32 truncate tracking-[0.14em] text-ink uppercase">{{ str(auth()->user()?->name ?? 'Guest')->before(' ') }}</span>
-                        <span class="silkscreen">Food OS</span>
+                        <span class="silkscreen">foody</span>
                     </a>
                     <div class="flex items-center gap-3">
                         <span class="data-sm text-ink-dim uppercase">{{ now()->format('D j M') }}</span>

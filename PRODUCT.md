@@ -12,7 +12,7 @@ The founder (personal daily use) plus a small group of invited alpha testers, UK
 
 ## Product Purpose
 
-Jabba is a personal food intelligence system: it knows what you buy, knows what you currently have, records what you eat, and turns that history into useful personalised nutrition guidance. Success is the closed loop working without founder intervention: sign up → scan → identify → resolve → add to pantry → consume → pantry decreases → nutrition history updates → Today/Week insight updates → a genuinely useful, pantry-aware recommendation. It is explicitly **not** "an AI that guesses calories from pictures."
+foody is a personal food intelligence system: it knows what you buy, knows what you currently have, records what you eat, and turns that history into useful personalised nutrition guidance. Success is the closed loop working without founder intervention: sign up → scan → identify → resolve → add to pantry → consume → pantry decreases → nutrition history updates → Today/Week insight updates → a genuinely useful, pantry-aware recommendation. It is explicitly **not** "an AI that guesses calories from pictures."
 
 ## Positioning
 
@@ -37,8 +37,8 @@ Reliability over apparent intelligence. Product facts come from deterministic, s
 
 ## Brand Commitments
 
-- The product is named **Jabba** (confirmed by the founder). No logo, palette, typography, or voice constraints exist yet; the repo name "diet-tracker" is infrastructure, not brand.
-- Inside the app the console is the **user's**, not the brand's: the shell calls out the logged-in user's name ("their dietary operating system"), not the Jabba wordmark (founder, Aug 2026).
+- The product is named **foody**, home **foody.gg** (founder, Aug 2026 — previously codenamed Jabba). The repo name "diet-tracker" is infrastructure, not brand.
+- Inside the app the console is the **user's**, not the brand's: the shell calls out the logged-in user's name ("their dietary operating system"), not the foody wordmark (founder, Aug 2026).
 
 ## Evidence on Hand
 

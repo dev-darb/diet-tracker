@@ -27,15 +27,13 @@ new class extends Component
     /** @var array<int, array<string, mixed>>|null */
     public ?array $suggestions = null;
 
-    public ?string $wellness = null;
-
     public bool $failed = false;
 
     public bool $loaded = false;
 
     private function cacheKey(): string
     {
-        return 'ai-chef.v2.'.Auth::id().'.'.now()->toDateString();
+        return 'ai-chef.v3.'.Auth::id().'.'.now()->toDateString();
     }
 
     public function suggest(RecipeSuggester $chef, bool $fresh = false): void
@@ -56,7 +54,6 @@ new class extends Component
 
         if ($cached !== null) {
             $this->suggestions = $cached['suggestions'];
-            $this->wellness = $cached['wellness'] ?? null;
             $this->loaded = true;
 
             return;
@@ -81,8 +78,7 @@ new class extends Component
         }
 
         $this->suggestions = $ideas->suggestions;
-        $this->wellness = $ideas->wellnessNote;
-        Cache::put($this->cacheKey(), ['suggestions' => $this->suggestions, 'wellness' => $this->wellness], now()->endOfDay());
+        Cache::put($this->cacheKey(), ['suggestions' => $this->suggestions], now()->endOfDay());
         $this->loaded = true;
     }
 
@@ -203,13 +199,6 @@ new class extends Component
                     </section>
                 @endforeach
 
-                @if ($wellness !== null)
-                    <section class="well !rounded-md px-5 py-3.5">
-                        <h2 class="silkscreen">Worth knowing</h2>
-                        <p class="voice-caption mt-1.5 text-ink-dim">{{ $wellness }}</p>
-                        <p class="data-micro mt-1.5 text-ink-faint uppercase">General guidance, not medical advice</p>
-                    </section>
-                @endif
 
                 <x-app.console-key wire:click="freshIdeas" wire:loading.attr="disabled">Fresh ideas</x-app.console-key>
                 <p class="text-center text-xs text-ink-faint">Cooked one? Log it via Eat → Log a meal → Home-cooked and your stock updates itself.</p>

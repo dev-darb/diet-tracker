@@ -14,9 +14,9 @@ use App\AI\Contracts\RecipeSuggester;
  * ids are stripped to null, demoting the ingredient to shopping-list honesty),
  * plus `upgrades` — extra things worth buying to make the dish better.
  *
- * `wellnessNote` is a single OPTIONAL general-wellbeing line (UK-population
- * guidance flavour, food-first). It is general guidance, never medical advice,
- * and the UI must label it as such (brief §9.10).
+ * Deliberately NO supplement/vitamin suggestions of any kind (founder call,
+ * Aug 2026): the app never recommends supplementation. Users who take one can
+ * log it themselves via the capture flow if they want it in their metrics.
  *
  * Approximate figures are rough per-serving estimates for display only (~),
  * never logged — the deterministic maths rules (brief §8.9) are untouched.
@@ -28,10 +28,7 @@ final class RecipeIdeas
     /**
      * @param  list<array{slot: string, title: string, summary: string, ingredients: list<array{name: string, amount: string, pantry_item_id: int|null}>, upgrades: list<string>, steps: list<string>, approx_calories: float|null, approx_protein: float|null}>  $suggestions
      */
-    public function __construct(
-        public readonly array $suggestions,
-        public readonly ?string $wellnessNote = null,
-    ) {}
+    public function __construct(public readonly array $suggestions) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -118,12 +115,7 @@ final class RecipeIdeas
             }
         }
 
-        $wellness = $data['wellness_note'] ?? null;
-
-        return new self(
-            $ordered,
-            is_string($wellness) && trim($wellness) !== '' ? mb_substr(trim($wellness), 0, 280) : null,
-        );
+        return new self($ordered);
     }
 
     public function hasSuggestions(): bool
