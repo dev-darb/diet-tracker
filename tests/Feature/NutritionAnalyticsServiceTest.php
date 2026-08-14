@@ -7,6 +7,7 @@ use App\Enums\QuantityUnit;
 use App\Models\CanonicalProduct;
 use App\Models\ConsumptionEvent;
 use App\Models\User;
+use App\Services\ConsumptionService;
 use App\Services\NutritionAnalyticsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -36,9 +37,24 @@ class NutritionAnalyticsServiceTest extends TestCase
      */
     private function logDay(string $date, array $items): ConsumptionEvent
     {
+        $keys = ['calories', 'protein', 'carbs', 'sugars', 'fat', 'saturated_fat', 'fibre', 'salt'];
+
+        // Mirror the real services: event columns carry the summed snapshot
+        // (nulls propagate) — day totals read the EVENT, so eating-out entries
+        // (which have no item rows) count too.
+        $totals = [];
+        foreach ($keys as $key) {
+            $values = array_map(
+                fn (array $item) => array_merge(array_fill_keys($keys, 0.0), $item['nutrients'])[$key],
+                $items,
+            );
+            $totals[$key] = in_array(null, $values, true) ? null : array_sum($values);
+        }
+
         $event = ConsumptionEvent::factory()->for($this->user)->create([
             'type' => ConsumptionType::Single,
             'consumed_at' => Carbon::parse($date.' 12:00:00'),
+            ...$totals,
         ]);
 
         foreach ($items as $item) {
@@ -47,13 +63,50 @@ class NutritionAnalyticsServiceTest extends TestCase
                 'product_version_id' => null,
                 'quantity' => 1,
                 'unit' => QuantityUnit::Unit,
-                ...array_merge(array_fill_keys([
-                    'calories', 'protein', 'carbs', 'sugars', 'fat', 'saturated_fat', 'fibre', 'salt',
-                ], 0.0), $item['nutrients']),
+                ...array_merge(array_fill_keys($keys, 0.0), $item['nutrients']),
             ]);
         }
 
         return $event;
+    }
+
+    // --- the reframe (§1b): every context reaches the dashboard -------------
+
+    public function test_eating_out_estimates_flow_into_daily_and_weekly_totals(): void
+    {
+        $this->logDay('2026-08-13', [['nutrients' => ['calories' => 400, 'protein' => 20]]]);
+
+        app(ConsumptionService::class)->logEatingOut(
+            $this->user,
+            'Katsu curry at Wagamama',
+            ['calories' => 1180, 'protein' => 45],
+            Carbon::parse('2026-08-13 19:00:00'),
+        );
+
+        $daily = $this->service->dailySummary($this->user, Carbon::parse('2026-08-13'));
+        $this->assertSame(1580.0, $daily['totals']['calories']);
+        $this->assertSame(65.0, $daily['totals']['protein']);
+
+        $weekly = $this->service->weeklySummary($this->user, Carbon::parse('2026-08-13'));
+        $this->assertSame(1580.0, $weekly['averages']['calories']['value']); // one logged day
+    }
+
+    public function test_figureless_eating_out_day_is_logged_but_unknown_never_zero(): void
+    {
+        app(ConsumptionService::class)->logEatingOut(
+            $this->user,
+            'Dinner with friends',
+            [],
+            Carbon::parse('2026-08-13 20:00:00'),
+        );
+
+        $daily = $this->service->dailySummary($this->user, Carbon::parse('2026-08-13'));
+
+        // The meal is ON the record (meal regularity counts it)…
+        $this->assertTrue($daily['has_data']);
+        // …but its figures are honestly unknown, never a fabricated 0 kcal.
+        $this->assertNull($daily['totals']['calories']);
+        $this->assertContains('calories', $daily['unknown_nutrients']);
     }
 
     public function test_daily_aggregate_sums_snapshots_across_items(): void

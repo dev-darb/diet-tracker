@@ -28,6 +28,11 @@ class HealthUiTest extends TestCase
         ConsumptionEvent::factory()->for($user)->create([
             'type' => ConsumptionType::Single,
             'consumed_at' => Carbon::parse($date.' 12:00:00'),
+            // Real writes snapshot totals on BOTH event and item; day totals
+            // now read the event (so eating-out entries count), so mirror it.
+            ...array_merge(array_fill_keys([
+                'calories', 'protein', 'carbs', 'sugars', 'fat', 'saturated_fat', 'fibre', 'salt',
+            ], 0.0), $nutrients),
         ])->items()->create([
             'canonical_product_id' => $product?->id,
             'quantity' => 1,

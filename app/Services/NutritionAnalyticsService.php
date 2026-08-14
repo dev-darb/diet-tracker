@@ -264,11 +264,19 @@ class NutritionAnalyticsService
                 ];
             }
 
-            foreach ($event->items as $item) {
-                $days[$date]['total'] = $days[$date]['total']->add(
-                    NutrientValues::fromArray($item->only(NutrientValues::KEYS))
-                );
+            // Day totals come from the EVENT's snapshotted figures — the one
+            // place every context carries its numbers: pantry singles and
+            // home-cooked meals store the calculator's result there, and
+            // eating-out entries (which deliberately have NO item rows) store
+            // their estimates there. Summing items instead silently dropped
+            // eating-out meals AND fabricated a 0-kcal day for them — both
+            // violations of §1b/§2.1.
+            $days[$date]['total'] = $days[$date]['total']->add(
+                NutrientValues::fromArray($event->only(NutrientValues::KEYS))
+            );
 
+            // Items feed only the variety / fruit-&-veg counters.
+            foreach ($event->items as $item) {
                 if ($item->canonical_product_id !== null) {
                     $days[$date]['product_ids'][] = $item->canonical_product_id;
                 }

@@ -50,6 +50,10 @@ class InsightServiceTest extends TestCase
             ConsumptionEvent::factory()->for($this->user)->create([
                 'type' => ConsumptionType::Single,
                 'consumed_at' => now()->subDays($i)->setTime(12, 0),
+                ...array_fill_keys(['calories', 'protein', 'carbs', 'sugars', 'fat', 'saturated_fat', 'fibre', 'salt'], 0.0),
+                'calories' => 500,
+                'protein' => 25,
+                'fibre' => 3,
             ])->items()->create([
                 'canonical_product_id' => null,
                 'quantity' => 1,
