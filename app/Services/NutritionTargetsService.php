@@ -100,6 +100,7 @@ class NutritionTargetsService
     public const GOAL_CALORIE_FACTORS = [
         'lose_weight' => 0.85,
         'gain_muscle' => 1.10,
+        'recomp' => 1.0, // recomposition trains AT maintenance; protein does the work
     ];
 
     /**
@@ -112,6 +113,7 @@ class NutritionTargetsService
     public const PROTEIN_G_PER_KG = [
         'gain_muscle' => 1.8,
         'lose_weight' => 1.6,
+        'recomp' => 2.0, // upper evidence range: simultaneous muscle gain + fat loss
     ];
 
     public const PROTEIN_G_PER_KG_DEFAULT = 1.2;
@@ -203,6 +205,7 @@ class NutritionTargetsService
         $goalNote = match ($goal) {
             PrimaryGoal::LoseWeight => ', -15% for your weight-loss goal',
             PrimaryGoal::GainMuscle => ', +10% for your muscle-gain goal',
+            PrimaryGoal::Recomp => ', at maintenance for your recomposition goal',
             default => '',
         };
 
@@ -240,6 +243,7 @@ class NutritionTargetsService
         $goalNote = match ($profile->primary_goal) {
             PrimaryGoal::GainMuscle => 'for your muscle-gain goal',
             PrimaryGoal::LoseWeight => 'to preserve lean mass while losing weight',
+            PrimaryGoal::Recomp => 'for building muscle while losing fat',
             default => 'active-adult baseline',
         };
 

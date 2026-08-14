@@ -86,6 +86,30 @@ class NutritionTargetsTest extends TestCase
         $this->assertStringContainsString('preserve lean mass', $targets['protein']['basis']);
     }
 
+    public function test_recomp_goal_holds_maintenance_with_high_protein(): void
+    {
+        // BMR = 10*82 + 6.25*180 - 5*30 + 5 = 1800. TDEE = 1800 * 1.55 = 2790.
+        // Recomposition trains AT maintenance: x1.0 -> 2790 -> 2800 (nearest 50).
+        // Protein = 2.0 g/kg * 82 = 164 -> 165 (nearest 5) — the upper evidence range.
+        $user = $this->userWithProfile([
+            'primary_goal' => PrimaryGoal::Recomp,
+            'sex' => Sex::Male,
+            'date_of_birth' => now()->subYears(30)->toDateString(),
+            'height_cm' => 180,
+            'weight_kg' => 82,
+            'activity_level' => ActivityLevel::Moderate,
+        ]);
+
+        $targets = $this->service->targetsFor($user);
+
+        $this->assertSame(2800.0, $targets['calories']['target']);
+        $this->assertStringContainsString('recomposition', $targets['calories']['basis']);
+
+        $this->assertSame(165.0, $targets['protein']['target']);
+        $this->assertStringContainsString('2 g/kg', $targets['protein']['basis']);
+        $this->assertStringContainsString('while losing fat', $targets['protein']['basis']);
+    }
+
     public function test_undisclosed_sex_uses_stated_midpoint(): void
     {
         // BMR = 10*75 + 6.25*170 - 5*35 - 78 = 750 + 1062.5 - 175 - 78 = 1559.5.

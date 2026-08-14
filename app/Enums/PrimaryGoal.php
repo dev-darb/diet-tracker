@@ -15,6 +15,7 @@ enum PrimaryGoal: string
     case MaintainWeight = 'maintain_weight';
     case LoseWeight = 'lose_weight';
     case GainMuscle = 'gain_muscle';
+    case Recomp = 'recomp';
 
     public function label(): string
     {
@@ -24,6 +25,7 @@ enum PrimaryGoal: string
             self::MaintainWeight => 'Maintain my weight',
             self::LoseWeight => 'Lose weight',
             self::GainMuscle => 'Gain weight or muscle',
+            self::Recomp => 'Build muscle, lose fat',
         };
     }
 
@@ -35,6 +37,7 @@ enum PrimaryGoal: string
             self::MaintainWeight => 'Keep things steady and balanced.',
             self::LoseWeight => 'Gentle, sustainable guidance towards a lower weight.',
             self::GainMuscle => 'Support for building muscle and gaining weight.',
+            self::Recomp => 'Recomposition: train at maintenance with high protein.',
         };
     }
 
