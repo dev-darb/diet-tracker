@@ -166,11 +166,11 @@ An achromatic three-tone chassis lit by five small, fixed-meaning signal lamps.
 ### Secondary — Functional Signals
 - **Confirm Green** (`good`, #2fd05e): confirmed / success / in-band. GOOD chips, the barcode-found lamp, and the one sanctioned large field: the success stamp panel.
 - **Low Amber** (`low`, #ffb020): under target / caution. LOW chips, warning border-accents.
-- **Over Red** (`high`, #ff3b30): over target / error. HIGH chips, error readouts (`ERR`), validation text.
+- **Over Red** (`high`, #ff3b30): over target / error. HIGH chips, error readouts (`ERR`), validation text, the offline link lamp's border.
 - **Info Cyan** (`info`, #39c2e8): neutral information states (e.g. "correction recorded").
 
 ### Neutral
-- **Chassis** (#0a0b0c): the page ground; also the translucent backdrop-blurred bars (`bg-chassis/95`).
+- **Chassis** (#0a0b0c): the page ground; also the translucent backdrop-blurred top bar (`bg-chassis/95`).
 - **Plate** (#141517): the standard module surface. **Plate Raised** (#1a1c1f): pressable keys. **Plate Well** (#101113): recessed inputs, capture wells, unlit LED cells.
 - **Seam** (#26282c): the universal hairline — module borders, dividers, meter tracks, idle scale ticks. **Seam Strong** (#33363b): emphasized seams, viewfinder brackets, unknown-chip borders, active ticks, scrollbar thumb.
 - **Ink** (#eeeff0) / **Ink Dim** (#a2a5aa) / **Ink Faint** (#7e838b): the three-step text ramp — primary content, secondary/units, silkscreen labels and provenance lines.
@@ -208,7 +208,7 @@ Roles are tokenized classes in `resources/css/app.css`; views never set raw size
 - **data-md** 0.875rem — row values, the KCAL unit, the log voice on Eat.
 - **data-sm** 0.75rem (0.02em) — metadata: provenance, timestamps, footers.
 - **data-micro** 0.625rem (0.02em) — axis endpoints, engraved unit suffixes, sparkline day labels.
-- **keycap** 0.8125rem / **keycap-sm** 0.6875rem (both 0.12em, uppercase) — the one engraving standard on every pressable control.
+- **keycap** 0.8125rem / **keycap-sm** 0.6875rem (both 0.12em, uppercase) — the one engraving standard on every pressable control; below 350px viewports `keycap-sm` trades tracking for fit (0.06em) rather than wrapping.
 - **silkscreen** 0.6875rem (0.14em, uppercase, ink-faint) — module micro-labels and nav keys; also the top-bar nameplate's engraving.
 - **Readout** (DSEG7, clamp(4.2rem, 17vw, 5.4rem), lh 1): unchanged — the one gauge.
 
@@ -219,7 +219,7 @@ Roles are tokenized classes in `resources/css/app.css`; views never set raw size
 
 ## Layout
 
-A mobile-first single column: `max-w-md` centered on the chassis, full-height flex shell. Sticky top status bar (user's name + live dot + date, seam-bottomed, `bg-chassis/95` + backdrop-blur) and a fixed bottom control strip with safe-area-inset padding; main content gets `px-4 pt-4 pb-32` clearance.
+A mobile-first single column: `max-w-md` centered on the chassis (seam-edged with `md:border-x` on wider viewports), full-height flex shell. Sticky top status bar (orange live dot + user's first name + FOOD OS silkscreen, date, profile key; seam-bottomed, `bg-chassis/95` + backdrop-blur) and a fixed bottom control strip with safe-area-inset padding; main content gets `px-4 pt-4 pb-32` clearance.
 
 **The Faceplate Rule.** Readings that belong to one instrument share one plate, divided internally by seams (`divide-x`/`divide-y`, edge-to-edge via negative margins) — never a stack of adjacent cards. Home's TODAY cluster (readout + scale + macro row + provenance footer) and Health's THIS WEEK cluster (average + sparkline + metric grid + counters row) are the canonical faceplates. One hero cluster per screen.
 
@@ -257,7 +257,7 @@ The reusable layer lives in two tiers: CSS classes in `resources/css/app.css` (`
 - **Character:** physical console keys — they depress, they don't hover-glow.
 - **Shape:** 6px radius; full-width action keys at `py-3.5`, square utility keys at fixed sizes (size-8 to size-12).
 - **Default key:** plate-raised fill, seam border, ink or ink-dim caption; `:active` → `translateY(1px)` + `brightness(1.15)` over 60–120ms ease-out.
-- **Action key** (`key-action`): solid signal orange, black caption, machined lower edge (`0 2px 0 0 #a33200`); `:active` → sinks 2px, ledge collapses. Captions are Fragment Mono, 0.14em tracking, uppercase.
+- **Action key** (`key-action`): solid signal orange, black caption, machined lower edge (`0 2px 0 0 #a33200`); `:active` → sinks 2px, ledge collapses. Captions use the keycap engraving standard (Fragment Mono, 0.12em tracking, uppercase).
 - **Secondary actions** use the default key with ink-dim captions — never a second colored key on the same screen.
 - **Focus:** global `:focus-visible` — 2px signal-orange outline, 2px offset.
 
@@ -268,7 +268,7 @@ The reusable layer lives in two tiers: CSS classes in `resources/css/app.css` (`
 
 ### Modules (cards)
 - **Corner Style:** 6px. **Background:** plate. **Border:** 1px seam. **Shadow:** none (see Elevation).
-- **Internal padding:** 16px top, 20px sides/bottom; 12px stack gap between modules.
+- **Internal padding:** 16px top, 20px sides/bottom; stack gaps follow the Band Rhythm (8px within a band, 20px between bands, 12px interior only).
 - **Self-labeling:** every module opens with a silkscreen micro-label (`TODAY`, `STREAK`, `INDICATORS`); no module ships unlabeled.
 
 ### Inputs / Fields
@@ -278,11 +278,11 @@ The reusable layer lives in two tiers: CSS classes in `resources/css/app.css` (`
 - **Capture well:** a viewfinder, not a form — min-height well with seam-strong SVG corner brackets, hover strengthens the seam.
 
 ### Navigation
-- **Control strip:** fixed bottom, 5-key grid on a seam-topped `bg-chassis/95` blurred plate. Four flat keys (h-14, silkscreen captions; active = ink caption + `aria-current`), and the raised orange SCAN key: taller (h-[4.25rem]), pulled up 12px above the row, stroke-icon + mono caption in black.
+- **Control strip:** fixed bottom, 5-key grid (8px gaps, 12px padding, safe-area-inset bottom) on a seam-topped solid chassis plate — the top status bar is the only blurred bar. Four flat keys (h-14, silkscreen captions; active = ink caption + `aria-current`), and the raised orange SCAN key: taller (h-[4.25rem]), pulled up 12px above the row, stroke-icon + keycap-sm mono caption in black.
 - **Icons** throughout are inline stroked SVGs (1.6–3.2 stroke, round caps), currentColor — no icon fonts, no filled glyph sets.
 
 ### The Reward Stamp (signature)
-The earned-success moment, in hardware grammar: a full-bleed green field (6px radius, black ink) that stamps in (`stamp-in`: 160ms `cubic-bezier(0.16,1,0.3,1)`, scale 1.06→1), carrying an oversized stroked check, a bold uppercase Archivo declaration ("ADDED TO PANTRY"), and a 16-cell LED sweep (per-cell 90ms ease-out fade, 40ms stagger, left to right). Below it: the fact module (what was added, its macros, its provenance) and the reward strip of counter chips that just moved. Fires only on a genuine completion trigger.
+The earned-success moment, in hardware grammar: a full-bleed green field (6px radius, black ink) that stamps in (`stamp-in`: 160ms `cubic-bezier(0.16,1,0.3,1)`, scale 1.06→1), carrying an oversized stroked check, a bold uppercase Archivo declaration ("ADDED TO PANTRY"), and a 16-cell LED sweep (per-cell 90ms ease-out fade, 40ms stagger, left to right). Below it: the fact module (what was added, its macros, its provenance) and the reward strip of counter chips that just moved. Fires only on a genuine completion trigger. Smaller wins use `<x-app.stamp-toast>`: a compact stamped strip (green + check for genuine wins, neutral raised plate for quiet saves) that lands with the same `stamp-in` press.
 
 **The Crisp Motion Rule.** All motion is short (60–160ms base) exponential ease-out — never springy, bouncy, or looping. The LED sweep and the stamp are the only authored moments; both die under `prefers-reduced-motion`.
 
@@ -293,7 +293,7 @@ The earned-success moment, in hardware grammar: a full-bleed green field (6px ra
 ### Do:
 - **Do** open every module with a silkscreen micro-label (Fragment Mono 11px, 0.14em, uppercase, ink-faint) at top-left; modules self-identify.
 - **Do** set every measured value in Fragment Mono with `tabular-nums`, with units small and ink-dim beside the number, and provenance in an 11px uppercase mono line.
-- **Do** separate with 1px seams and tonal steps (well/plate/raised); keep the 12px module rhythm.
+- **Do** separate with 1px seams and tonal steps (well/plate/raised); keep the Band Rhythm (8px pairs, 20px bands, 12px interior).
 - **Do** put black type on any signal fill, and keep signal areas small — a chip, an LED, a marker line, a key.
 - **Do** render unknowns as `----` / `NO DATA` / unlit cells, and quantize charts into cell stacks and tick scales.
 - **Do** respect `prefers-reduced-motion` for every authored animation.
