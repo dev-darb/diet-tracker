@@ -38,6 +38,7 @@ Reliability over apparent intelligence. Product facts come from deterministic, s
 ## Brand Commitments
 
 - The product is named **Jabba** (confirmed by the founder). No logo, palette, typography, or voice constraints exist yet; the repo name "diet-tracker" is infrastructure, not brand.
+- Inside the app the console is the **user's**, not the brand's: the shell calls out the logged-in user's name ("their dietary operating system"), not the Jabba wordmark (founder, Aug 2026).
 
 ## Evidence on Hand
 
@@ -52,3 +53,4 @@ Reliability over apparent intelligence. Product facts come from deterministic, s
 3. **Deterministic maths** — the LLM never computes totals, aggregates, or deductions.
 4. **Start narrow, finish excellently** — one packaged product → identify → pantry → consume → insight, done well, before widening scope.
 5. **Thin frontend** — domain logic lives in services so the UI layer stays replaceable.
+6. **Reward the loop** — success and completion triggers (a scan landing, a target hit, a logging streak held) deliver visible, felt reward moments; reinforcing the behaviour the product exists to drive is a first-class design requirement, not decoration (founder, Aug 2026).
