@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ConsumptionType;
+use App\Enums\MealContext;
 use App\Enums\QuantityUnit;
 use App\Models\CanonicalProduct;
 use App\Models\ConsumptionEvent;
@@ -85,6 +86,7 @@ class ConsumptionService
             $event = ConsumptionEvent::create([
                 'user_id' => $user->id,
                 'type' => ConsumptionType::Single,
+                'context' => MealContext::Pantry,
                 'name' => $this->productLabel($product),
                 'consumed_at' => $consumedAt,
                 ...$contribution->toArray(2),
@@ -107,11 +109,138 @@ class ConsumptionService
     }
 
     /**
+     * Log a home-cooked meal composed of pantry components (Phase A of the
+     * capture flow; brief §8.4). Each line is consumed in ITS OWN pantry item's
+     * unit — the same rule as single consumption — and the meal's totals are the
+     * calculator's sum of the per-line contributions (nulls propagate honestly).
+     * Every line's deduction links back to the one event, so delete restores
+     * every component.
+     *
+     * @param  list<array{item: PantryItem, quantity: float, portion_label?: string|null}>  $lines
+     */
+    public function logHomeCookedMeal(
+        User $user,
+        string $name,
+        array $lines,
+        ?Carbon $consumedAt = null,
+    ): ConsumptionEvent {
+        if ($lines === []) {
+            throw new InvalidArgumentException('A meal needs at least one component.');
+        }
+
+        foreach ($lines as $line) {
+            if (($line['quantity'] ?? 0) <= 0) {
+                throw new InvalidArgumentException('Every meal component needs a positive quantity.');
+            }
+
+            if ($line['item']->user_id !== $user->id) {
+                throw new InvalidArgumentException('Meal components must come from your own pantry.');
+            }
+        }
+
+        $consumedAt ??= now();
+        $name = trim($name) !== '' ? trim($name) : 'Home-cooked meal';
+
+        return DB::transaction(function () use ($user, $name, $lines, $consumedAt) {
+            $prepared = [];
+
+            foreach ($lines as $line) {
+                $item = $line['item'];
+                $product = $item->canonicalProduct;
+                $version = $this->pantryNutrition->currentVersion($product);
+
+                $prepared[] = [
+                    'item' => $item,
+                    'product' => $product,
+                    'version' => $version,
+                    'quantity' => (float) $line['quantity'],
+                    'portion_label' => $line['portion_label'] ?? null,
+                    'contribution' => $this->contributionFor($product, $version, (float) $line['quantity'], $item->quantity_unit),
+                ];
+            }
+
+            $totals = $this->calculator->sum(array_column($prepared, 'contribution'));
+
+            $event = ConsumptionEvent::create([
+                'user_id' => $user->id,
+                'type' => ConsumptionType::Meal,
+                'context' => MealContext::HomeCooked,
+                'estimated' => false,
+                'name' => $name,
+                'consumed_at' => $consumedAt,
+                ...$totals->toArray(2),
+            ]);
+
+            foreach ($prepared as $line) {
+                $event->items()->create([
+                    'canonical_product_id' => $line['product']->id,
+                    'product_version_id' => $line['version']?->id,
+                    'quantity' => $line['quantity'],
+                    'unit' => $line['item']->quantity_unit,
+                    'portion_label' => $line['portion_label'],
+                    ...$line['contribution']->toArray(2),
+                ]);
+
+                $this->pantry->consume($line['item'], $line['quantity'], $event->id, $consumedAt);
+            }
+
+            return $event;
+        });
+    }
+
+    /**
+     * Log an eating-out meal (restaurant/cafe/takeaway). Figures are the user's
+     * or a typical-composition ESTIMATE — stored as given, marked `estimated`,
+     * and any figure they don't know stays an honest null (brief §2.1). A
+     * coarse entry beats a gap: completeness of the ledger outranks precision.
+     *
+     * @param  array<string, float|null>  $figures  subset of NutrientValues::KEYS
+     */
+    public function logEatingOut(
+        User $user,
+        string $name,
+        array $figures = [],
+        ?Carbon $consumedAt = null,
+    ): ConsumptionEvent {
+        $name = trim($name);
+
+        if ($name === '') {
+            throw new InvalidArgumentException('An eating-out entry needs a name.');
+        }
+
+        $values = [];
+
+        foreach (NutrientValues::KEYS as $key) {
+            $value = $figures[$key] ?? null;
+
+            if ($value !== null && (! is_numeric($value) || (float) $value < 0 || (float) $value > 99999)) {
+                throw new InvalidArgumentException("Figure {$key} must be a sensible non-negative number.");
+            }
+
+            $values[$key] = $value === null ? null : round((float) $value, 2);
+        }
+
+        return ConsumptionEvent::create([
+            'user_id' => $user->id,
+            'type' => ConsumptionType::Meal,
+            'context' => MealContext::EatingOut,
+            'estimated' => true,
+            'name' => $name,
+            'consumed_at' => $consumedAt ?? now(),
+            ...$values,
+        ]);
+    }
+
+    /**
      * Edit a single-item consumption (brief §8.6): change the amount and/or the
      * time. The snapshot is RECOMPUTED for the new amount — against the version
      * originally eaten, so editing a past entry never adopts a later
      * reformulation — and the pantry deduction is adjusted with a compensating
      * correction so the ledger stays consistent and reconcile holds.
+     *
+     * Meals are not amount-editable — "1.5 of a meal" has no meaning per line;
+     * delete and re-log instead. (Per-line editing arrives with the meal
+     * builder proper, M5.)
      */
     public function editConsumption(
         ConsumptionEvent $event,
@@ -121,6 +250,10 @@ class ConsumptionService
     ): ConsumptionEvent {
         if ($quantity <= 0) {
             throw new InvalidArgumentException('A positive quantity is required.');
+        }
+
+        if ($event->type === ConsumptionType::Meal) {
+            throw new InvalidArgumentException('Meals cannot be amount-edited; delete and re-log instead.');
         }
 
         return DB::transaction(function () use ($event, $quantity, $unit, $consumedAt) {
@@ -173,11 +306,26 @@ class ConsumptionService
     public function deleteConsumption(ConsumptionEvent $event): void
     {
         DB::transaction(function () use ($event) {
-            $pantryItem = $this->pantryItemFor($event);
+            // A meal deducts from SEVERAL pantry items — restore each item's own
+            // net effect, not just the first linked one.
+            $netByItem = $event->pantryTransactions()
+                ->with('pantryItem')
+                ->get()
+                ->groupBy('pantry_item_id');
 
-            if ($pantryItem !== null) {
-                // Net effect is negative (stock removed); restoring it is +delta.
-                $this->pantry->adjust($pantryItem, -$this->linkedNet($event), null, now());
+            foreach ($netByItem as $transactions) {
+                $pantryItem = $transactions->first()->pantryItem;
+
+                if ($pantryItem === null) {
+                    continue;
+                }
+
+                $net = round((float) $transactions->sum('quantity_delta'), 3);
+
+                if (abs($net) > 1e-9) {
+                    // Net effect is negative (stock removed); restoring it is +delta.
+                    $this->pantry->adjust($pantryItem, -$net, null, now());
+                }
             }
 
             $event->delete();

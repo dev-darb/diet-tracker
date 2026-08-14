@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ConsumptionType;
+use App\Enums\MealContext;
 use Database\Factories\ConsumptionEventFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,8 @@ class ConsumptionEvent extends Model
     protected $fillable = [
         'user_id',
         'type',
+        'context',
+        'estimated',
         'name',
         'consumed_at',
         'calories',
@@ -38,6 +41,8 @@ class ConsumptionEvent extends Model
     {
         return [
             'type' => ConsumptionType::class,
+            'context' => MealContext::class,
+            'estimated' => 'boolean',
             'consumed_at' => 'datetime',
             'calories' => 'decimal:2',
             'protein' => 'decimal:2',

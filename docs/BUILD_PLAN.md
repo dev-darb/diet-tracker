@@ -22,6 +22,56 @@ The guiding constraints from the brief we will not violate:
 
 ---
 
+## 1b. Reframe (Aug 2026, founder-confirmed): the ledger is the product
+
+**The consumption ledger — the complete record of what the user actually ate — is
+the product's centre of gravity. The pantry is one high-fidelity SOURCE feeding
+that ledger, not the frame everything hangs on.** The goal is a complete picture
+of the user's diet and its connection to their health; a picture with holes every
+time they leave the house is not a picture. Milestones to date were pantry-first
+because that is where deterministic data was cheapest — correct sequencing, wrong
+centre if left uncorrected.
+
+Every meal enters the same ledger, tagged with its source context and fidelity:
+
+| Tier | Context (`consumption_events.context`) | Source | Fidelity |
+|---|---|---|---|
+| 1 | `pantry` | Packaged / scanned product | Exact — label data, deterministic |
+| 2 | `home_cooked` | Composed from pantry components | Near-exact — known ingredients, chosen portions |
+| 3 | `eating_out` | Restaurant / cafe / takeaway | Estimated — marked `estimated`, shown with `~` |
+| 4 | `eating_out` (no figures) | "Ate out, details unknown" | Coarse — but the meal is ON the record |
+
+Operating principles that follow (extend §2.1, never contradict it):
+
+- **Completeness beats precision.** Every meal at ±20% builds a truthful week;
+  40% of meals at ±2% builds a lie. The deadliest failure is the skipped meal,
+  so the lowest-friction flow belongs to the hardest context (eating out).
+- **Estimates wear their tilde.** Estimated figures are stored as given, marked
+  `estimated`, rendered `~720`, and unknown figures stay NULL — never faked.
+  This is how tier-3 data coexists with §2.1 instead of violating it.
+- **Capture fits the user's existing moment** (the Hevy principle): the plate is
+  in front of them — camera-first entry, three contexts (packaged / home-cooked /
+  eating out), "usuals" one tap, done in seconds. The app must fit the flow the
+  user already has, not demand a new one.
+- **The pantry pays off as grounding, not as gatekeeping.** For home-cooked
+  meals the pantry turns AI dish recognition (Phase B) from open-world guessing
+  into recognise-and-select against ~30 known items — our structural advantage
+  over calorie-camera apps. But no flow ever REQUIRES pantry data to log a meal.
+- **Insights inherit the tiers.** The insight engine may weight by fidelity and
+  should surface cross-context findings ("eating-out days run ~600 kcal higher,
+  half the protein"). Connecting the diet record to health outcomes is the goal;
+  pantry intelligence is a means.
+
+Capture-flow phasing: **A (shipped with this note)** — meal logging for all
+three contexts: home-cooked compose from pantry (portion chips), eating-out
+quick log with honest estimates, usuals-from-history (one-tap re-log for eating
+out, prefill-for-confirmation for home-cooked). **B** — photo + AI proposal:
+pantry-grounded recognition for home-cooked, dish-class estimation for eating
+out, landing on the same confirm screens. **C** — portion-from-photo, off-pantry
+ingredient suggestions, free-text ("big bowl of the usual porridge").
+
+---
+
 ## 2. Current-stack findings (verified Aug 2026)
 
 | Area | Decision | Why |

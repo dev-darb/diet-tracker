@@ -28,6 +28,10 @@ Route::middleware(['auth'])->group(function () {
         // Eat — recent consumption history: consume, edit/delete, inspect (J4.2).
         Volt::route('eat', 'eat')->name('eat');
 
+        // Log a meal — the capture flow for all three contexts (Reframe, Aug 2026):
+        // home-cooked (pantry compose), eating out (estimates), packaged (-> Scan).
+        Volt::route('eat/log', 'log-meal')->name('eat.log');
+
         // Health — Today + weekly averages, indicators, sparklines (J6.2).
         Volt::route('health', 'health')->name('health');
 
