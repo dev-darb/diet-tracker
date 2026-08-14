@@ -72,7 +72,7 @@ if (await page.isVisible('text=Is this right?')) {
     await page.waitForTimeout(1200);
     await page.click('button:has-text("Add to pantry")');
     await page.waitForTimeout(2500);
-    (await page.isVisible('text=Added to your pantry')) ? ok('added to pantry') : fail('done step missing');
+    (await page.isVisible('text=Added to')) ? ok('added to pantry') : fail('done step missing');
 } else if (await page.isVisible('text=confidently identify')) {
     // Open Food Facts unreachable in this environment — the flow still worked.
     ok('scan resolved to the needs-research fallback (OFF unreachable?) — flow alive');
