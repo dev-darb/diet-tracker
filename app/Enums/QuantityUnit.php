@@ -44,6 +44,16 @@ enum QuantityUnit: string
         };
     }
 
+    /** Quantity-aware label: "1 unit" but "2 units"; g/ml are invariant. */
+    public function shortLabelFor(float $quantity): string
+    {
+        $label = $this->shortLabel();
+
+        return abs($quantity - 1.0) < 1e-9 && ! in_array($this, [self::Gram, self::Millilitre], true)
+            ? \Illuminate\Support\Str::singular($label)
+            : $label;
+    }
+
     /** @return array<int, array{value: string, label: string}> */
     public static function options(): array
     {

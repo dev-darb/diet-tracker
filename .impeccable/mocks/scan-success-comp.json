@@ -1,0 +1,11 @@
+{
+  "surface": "scan (success step)",
+  "variant": "R2 \u2014 scan success dopamine moment",
+  "model": "nano_banana_pro (served as nano_banana_2)",
+  "aspect": "9:16",
+  "world": "TE dark console: chassis #0B0C0D, plates #141517, seams #2A2C2F, orange #FF4D00 action/streak, green #2FD05E success, amber #FFB020 low, red #FF3B30 high, cyan #39C2E8 info; Archivo grotesk labels, Fragment Mono data; 60/25/15",
+  "structure": "user-name status bar / full-width green ADDED TO PANTRY banner + LED cell row / ITEM plate with product + mono nutrition stamp / provenance line (barcode, OFF, confidence) / reward strip: STREAK +1 and PANTRY count chips / orange SCAN NEXT key + quiet DONE / nav strip",
+  "note": "Celebration in hardware grammar: color fields, LED cells, stamped confirmation \u2014 no confetti.",
+  "approved": true,
+  "approvedRole": "governing comp for reward grammar + scan done step"
+}

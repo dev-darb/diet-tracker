@@ -1,0 +1,17 @@
+{
+  "surface": "home",
+  "variant": "A \u2014 Master readout",
+  "model": "nano_banana_pro (served as nano_banana_2)",
+  "aspect": "9:16",
+  "world": "TE dark console: chassis #0B0C0D, plates #141517, seams #2A2C2F, orange #FF4D00 action, green #2FD05E good, amber #FFB020 low, red #FF3B30 high, cyan #39C2E8 info; compact grotesk labels (Archivo), Helvetica-flavored mono data (Fragment Mono); 60/25/15 instrument/terminal/retro-futurism",
+  "structure": "status bar / dominant seven-segment kcal readout with tick scale / 3 macro tiles with bar meters / terminal status line / FOCUS module / STATUS indicator LEDs / control-strip nav with raised orange SCAN key",
+  "approved": true,
+  "approvedRole": "governing comp for Home + system grammar",
+  "amendments": [
+    "Top bar: logged-in user's first name + tiny FOOD OS tag replaces JABBA wordmark (brand lives in auth/onboarding only)",
+    "STREAK module (seven sequencer-style day cells, filled orange, mono counter) inserted above indicators",
+    "Indicator rows carry mono value + colored band chip (from comp B), replacing label-only STATUS list",
+    "Terminal status line kept but may merge into TODAY module footer if space demands",
+    "Top bar carries a small initials key (profile/settings route) at far right beside the date \u2014 a shell affordance the comp omits, recorded post-review"
+  ]
+}

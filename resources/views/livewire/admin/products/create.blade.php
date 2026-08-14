@@ -137,21 +137,21 @@ new #[Layout('components.layouts.admin', ['title' => 'New product'])] class exte
 }; ?>
 
     <div class="mx-auto max-w-2xl space-y-5">
-        <div class="flex items-center gap-2 text-sm text-zinc-500">
-            <a href="{{ route('admin.products.index') }}" class="hover:text-zinc-800">Products</a>
+        <div class="flex items-center gap-2 text-sm text-ink-dim">
+            <a href="{{ route('admin.products.index') }}" class="hover:text-ink">Products</a>
             <span>/</span>
-            <span class="text-zinc-900">New</span>
+            <span class="text-ink">New</span>
         </div>
 
-        <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">New product</h1>
+        <h1 class="text-2xl font-semibold tracking-tight text-ink">New product</h1>
 
         <form wire:submit="save" class="space-y-6">
             @include('livewire.admin.products._identity-fields')
 
             {{-- Initial nutrition version --}}
-            <section class="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <label class="flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                    <input type="checkbox" wire:model.live="withVersion" class="rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500">
+            <section class="rounded-2xl border border-seam bg-plate p-5 shadow-sm">
+                <label class="flex items-center gap-2 text-sm font-semibold text-ink">
+                    <input type="checkbox" wire:model.live="withVersion" class="rounded border-seam-strong text-emerald-600 focus:ring-emerald-500">
                     Add nutrition version now
                 </label>
 
@@ -163,10 +163,10 @@ new #[Layout('components.layouts.admin', ['title' => 'New product'])] class exte
             </section>
 
             <div class="flex items-center gap-3">
-                <button type="submit" class="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
+                <button type="submit" class="rounded-xl bg-ink px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
                     Create product
                 </button>
-                <a href="{{ route('admin.products.index') }}" class="text-sm font-medium text-zinc-500 hover:text-zinc-800">Cancel</a>
+                <a href="{{ route('admin.products.index') }}" class="text-sm font-medium text-ink-dim hover:text-ink">Cancel</a>
             </div>
         </form>
     </div>

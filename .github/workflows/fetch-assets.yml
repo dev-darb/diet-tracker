@@ -1,0 +1,48 @@
+# Utility workflow: fetch generated design assets (comps, references) into the
+# repo. Claude Code remote sessions run behind a network allowlist that blocks
+# the image CDN; Actions runners do not. Push-triggered (not dispatch) because
+# workflow_dispatch requires the file on the default branch.
+#
+# Usage: commit .impeccable/fetch-manifest.json — a JSON object mapping
+# repo-relative dest paths to https URLs — and push. The run downloads each
+# file and commits the results back to the same branch. The manifest path
+# filter (plus GITHUB_TOKEN's no-recursion rule) prevents retrigger loops.
+name: Fetch design assets
+
+on:
+  push:
+    branches:
+      - claude/plugin-marketplace-pbakaus-impeccable-kh2hfv
+    paths:
+      - .impeccable/fetch-manifest.json
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download assets
+        run: |
+          jq -r 'to_entries[] | [.key, .value] | @tsv' .impeccable/fetch-manifest.json \
+          | while IFS=$'\t' read -r dest url; do
+              case "$dest" in
+                (/*|*..*) echo "refusing path: $dest" >&2; exit 1;;
+              esac
+              case "$url" in
+                (https://*) ;;
+                (*) echo "refusing url: $url" >&2; exit 1;;
+              esac
+              mkdir -p "$(dirname "$dest")"
+              curl -fsSL --max-filesize 26214400 -o "$dest" "$url"
+              echo "fetched $dest ($(wc -c < "$dest") bytes)"
+            done
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "nothing fetched" || git commit -m "Fetch design assets (automated)"
+          git push

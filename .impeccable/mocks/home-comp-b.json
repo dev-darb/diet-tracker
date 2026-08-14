@@ -1,0 +1,10 @@
+{
+  "surface": "home",
+  "variant": "B \u2014 Module rack",
+  "model": "nano_banana_pro (served as nano_banana_2)",
+  "aspect": "9:16",
+  "world": "TE dark console: chassis #0B0C0D, plates #141517, seams #2A2C2F, orange #FF4D00 action, green #2FD05E good, amber #FFB020 low, red #FF3B30 high, cyan #39C2E8 info; compact grotesk labels (Archivo), Helvetica-flavored mono data (Fragment Mono); 60/25/15",
+  "structure": "OP-Z rack of equal modules with hairline seams: status bar / TODAY (kcal + stacked macros) / INDICATORS (4 rows label-value-chip) / FOCUS / QUICK keys / nav strip with solid orange SCAN cell",
+  "approved": false,
+  "kept": "value+chip indicator rows donated to Home"
+}

@@ -1,38 +1,41 @@
-@props(['indicators'])
+@props(['indicators', 'label' => 'Indicators'])
 
 {{--
     Component indicators (brief §9.5): qualitative bands, NOT a numeric score.
     Bands and values are computed in NutritionAnalyticsService — this partial only
-    maps a band to a colour and lays it out. No arithmetic here.
+    maps a band to its signal chip and lays the rows out. No arithmetic here.
 --}}
 @php
-    $bandClasses = [
-        \App\Services\NutritionAnalyticsService::BAND_GOOD => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-        \App\Services\NutritionAnalyticsService::BAND_OK => 'bg-sky-50 text-sky-700 ring-sky-600/20',
-        \App\Services\NutritionAnalyticsService::BAND_LOW => 'bg-amber-50 text-amber-700 ring-amber-600/20',
-        \App\Services\NutritionAnalyticsService::BAND_SLIGHTLY_HIGH => 'bg-orange-50 text-orange-700 ring-orange-600/20',
-        \App\Services\NutritionAnalyticsService::BAND_UNKNOWN => 'bg-zinc-100 text-zinc-500 ring-zinc-500/10',
+    $chip = [
+        \App\Services\NutritionAnalyticsService::BAND_GOOD => 'bg-good text-black',
+        \App\Services\NutritionAnalyticsService::BAND_OK => 'bg-good/70 text-black',
+        \App\Services\NutritionAnalyticsService::BAND_LOW => 'bg-low text-black',
+        \App\Services\NutritionAnalyticsService::BAND_SLIGHTLY_HIGH => 'bg-high text-black',
+        \App\Services\NutritionAnalyticsService::BAND_UNKNOWN => 'border-seam-strong text-ink-faint',
     ];
+    $fmt = fn ($v) => rtrim(rtrim(number_format((float) $v, 1), '0'), '.');
 @endphp
 
-<div class="overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm">
-    @foreach ($indicators as $indicator)
-        <div class="flex items-center justify-between border-b border-zinc-100 px-5 py-3 last:border-b-0">
-            <div class="min-w-0">
-                <p class="text-sm font-medium text-zinc-900">{{ $indicator['label'] }}</p>
-                @if ($indicator['known'])
-                    <p class="mt-0.5 text-xs text-zinc-400">
-                        {{ rtrim(rtrim(number_format((float) $indicator['value'], 1), '0'), '.') }}{{ $indicator['unit'] === 'g' ? 'g' : '' }}
-                        @if ($indicator['unit'] !== 'g') {{ $indicator['unit'] }} @endif
-                        · aim {{ rtrim(rtrim(number_format((float) $indicator['target'], 1), '0'), '.') }}{{ $indicator['unit'] === 'g' ? 'g' : '' }}
-                    </p>
-                @else
-                    <p class="mt-0.5 text-xs text-zinc-400">Not enough data yet</p>
-                @endif
-            </div>
-            <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {{ $bandClasses[$indicator['band']] ?? $bandClasses[\App\Services\NutritionAnalyticsService::BAND_UNKNOWN] }}">
-                {{ $indicator['known'] ? $indicator['band'] : '—' }}
-            </span>
-        </div>
-    @endforeach
+<div class="module px-5 pb-2 pt-4">
+    <h2 class="silkscreen">{{ $label }}</h2>
+    <ul class="mt-2 divide-y divide-seam">
+        @foreach ($indicators as $indicator)
+            <li class="flex items-center gap-3 py-2.5">
+                <span class="voice-caption min-w-0 flex-1 truncate text-ink">{{ $indicator['label'] }}</span>
+                <span class="data-md text-ink-dim">
+                    @if ($indicator['known'])
+                        {{ $fmt($indicator['value']) }}{{ $indicator['unit'] === 'g' ? 'G' : '' }}<span class="text-ink-faint">/{{ $fmt($indicator['target']) }}{{ $indicator['unit'] === 'g' ? 'G' : '' }}</span>
+                        @if ($indicator['unit'] !== 'g')
+                            <span class="data-micro ml-1 text-ink-faint uppercase">{{ $indicator['unit'] }}</span>
+                        @endif
+                    @else
+                        ----
+                    @endif
+                </span>
+                <span class="chip shrink-0 border {{ $chip[$indicator['band']] ?? $chip[\App\Services\NutritionAnalyticsService::BAND_UNKNOWN] }}">
+                    <span class="uppercase">{{ $indicator['known'] ? $indicator['band'] : 'No data' }}</span>
+                </span>
+            </li>
+        @endforeach
+    </ul>
 </div>

@@ -272,7 +272,7 @@ class ScanFlowTest extends TestCase
             ->call('analyze')
             ->assertHasNoErrors()
             ->assertSet('step', 'ai_unavailable')
-            ->assertSee('needs AI configuration');
+            ->assertSee('switched on yet');
 
         // No pantry item was created and the app did not error.
         $this->assertDatabaseCount('pantry_items', 0);

@@ -1,0 +1,15 @@
+{
+  "buildPath": "comp",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-color",
+        "value": "#000",
+        "createdAt": "2026-08-14T11:22:04.738Z",
+        "reason": "DESIGN.md Black-on-Signal rule: black type/marks on signal fills is a named system rule (documenter, finish-reviewed build)"
+      }
+    ]
+  }
+}

@@ -1,16 +1,20 @@
-@props(['title', 'subtitle' => null, 'icon' => null])
+@props(['title', 'subtitle' => null, 'status' => 'NO DATA', 'glyph' => '----', 'tone' => 'faint'])
 
-{{-- Calm placeholder for screens that arrive in later milestones (BUILD_PLAN J0.3). --}}
-<div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-16 text-center">
-    <div class="mb-4 flex size-12 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm ring-1 ring-zinc-100">
-        {{ $icon ?? '' }}
-    </div>
-    <h2 class="text-lg font-semibold text-zinc-900">{{ $title }}</h2>
+{{-- An idle or fault instrument state: the module is powered and calibrated,
+     there is simply nothing (or the wrong thing) on the wire. Never an apology
+     (design brief). Tones map to the fixed signal palette. --}}
+@php($glyphColor = match ($tone) {
+    'high' => 'text-high',
+    'low' => 'text-low',
+    'info' => 'text-info',
+    default => 'text-ink-faint',
+})
+<div {{ $attributes->merge(['class' => 'module px-6 py-12 text-center']) }}>
+    <p class="data-xl {{ $glyphColor }}" aria-hidden="true">{{ $glyph }}</p>
+    <p class="silkscreen mt-2">{{ $status }}</p>
+    <h2 class="voice-item mt-5 text-ink">{{ $title }}</h2>
     @if ($subtitle)
-        <p class="mt-1.5 max-w-xs text-sm leading-relaxed text-zinc-500">{{ $subtitle }}</p>
+        <p class="voice-caption mx-auto mt-1.5 max-w-xs text-ink-dim">{{ $subtitle }}</p>
     @endif
-    <span class="mt-5 inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500">
-        <span class="size-1.5 rounded-full bg-emerald-500"></span>
-        Coming soon
-    </span>
+    {{ $slot }}
 </div>

@@ -86,7 +86,7 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         $service->consumePantryItem(Auth::user(), $this->pantryItem, $amount);
         $this->refreshItem();
         $this->consumeAmount = '1';
-        $this->dispatch('item-changed');
+        $this->dispatch('consumption-logged');
     }
 
     private function refreshItem(): void
@@ -111,136 +111,128 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
     }
 }; ?>
 
-    <div class="space-y-5" x-data="{ toast: false }"
-         x-on:item-changed.window="toast = true; setTimeout(() => toast = false, 2000)">
+    <div class="space-y-5" x-data="{ toast: null }"
+         x-on:consumption-logged.window="toast = 'logged'; setTimeout(() => toast = null, 2000)"
+         x-on:item-changed.window="toast = 'saved'; setTimeout(() => toast = null, 2000)">
 
-        <a href="{{ route('pantry') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-800">
-            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+        <a href="{{ route('pantry') }}" class="keycap-sm inline-flex items-center gap-1.5 px-1 text-ink-dim transition hover:text-ink">
+            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
             Pantry
         </a>
 
-        {{-- Identity + current quantity --}}
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">{{ $pantryItem->canonicalProduct->brand }}</h1>
-            <p class="mt-0.5 text-base text-zinc-700">{{ $pantryItem->canonicalProduct->name }}</p>
+        {{-- Identity + current quantity readout --}}
+        <x-app.module label="Item">
+            <h1 class="voice-item mt-3 text-ink">{{ $pantryItem->canonicalProduct->brand }} <span class="text-ink-dim">{{ $pantryItem->canonicalProduct->name }}</span></h1>
             @if ($pantryItem->canonicalProduct->variant)
-                <p class="mt-0.5 text-sm text-zinc-500">{{ $pantryItem->canonicalProduct->variant }}</p>
+                <p class="voice-caption mt-0.5 text-ink-dim">{{ $pantryItem->canonicalProduct->variant }}</p>
             @endif
 
-            <div class="mt-4 flex items-baseline gap-2">
-                <span class="text-3xl font-bold tabular-nums text-emerald-700">{{ rtrim(rtrim(number_format((float) $pantryItem->current_quantity, 3, '.', ''), '0'), '.') }}</span>
-                <span class="text-sm font-medium text-zinc-500">{{ $pantryItem->quantity_unit->shortLabel() }} remaining</span>
-            </div>
+            <p class="mt-5 flex items-baseline gap-2">
+                <span class="data-xl text-ink">{{ rtrim(rtrim(number_format((float) $pantryItem->current_quantity, 3, '.', ''), '0'), '.') }}</span>
+                <span class="data-md text-ink-dim uppercase">{{ $pantryItem->quantity_unit->shortLabelFor((float) $pantryItem->current_quantity) }} remaining</span>
+            </p>
 
-            <dl class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-zinc-500">
-                @if ($pantryItem->purchased_at)
-                    <div><dt class="inline">Purchased</dt> <dd class="inline font-medium text-zinc-700">{{ $pantryItem->purchased_at->format('j M Y') }}</dd></div>
-                @endif
-                @if ($pantryItem->expiry_date)
-                    <div><dt class="inline">Expires</dt> <dd class="inline font-medium text-zinc-700">{{ $pantryItem->expiry_date->format('j M Y') }}</dd></div>
-                @endif
-            </dl>
-        </div>
+            @if ($pantryItem->purchased_at || $pantryItem->expiry_date)
+                <p class="data-sm mt-3 text-ink-faint uppercase">
+                    @if ($pantryItem->purchased_at) Purchased {{ $pantryItem->purchased_at->format('j M Y') }} @endif
+                    @if ($pantryItem->purchased_at && $pantryItem->expiry_date) · @endif
+                    @if ($pantryItem->expiry_date) Expires {{ $pantryItem->expiry_date->format('j M Y') }} @endif
+                </p>
+            @endif
+        </x-app.module>
 
         {{-- Nutrition (computed by NutritionCalculator for what's currently held) --}}
-        <section class="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
-            <h2 class="text-sm font-semibold text-zinc-900">Nutrition in what you have</h2>
+        <x-app.module label="Nutrition in what you have" padding="px-5 pb-2 pt-4" class="-mt-3">
             @if ($hasNutrition)
-                <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div class="mt-2 grid grid-cols-2 gap-x-6">
                     @foreach ([
-                        ['Calories', $nutrition->calories, 'kcal'],
-                        ['Protein', $nutrition->protein, 'g'],
-                        ['Carbs', $nutrition->carbs, 'g'],
-                        ['Sugars', $nutrition->sugars, 'g'],
-                        ['Fat', $nutrition->fat, 'g'],
-                        ['Saturated', $nutrition->saturatedFat, 'g'],
-                        ['Fibre', $nutrition->fibre, 'g'],
-                        ['Salt', $nutrition->salt, 'g'],
+                        ['Calories', $nutrition->calories, 'KCAL'],
+                        ['Protein', $nutrition->protein, 'G'],
+                        ['Carbs', $nutrition->carbs, 'G'],
+                        ['Sugars', $nutrition->sugars, 'G'],
+                        ['Fat', $nutrition->fat, 'G'],
+                        ['Saturated', $nutrition->saturatedFat, 'G'],
+                        ['Fibre', $nutrition->fibre, 'G'],
+                        ['Salt', $nutrition->salt, 'G'],
                     ] as [$label, $value, $unit])
-                        <div class="rounded-xl bg-zinc-50 px-3 py-2.5">
-                            <p class="text-[11px] font-medium uppercase tracking-wide text-zinc-400">{{ $label }}</p>
-                            <p class="mt-0.5 text-sm font-semibold text-zinc-900">{{ rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.') }} <span class="text-xs font-normal text-zinc-500">{{ $unit }}</span></p>
+                        <div class="flex items-baseline justify-between border-b border-seam py-2 last:border-b-0 [&:nth-last-child(2)]:border-b-0">
+                            <span class="voice-caption text-ink-dim">{{ $label }}</span>
+                            <span class="data-md text-ink">
+                                @if ($value !== null){{ rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.') }}<span class="data-micro text-ink-faint"> {{ $unit }}</span>@else <span class="text-ink-faint">----</span>@endif
+                            </span>
                         </div>
                     @endforeach
                 </div>
             @else
-                <p class="mt-2 text-sm text-zinc-500">Nutrition isn't available for this item yet.</p>
+                <p class="voice-caption mt-2 pb-2 text-ink-dim">Nutrition isn't available for this item yet.</p>
             @endif
-        </section>
+        </x-app.module>
 
-        {{-- Actions --}}
-        <section class="space-y-4 rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm">
-            <h2 class="text-sm font-semibold text-zinc-900">Actions</h2>
-
-            {{-- Consume — records a snapshotted consumption event + deducts stock --}}
-            @php($outOfStock = (float) $pantryItem->current_quantity <= 0)
-            <div class="space-y-3">
-                <p class="text-xs font-medium text-zinc-600">Consume <span class="font-normal text-zinc-400">(logs it to today)</span></p>
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" wire:click="consumeOne" @disabled($outOfStock)
-                            class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40">
-                        I ate one
-                    </button>
-                    <button type="button" wire:click="consumeHalf" @disabled($outOfStock)
-                            class="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40">
-                        Half
-                    </button>
-                    <button type="button" wire:click="consumeAll" @disabled($outOfStock)
-                            class="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40">
-                        All
-                    </button>
-                </div>
-                <div class="flex items-end gap-3">
-                    <div class="w-24">
-                        <label class="text-xs font-medium text-zinc-600">Custom ({{ $pantryItem->quantity_unit->shortLabel() }})</label>
-                        <input type="number" step="any" min="0" inputmode="decimal" wire:model="consumeAmount"
-                               class="mt-1 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                    </div>
-                    <button type="button" wire:click="consume" @disabled($outOfStock)
-                            class="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40">
-                        Consume amount
-                    </button>
-                </div>
-                @error('consumeAmount') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+        {{-- Consume — the daily action, and a win when it lands. --}}
+        @php($outOfStock = (float) $pantryItem->current_quantity <= 0)
+        <x-app.module label="Consume — logs it to today">
+            <div class="mt-3 grid grid-cols-3 gap-2">
+                <button type="button" wire:click="consumeOne" wire:loading.attr="disabled" @disabled($outOfStock)
+                        class="key key-action keycap-sm whitespace-nowrap px-3 py-3.5 text-center disabled:cursor-not-allowed disabled:opacity-40">
+                    I ate one
+                </button>
+                <button type="button" wire:click="consumeHalf" wire:loading.attr="disabled" @disabled($outOfStock)
+                        class="key keycap-sm whitespace-nowrap px-3 py-3.5 text-center text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
+                    Half
+                </button>
+                <button type="button" wire:click="consumeAll" wire:loading.attr="disabled" @disabled($outOfStock)
+                        class="key keycap-sm whitespace-nowrap px-3 py-3.5 text-center text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
+                    All
+                </button>
             </div>
-
-            {{-- Change quantity --}}
-            <div class="space-y-2 border-t border-zinc-100 pt-4">
-                <p class="text-xs font-medium text-zinc-600">Change quantity <span class="font-normal text-zinc-400">(set the true amount)</span></p>
-                <div class="flex items-end gap-3">
-                    <div class="w-28">
-                        <input type="number" step="any" min="0" inputmode="decimal" wire:model="newQuantity"
-                               class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                    </div>
-                    <button type="button" wire:click="changeQuantity"
-                            class="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50">
-                        Update
-                    </button>
+            <div class="mt-3 flex items-end gap-3">
+                <div class="w-36">
+                    <label class="silkscreen whitespace-nowrap" for="consume-amount">Custom ({{ $pantryItem->quantity_unit->shortLabel() }})</label>
+                    <input id="consume-amount" type="number" step="any" min="0" max="100000" inputmode="decimal" wire:model="consumeAmount"
+                           class="input-well data mt-1.5">
                 </div>
-                @error('newQuantity') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                <button type="button" wire:click="consume" wire:loading.attr="disabled" @disabled($outOfStock)
+                        class="key keycap-sm px-4 py-3 text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
+                    Consume amount
+                </button>
             </div>
+            @error('consumeAmount') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
+        </x-app.module>
 
-            {{-- Remove --}}
-            <div class="border-t border-zinc-100 pt-4">
+        {{-- Inventory corrections --}}
+        <x-app.module label="Correct stock">
+            <div class="mt-3 flex items-end gap-3">
+                <div class="w-28">
+                    <label class="silkscreen" for="new-quantity">True amount</label>
+                    <input id="new-quantity" type="number" step="any" min="0" max="100000" inputmode="decimal" wire:model="newQuantity"
+                           class="input-well data mt-1.5">
+                </div>
+                <button type="button" wire:click="changeQuantity" wire:loading.attr="disabled"
+                        class="key keycap-sm px-4 py-3 text-ink-dim">
+                    Update
+                </button>
+            </div>
+            @error('newQuantity') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
+
+            <div class="mt-4 border-t border-seam pt-4">
                 @if ($confirmRemove)
                     <div class="flex items-center gap-3">
-                        <button type="button" wire:click="remove"
-                                class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700">
+                        <button type="button" wire:click="remove" wire:loading.attr="disabled"
+                                class="key keycap border-high bg-high px-4 py-2.5 text-black">
                             Confirm remove
                         </button>
-                        <button type="button" wire:click="$set('confirmRemove', false)" class="text-sm font-medium text-zinc-500 hover:text-zinc-800">Cancel</button>
+                        <button type="button" wire:click="$set('confirmRemove', false)" class="keycap-sm hit text-ink-dim transition hover:text-ink">Cancel</button>
                     </div>
                 @else
                     <button type="button" wire:click="$set('confirmRemove', true)"
-                            class="text-sm font-semibold text-red-600 hover:text-red-700">
+                            class="keycap-sm hit text-high transition hover:brightness-125">
                         Remove from pantry
                     </button>
                 @endif
             </div>
-        </section>
+        </x-app.module>
 
-        <div x-show="toast" x-cloak class="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-md px-5">
-            <div class="rounded-xl bg-zinc-900 px-4 py-2.5 text-center text-sm font-medium text-white shadow-lg">Pantry updated</div>
-        </div>
+        {{-- The logged win gets the green stamp; a stock correction is a quiet save. --}}
+        <x-app.stamp-toast show="toast === 'logged'">Logged to today</x-app.stamp-toast>
+        <x-app.stamp-toast show="toast === 'saved'" tone="neutral">Stock corrected</x-app.stamp-toast>
     </div>
-
