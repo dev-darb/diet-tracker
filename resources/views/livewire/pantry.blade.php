@@ -191,5 +191,8 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                     @endforeach
                 </ul>
             </section>
+
+            {{-- AI chef: meal ideas grounded in the stock above (hidden keyless). --}}
+            <livewire:ai-chef />
         @endif
     </div>

@@ -6,14 +6,18 @@ use App\AI\Contracts\DietInsightGenerator;
 use App\AI\Contracts\EatingOutEstimator;
 use App\AI\Contracts\MealPhotoInterpreter;
 use App\AI\Contracts\ProductIdentifier;
+use App\AI\Contracts\RecipeSuggester;
 use App\AI\Local\RuleBasedDietInsightGenerator;
 use App\AI\Local\UnavailableEatingOutEstimator;
 use App\AI\Local\UnavailableMealPhotoInterpreter;
+use App\AI\Local\UnavailableRecipeSuggester;
 use App\AI\OpenRouter\PrismDietInsightGenerator;
 use App\AI\OpenRouter\PrismEatingOutEstimator;
 use App\AI\OpenRouter\PrismMealPhotoInterpreter;
 use App\AI\OpenRouter\PrismProductIdentifier;
+use App\AI\OpenRouter\PrismRecipeSuggester;
 use App\Services\AiJobLogger;
+use App\Services\NutritionTargetsService;
 use Illuminate\Support\ServiceProvider;
 use Prism\Prism\PrismManager;
 use Prism\Prism\Providers\OpenAI\OpenAI;
@@ -86,6 +90,21 @@ class AiServiceProvider extends ServiceProvider
                     model: $config['model'],
                 )
                 : new UnavailableEatingOutEstimator;
+        });
+
+        // AI chef (Pantry). Same grace rule: no key -> no chef module.
+        $this->app->bind(RecipeSuggester::class, function ($app): RecipeSuggester {
+            $config = $app['config']->get('ai.recipe_suggester');
+            $key = $app['config']->get('prism.providers.'.$config['provider'].'.api_key');
+
+            return filled($key)
+                ? new PrismRecipeSuggester(
+                    logger: $app->make(AiJobLogger::class),
+                    targets: $app->make(NutritionTargetsService::class),
+                    provider: $config['provider'],
+                    model: $config['model'],
+                )
+                : new UnavailableRecipeSuggester;
         });
 
         // Meal-photo interpretation (capture flow Phase B). Same grace rule:

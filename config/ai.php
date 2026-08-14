@@ -69,6 +69,13 @@ return [
         'model' => env('AI_DIET_INSIGHT_MODEL', 'openai/gpt-4o'),
     ],
 
+    // AI chef (Pantry): stock + goal + constraints -> breakfast/lunch/dinner
+    // ideas with short recipes. Text-only.
+    'recipe_suggester' => [
+        'provider' => env('AI_RECIPE_PROVIDER', $gateway),
+        'model' => env('AI_RECIPE_MODEL', 'openai/gpt-4o-mini'),
+    ],
+
     // Eating-out estimation (capture flow, BUILD_PLAN §1b tier 3): dish + venue
     // -> estimated figures. Text-only, so cheap models do well here.
     'eating_out_estimator' => [
