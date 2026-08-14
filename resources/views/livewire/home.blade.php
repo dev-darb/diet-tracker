@@ -30,6 +30,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
 }; ?>
 
     <div class="space-y-5">
+        <h1 class="sr-only">Home</h1>
 
         {{-- TODAY — the master readout (brief §9.3). Scale axis is the typical
              adult reference intake range; geometry only, no maths here. --}}
@@ -38,7 +39,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
 
             @php($kcal = $today['totals']['calories'])
             <p class="mt-6 flex items-baseline justify-center gap-3">
-                <span class="font-seg text-[clamp(4.2rem,17vw,5.4rem)] leading-none {{ $today['has_data'] && $kcal !== null ? 'text-[#f2ede2]' : 'text-ink-faint' }}"
+                <span class="font-seg text-[clamp(4.2rem,17vw,5.4rem)] leading-none {{ $today['has_data'] && $kcal !== null ? 'text-phosphor' : 'text-ink-faint' }}"
                       aria-label="{{ $kcal !== null ? number_format((float) $kcal).' kilocalories today' : 'No calories logged yet today' }}">{{ $kcal !== null ? number_format((float) $kcal, 0, '', '') : '----' }}</span>
                 <span class="data-md text-ink-dim">KCAL</span>
             </p>

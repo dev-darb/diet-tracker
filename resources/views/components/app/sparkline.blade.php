@@ -21,8 +21,9 @@
     $pad = ($slot - $barW) / 2;
 @endphp
 
+@php($spoken = collect($series)->map(fn ($v, $i) => ($labels[$i] ?? 'day '.($i + 1)).' '.($v === null ? 'no data' : round($v)))->implode(', '))
 <svg viewBox="0 0 100 44" preserveAspectRatio="none" class="h-14 w-full" role="img"
-     aria-label="Last {{ $count }} days{{ $unit ? ' ('.$unit.')' : '' }}">
+     aria-label="Last {{ $count }} days{{ $unit ? ' ('.$unit.')' : '' }}: {{ $spoken }}">
     {{-- baseline --}}
     <line x1="0" y1="40" x2="100" y2="40" stroke="var(--color-seam-strong)" stroke-width="0.5" />
     @foreach ($series as $i => $value)

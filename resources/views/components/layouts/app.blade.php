@@ -27,7 +27,7 @@
         -->
 
         {{-- Mobile-first console shell (brief §5, §15; BUILD_PLAN J0.3). --}}
-        <div class="mx-auto flex min-h-dvh w-full max-w-md flex-col">
+        <div class="mx-auto flex min-h-dvh w-full max-w-md flex-col md:border-x md:border-seam">
 
             {{-- Top status bar: this is the user's console, so it carries their
                  name — the Jabba brand lives on the welcome/auth surfaces only. --}}
@@ -42,7 +42,7 @@
                         <span class="data-sm text-ink-dim uppercase">{{ now()->format('D j M') }}</span>
                         <a href="{{ route('profile') }}"
                            aria-label="Profile and settings"
-                           class="key flex size-8 items-center justify-center text-xs font-medium text-ink-dim {{ request()->routeIs('profile') ? 'text-action' : '' }}">
+                           class="key hit flex size-8 items-center justify-center text-xs font-medium text-ink-dim {{ request()->routeIs('profile') ? 'text-action' : '' }}">
                             {{ auth()->user()?->initials() ?: '?' }}
                         </a>
                     </div>

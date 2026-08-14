@@ -111,11 +111,11 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                 @if ($selectedProduct)
                     <div class="mt-3 flex items-center justify-between gap-3 rounded-[5px] border border-seam bg-plate-well px-3.5 py-2.5">
                         <span class="min-w-0 truncate text-sm text-ink">{{ $selectedProduct->brand }} — {{ $selectedProduct->name }}</span>
-                        <button type="button" wire:click="clearSelection" class="keycap-sm shrink-0 text-ink-dim transition hover:text-ink">Change</button>
+                        <button type="button" wire:click="clearSelection" class="keycap-sm hit shrink-0 text-ink-dim transition hover:text-ink">Change</button>
                     </div>
                 @else
                     <div class="mt-3">
-                        <input type="search" wire:model.live.debounce.300ms="productSearch" placeholder="Search products…"
+                        <input type="search" wire:model.live.debounce.300ms="productSearch" placeholder="Search products…" aria-label="Search products"
                                class="w-full rounded-[5px] border border-seam bg-plate-well px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-action focus:outline-none">
                         @if (count($matches) > 0)
                             <ul class="mt-2 divide-y divide-seam overflow-hidden rounded-[5px] border border-seam">

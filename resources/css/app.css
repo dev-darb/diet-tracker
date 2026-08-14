@@ -16,15 +16,14 @@
 --------------------------------------------------------------------------- */
 @font-face {
     font-family: 'Archivo';
-    src: url('../../public/fonts/Archivo-Variable.ttf') format('truetype-variations');
-    font-weight: 100 900;
-    font-stretch: 62.5% 125%;
+    src: url('../../public/fonts/Archivo-Var.woff2') format('woff2-variations');
+    font-weight: 400 700;
     font-display: swap;
 }
 
 @font-face {
     font-family: 'Fragment Mono';
-    src: url('../../public/fonts/FragmentMono-Regular.ttf') format('truetype');
+    src: url('../../public/fonts/FragmentMono-Regular.woff2') format('woff2');
     font-weight: 400;
     font-display: swap;
 }
@@ -52,11 +51,14 @@
     /* Ink */
     --color-ink: #eeeff0;
     --color-ink-dim: #a2a5aa;
-    --color-ink-faint: #7a7e84;
+    --color-ink-faint: #7e838b;
 
     /* Functional signals — fixed meanings, small areas, never decorative.
        action = primary action & streaks · good = confirmed/success ·
        low = under target · high = over target/error · info = information */
+    /* The live readout phosphor — warm off-white reserved for the DSEG gauge. */
+    --color-phosphor: #f2ede2;
+
     --color-action: #ff4d00;
     --color-good: #2fd05e;
     --color-low: #ffb020;
@@ -204,12 +206,27 @@
         text-transform: uppercase;
     }
 
+    /* Expands a small control's touch slab to >=44px without growing its
+       visible mark. The pseudo-element joins the element's hit region. */
+    .hit {
+        position: relative;
+    }
+    .hit::after {
+        content: '';
+        position: absolute;
+        inset: -6px;
+    }
+
     /* A physical key on the control strip / a pressable console control. */
     .key {
         border: 1px solid var(--color-seam);
         border-radius: 6px;
         background: var(--color-plate-raised);
-        transition: filter 120ms ease-out, transform 60ms ease-out;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        .key {
+            transition: filter 120ms ease-out, transform 60ms ease-out;
+        }
     }
     .key:active {
         transform: translateY(1px);
@@ -308,6 +325,14 @@
 @media (prefers-reduced-motion: reduce) {
     .led-sweep > *, .stamp-in {
         animation: none;
+    }
+}
+
+/* Narrow-chassis engraving: at sub-350px viewports the nav keycaps trade
+   tracking for fit rather than wrapping. */
+@media (max-width: 349px) {
+    .keycap-sm {
+        letter-spacing: 0.06em;
     }
 }
 

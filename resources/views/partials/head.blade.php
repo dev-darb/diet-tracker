@@ -6,8 +6,8 @@
 
 {{-- Typefaces are self-hosted (public/fonts) — no font CDN. Preload the two
      voices every screen uses; DSEG7 loads lazily for the Home readout. --}}
-<link rel="preload" href="{{ asset('fonts/Archivo-Variable.ttf') }}" as="font" type="font/ttf" crossorigin>
-<link rel="preload" href="{{ asset('fonts/FragmentMono-Regular.ttf') }}" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="{{ asset('fonts/Archivo-Var.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ asset('fonts/FragmentMono-Regular.woff2') }}" as="font" type="font/woff2" crossorigin>
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 

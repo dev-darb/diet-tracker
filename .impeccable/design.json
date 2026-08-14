@@ -127,7 +127,7 @@
    "ink-faint": {
     "role": "neutral",
     "displayName": "Ink Faint",
-    "canonical": "#7a7e84",
+    "canonical": "#7e838b",
     "tonalRamp": [
      "oklch(15% 0.008 255)",
      "oklch(27% 0.008 255)",
@@ -213,6 +213,12 @@
      "oklch(88% 0.07 220)",
      "oklch(95% 0.03 220)"
     ]
+   },
+   "phosphor": {
+    "role": "accent",
+    "displayName": "Phosphor",
+    "canonical": "#f2ede2",
+    "note": "Live readout tint, DSEG gauge only."
    }
   },
   "typographyMeta": {

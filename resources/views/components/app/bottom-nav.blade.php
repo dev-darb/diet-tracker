@@ -21,7 +21,7 @@
 {{-- The console's control strip: five physical keys on one seam-lined plate,
      the orange SCAN key raised and dominant (brief §5, design brief). --}}
 <nav class="fixed inset-x-0 bottom-0 z-30" aria-label="Primary">
-    <div class="mx-auto max-w-md border-t border-seam bg-chassis/95 backdrop-blur">
+    <div class="mx-auto max-w-md border-t border-seam bg-chassis">
         <div class="grid grid-cols-5 gap-2 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3">
             @foreach ([0, 1] as $i)
                 <a href="{{ $keys[$i]['href'] }}" @if($keys[$i]['active']) aria-current="page" @endif

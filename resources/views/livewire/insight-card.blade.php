@@ -94,17 +94,17 @@ new class extends Component
             {{-- Actions (brief §9.6). --}}
             <div class="mt-4 flex flex-wrap items-center gap-2">
                 <button type="button" wire:click="toggleWhy"
-                        class="key keycap-sm px-3 py-1.5 text-ink-dim">
+                        class="key keycap-sm hit px-3.5 py-2 text-ink-dim">
                     {{ $why ? 'Hide' : 'Why this matters' }}
                 </button>
                 @if (! empty($insight->pantry_item_ids))
                     <button type="button" wire:click="toggleEat"
-                            class="key keycap-sm px-3 py-1.5 text-ink-dim">
+                            class="key keycap-sm hit px-3.5 py-2 text-ink-dim">
                         {{ $eat ? 'Hide items' : 'What could I eat' }}
                     </button>
                 @endif
                 <button type="button" wire:click="dismiss"
-                        class="keycap-sm px-3 py-1.5 text-ink-faint transition hover:text-ink-dim">
+                        class="keycap-sm hit px-3.5 py-2 text-ink-faint transition hover:text-ink-dim">
                     Dismiss
                 </button>
             </div>

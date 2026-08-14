@@ -10,12 +10,13 @@ colors:
   seam-strong: "#33363b"
   ink: "#eeeff0"
   ink-dim: "#a2a5aa"
-  ink-faint: "#7a7e84"
+  ink-faint: "#7e838b"
   action: "#ff4d00"
   good: "#2fd05e"
   low: "#ffb020"
   high: "#ff3b30"
   info: "#39c2e8"
+  phosphor: "#f2ede2"
 typography:
   readout:
     fontFamily: "'DSEG7 Classic', 'Fragment Mono', monospace"
@@ -169,7 +170,7 @@ An achromatic three-tone chassis lit by five small, fixed-meaning signal lamps.
 - **Chassis** (#0a0b0c): the page ground; also the translucent backdrop-blurred bars (`bg-chassis/95`).
 - **Plate** (#141517): the standard module surface. **Plate Raised** (#1a1c1f): pressable keys. **Plate Well** (#101113): recessed inputs, capture wells, unlit LED cells.
 - **Seam** (#26282c): the universal hairline — module borders, dividers, meter tracks, idle scale ticks. **Seam Strong** (#33363b): emphasized seams, viewfinder brackets, unknown-chip borders, active ticks, scrollbar thumb.
-- **Ink** (#eeeff0) / **Ink Dim** (#a2a5aa) / **Ink Faint** (#7a7e84): the three-step text ramp — primary content, secondary/units, silkscreen labels and provenance lines.
+- **Ink** (#eeeff0) / **Ink Dim** (#a2a5aa) / **Ink Faint** (#7e838b): the three-step text ramp — primary content, secondary/units, silkscreen labels and provenance lines.
 
 ### Named Rules
 **The Fixed-Meaning Rule.** The five signals carry fixed semantics (action, good, low, high, info) on small areas only. A signal color is never decorative, never a background wash, and never re-assigned. The single exception is the earned success stamp's full green field.
@@ -232,7 +233,7 @@ Density is instrument-panel tight: rows at ~10px vertical padding, silkscreen la
 No ambient shadows anywhere. Depth is conveyed by material tone (well → plate → raised) and by 1px seams; the chassis shows between plates as physical gap. The single shadow in the system is structural, not atmospheric: the primary action key's machined edge (`box-shadow: 0 2px 0 0 #a33200`), a hardware ledge that collapses to 0 on `:active` as the key physically depresses (`translateY(2px)`). This is the world's native pressed-key device, not a decorative offset shadow — do not generalize it to non-key surfaces.
 
 ### Named Rules
-**The Seam Rule.** Separation is always a 1px seam or a tonal step, never a drop shadow, glow, or blur (backdrop-blur on the chassis bars is the sole blur, and it blurs content, not edges).
+**The Seam Rule.** Separation is always a 1px seam or a tonal step, never a drop shadow, glow, or blur (backdrop-blur on the top status bar is the sole blur, and it blurs content, not edges).
 
 ## Shapes
 

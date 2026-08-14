@@ -224,11 +224,11 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
                                 class="key keycap border-high bg-high px-4 py-2.5 text-black">
                             Confirm remove
                         </button>
-                        <button type="button" wire:click="$set('confirmRemove', false)" class="keycap-sm text-ink-dim transition hover:text-ink">Cancel</button>
+                        <button type="button" wire:click="$set('confirmRemove', false)" class="keycap-sm hit text-ink-dim transition hover:text-ink">Cancel</button>
                     </div>
                 @else
                     <button type="button" wire:click="$set('confirmRemove', true)"
-                            class="keycap-sm text-high transition hover:brightness-125">
+                            class="keycap-sm hit text-high transition hover:brightness-125">
                         Remove from pantry
                     </button>
                 @endif

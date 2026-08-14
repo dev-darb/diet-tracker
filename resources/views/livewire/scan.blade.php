@@ -270,6 +270,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 }; ?>
 
     <div class="space-y-3">
+        <h1 class="sr-only">Scan</h1>
         <style>[x-cloak]{display:none!important}</style>
 
         {{-- Progress while resolving (brief §7.2, §15). --}}
