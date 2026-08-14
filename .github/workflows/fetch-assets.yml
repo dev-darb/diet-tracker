@@ -1,18 +1,20 @@
-# Utility workflow: fetch generated design assets (comps, references) from a
-# CDN into the repo. Needed because Claude Code remote sessions run behind a
-# network allowlist that blocks the image CDN, while Actions runners do not.
-# Dispatch with a JSON map of {dest_path: url} and a target branch.
+# Utility workflow: fetch generated design assets (comps, references) into the
+# repo. Claude Code remote sessions run behind a network allowlist that blocks
+# the image CDN; Actions runners do not. Push-triggered (not dispatch) because
+# workflow_dispatch requires the file on the default branch.
+#
+# Usage: commit .impeccable/fetch-manifest.json — a JSON object mapping
+# repo-relative dest paths to https URLs — and push. The run downloads each
+# file and commits the results back to the same branch. The manifest path
+# filter (plus GITHUB_TOKEN's no-recursion rule) prevents retrigger loops.
 name: Fetch design assets
 
 on:
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: Branch to commit the fetched assets to
-        required: true
-      files:
-        description: 'JSON object mapping repo-relative dest paths to https URLs'
-        required: true
+  push:
+    branches:
+      - claude/plugin-marketplace-pbakaus-impeccable-kh2hfv
+    paths:
+      - .impeccable/fetch-manifest.json
 
 permissions:
   contents: write
@@ -22,16 +24,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
       - name: Download assets
-        env:
-          FILES: ${{ github.event.inputs.files }}
         run: |
-          echo "$FILES" | jq -r 'to_entries[] | [.key, .value] | @tsv' \
+          jq -r 'to_entries[] | [.key, .value] | @tsv' .impeccable/fetch-manifest.json \
           | while IFS=$'\t' read -r dest url; do
               case "$dest" in
                 (/*|*..*) echo "refusing path: $dest" >&2; exit 1;;
+              esac
+              case "$url" in
+                (https://*) ;;
+                (*) echo "refusing url: $url" >&2; exit 1;;
               esac
               mkdir -p "$(dirname "$dest")"
               curl -fsSL --max-filesize 26214400 -o "$dest" "$url"
