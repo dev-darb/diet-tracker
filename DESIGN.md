@@ -126,6 +126,9 @@ components:
     typography: "{typography.label}"
     rounded: "{rounded.chip}"
     padding: "3.2px 8.8px"
+  well:
+    backgroundColor: "{colors.plate-well}"
+    rounded: "{rounded.well}"
   input-well:
     backgroundColor: "{colors.plate-well}"
     textColor: "{colors.ink}"
@@ -240,6 +243,15 @@ No ambient shadows anywhere. Depth is conveyed by material tone (well → plate 
 Machined, small-radius geometry: 6px on plates and keys, 5px on recessed wells, 4px on chips, 2px on LED cells and meter tracks. Nothing is pill-shaped or fully round except two tiny status dots (live dot, barcode lamp). Corners never exceed 6px. Recurring silhouettes: the seam-bordered plate, the raised key, the 10px square LED cell, the 3px meter strip, viewfinder corner brackets drawn as stroked SVG paths. Charts are quantized — sparkline bars render as stacked LED cells, the kcal scale as engraved tick marks — never smooth gradient fills.
 
 ## Components
+
+The reusable layer lives in two tiers: CSS classes in `resources/css/app.css` (`.module`, `.key`, `.key-action`, `.chip`, `.led`, `.meter`, `.well`, `.input-well`, the type roles) and Blade components in `resources/views/components/app/`:
+
+- **`<x-app.module label meta padding>`** — the labeled instrument plate (silkscreen label, optional right-side meta readout). Faceplate clusters with bespoke internals stay hand-built.
+- **`<x-app.console-key href primary>`** — the full-width stacked action key at the foot of a flow step; renders a button or link, passes wire/Alpine attributes through. Inline and compact keys keep their own markup.
+- **`<x-app.placeholder glyph tone status title subtitle>`** — every idle and fault instrument state (`----` empty, `ERR`, `AI--`, `?---`, `LOGD`), tones keyed to the signal palette, optional slot for detail rows.
+- **`<x-app.stamp-toast show tone>`** — the reward stamp (green + check, genuine wins only) and the neutral quiet-save plate; announces via `role="status"`.
+- **`.input-well`** — one seated treatment for every form field (well material, ink text, action-orange focus, dark color-scheme).
+- Existing: `<x-app.indicators>`, `<x-app.sparkline>`, `<x-app.bottom-nav>`, `<x-app.health-disclaimer>`.
 
 ### Keys (buttons)
 - **Character:** physical console keys — they depress, they don't hover-glow.

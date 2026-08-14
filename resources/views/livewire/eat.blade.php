@@ -192,12 +192,12 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                             <div class="w-24">
                                                 <label class="silkscreen" for="edit-qty-{{ $event->id }}">Amount</label>
                                                 <input id="edit-qty-{{ $event->id }}" type="number" step="any" min="0" inputmode="decimal" wire:model="editQuantity"
-                                                       class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
+                                                       class="input-well data mt-1.5 !bg-plate">
                                             </div>
                                             <div class="min-w-[10rem] flex-1">
                                                 <label class="silkscreen" for="edit-time-{{ $event->id }}">Time</label>
                                                 <input id="edit-time-{{ $event->id }}" type="datetime-local" wire:model="editTime"
-                                                       class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate px-3 py-2 text-sm text-ink [color-scheme:dark] focus:border-action focus:outline-none">
+                                                       class="input-well data mt-1.5 !bg-plate">
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <button type="button" wire:click="saveEdit" wire:loading.attr="disabled"
@@ -216,10 +216,5 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
             @endforeach
         @endif
 
-        <div x-show="toast" x-cloak role="status" class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
-            <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md bg-good px-4 py-3 text-black">
-                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg>
-                <span class="keycap">Updated</span>
-            </div>
-        </div>
+        <x-app.stamp-toast show="toast">Updated</x-app.stamp-toast>
     </div>

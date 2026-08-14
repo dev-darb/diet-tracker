@@ -105,20 +105,19 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
 
         {{-- Manual add (pre-Scan path) --}}
         @if ($showAdd)
-            <section class="module px-5 pb-5 pt-4">
-                <h2 class="silkscreen">Add to pantry</h2>
+            <x-app.module label="Add to pantry">
 
                 @if ($selectedProduct)
-                    <div class="mt-3 flex items-center justify-between gap-3 rounded-[5px] border border-seam bg-plate-well px-3.5 py-2.5">
+                    <div class="well mt-3 flex items-center justify-between gap-3 px-3.5 py-2.5">
                         <span class="min-w-0 truncate text-sm text-ink">{{ $selectedProduct->brand }} — {{ $selectedProduct->name }}</span>
                         <button type="button" wire:click="clearSelection" class="keycap-sm hit shrink-0 text-ink-dim transition hover:text-ink">Change</button>
                     </div>
                 @else
                     <div class="mt-3">
                         <input type="search" wire:model.live.debounce.300ms="productSearch" placeholder="Search products…" aria-label="Search products" maxlength="80"
-                               class="w-full rounded-[5px] border border-seam bg-plate-well px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-action focus:outline-none">
+                               class="input-well">
                         @if (count($matches) > 0)
-                            <ul class="mt-2 divide-y divide-seam overflow-hidden rounded-[5px] border border-seam">
+                            <ul class="well mt-2 divide-y divide-seam overflow-hidden">
                                 @foreach ($matches as $match)
                                     <li>
                                         <button type="button" wire:click="selectProduct({{ $match->id }})"
@@ -140,12 +139,12 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                     <div class="w-24">
                         <label class="silkscreen" for="add-qty">Quantity</label>
                         <input id="add-qty" type="number" step="any" min="0" max="100000" inputmode="decimal" wire:model="addQuantity"
-                               class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
+                               class="input-well data mt-1.5">
                     </div>
                     <div class="flex-1">
                         <label class="silkscreen" for="add-unit">Unit</label>
                         <select id="add-unit" wire:model="addUnit"
-                                class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
+                                class="input-well data mt-1.5">
                             @foreach ($unitOptions as $option)
                                 <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
                             @endforeach
@@ -154,11 +153,10 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                 </div>
                 @error('addQuantity') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
 
-                <button type="button" wire:click="add" wire:loading.attr="disabled"
-                        class="key key-action keycap mt-4 w-full px-4 py-3 text-center">
+                <x-app.console-key primary wire:click="add" wire:loading.attr="disabled" class="mt-4">
                     Add to pantry
-                </button>
-            </section>
+                </x-app.console-key>
+            </x-app.module>
         @endif
 
         {{-- Pantry list: dense data rows, quantity as a readout. --}}

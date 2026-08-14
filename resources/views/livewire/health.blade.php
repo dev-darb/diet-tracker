@@ -133,7 +133,7 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
             <livewire:insight-card />
 
             {{-- Trends horizon: an unpowered bay, recessed, not a plate (§9.2). --}}
-            <section class="rounded-md border border-seam bg-plate-well px-5 py-3.5">
+            <section class="well !rounded-md px-5 py-3.5">
                 <div class="flex items-center justify-between">
                     <h2 class="silkscreen">Trends</h2>
                     <span class="data-sm text-ink-faint uppercase">Standby</span>

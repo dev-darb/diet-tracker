@@ -121,8 +121,7 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         </a>
 
         {{-- Identity + current quantity readout --}}
-        <section class="module px-5 pb-5 pt-4">
-            <h2 class="silkscreen">Item</h2>
+        <x-app.module label="Item">
             <h1 class="voice-item mt-3 text-ink">{{ $pantryItem->canonicalProduct->brand }} <span class="text-ink-dim">{{ $pantryItem->canonicalProduct->name }}</span></h1>
             @if ($pantryItem->canonicalProduct->variant)
                 <p class="voice-caption mt-0.5 text-ink-dim">{{ $pantryItem->canonicalProduct->variant }}</p>
@@ -140,11 +139,10 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
                     @if ($pantryItem->expiry_date) Expires {{ $pantryItem->expiry_date->format('j M Y') }} @endif
                 </p>
             @endif
-        </section>
+        </x-app.module>
 
         {{-- Nutrition (computed by NutritionCalculator for what's currently held) --}}
-        <section class="module -mt-3 px-5 pb-2 pt-4">
-            <h2 class="silkscreen">Nutrition in what you have</h2>
+        <x-app.module label="Nutrition in what you have" padding="px-5 pb-2 pt-4" class="-mt-3">
             @if ($hasNutrition)
                 <div class="mt-2 grid grid-cols-2 gap-x-6">
                     @foreach ([
@@ -168,12 +166,11 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
             @else
                 <p class="voice-caption mt-2 pb-2 text-ink-dim">Nutrition isn't available for this item yet.</p>
             @endif
-        </section>
+        </x-app.module>
 
         {{-- Consume — the daily action, and a win when it lands. --}}
         @php($outOfStock = (float) $pantryItem->current_quantity <= 0)
-        <section class="module px-5 pb-5 pt-4">
-            <h2 class="silkscreen">Consume — logs it to today</h2>
+        <x-app.module label="Consume — logs it to today">
             <div class="mt-3 grid grid-cols-3 gap-2">
                 <button type="button" wire:click="consumeOne" wire:loading.attr="disabled" @disabled($outOfStock)
                         class="key key-action keycap-sm whitespace-nowrap px-3 py-3.5 text-center disabled:cursor-not-allowed disabled:opacity-40">
@@ -192,7 +189,7 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
                 <div class="w-36">
                     <label class="silkscreen whitespace-nowrap" for="consume-amount">Custom ({{ $pantryItem->quantity_unit->shortLabel() }})</label>
                     <input id="consume-amount" type="number" step="any" min="0" max="100000" inputmode="decimal" wire:model="consumeAmount"
-                           class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
+                           class="input-well data mt-1.5">
                 </div>
                 <button type="button" wire:click="consume" wire:loading.attr="disabled" @disabled($outOfStock)
                         class="key keycap-sm px-4 py-3 text-ink-dim disabled:cursor-not-allowed disabled:opacity-40">
@@ -200,16 +197,15 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
                 </button>
             </div>
             @error('consumeAmount') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
-        </section>
+        </x-app.module>
 
         {{-- Inventory corrections --}}
-        <section class="module px-5 pb-5 pt-4">
-            <h2 class="silkscreen">Correct stock</h2>
+        <x-app.module label="Correct stock">
             <div class="mt-3 flex items-end gap-3">
                 <div class="w-28">
                     <label class="silkscreen" for="new-quantity">True amount</label>
                     <input id="new-quantity" type="number" step="any" min="0" max="100000" inputmode="decimal" wire:model="newQuantity"
-                           class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2 text-sm text-ink focus:border-action focus:outline-none">
+                           class="input-well data mt-1.5">
                 </div>
                 <button type="button" wire:click="changeQuantity" wire:loading.attr="disabled"
                         class="key keycap-sm px-4 py-3 text-ink-dim">
@@ -234,18 +230,9 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
                     </button>
                 @endif
             </div>
-        </section>
+        </x-app.module>
 
         {{-- The logged win gets the green stamp; a stock correction is a quiet save. --}}
-        <div x-show="toast === 'logged'" x-cloak role="status" class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
-            <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md bg-good px-4 py-3 text-black">
-                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg>
-                <span class="keycap">Logged to today</span>
-            </div>
-        </div>
-        <div x-show="toast === 'saved'" x-cloak role="status" class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
-            <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md border border-seam bg-plate-raised px-4 py-3 text-ink">
-                <span class="keycap">Stock corrected</span>
-            </div>
-        </div>
+        <x-app.stamp-toast show="toast === 'logged'">Logged to today</x-app.stamp-toast>
+        <x-app.stamp-toast show="toast === 'saved'" tone="neutral">Stock corrected</x-app.stamp-toast>
     </div>

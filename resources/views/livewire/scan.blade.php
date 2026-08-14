@@ -356,7 +356,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                     <div class="module px-5 pb-0 pt-4">
                     <label class="block cursor-pointer">
                         <span class="silkscreen">Scan</span>
-                        <div class="relative mt-3 flex min-h-56 flex-col items-center justify-center overflow-hidden rounded-[5px] border border-seam bg-plate-well px-6 py-10 text-center transition hover:border-seam-strong">
+                        <div class="well relative mt-3 flex min-h-56 flex-col items-center justify-center overflow-hidden px-6 py-10 text-center transition hover:border-seam-strong">
                             {{-- Viewfinder corner brackets --}}
                             <svg class="pointer-events-none absolute inset-2 text-seam-strong" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                                 <path d="M0 8V0h4M96 0h4v8M100 92v8h-4M4 100H0v-8" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" transform="scale(1,1)"/>
@@ -419,11 +419,9 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
                     <p x-show="uploadError" x-cloak class="border-l border-high bg-plate-well px-3 py-2 text-xs leading-relaxed text-ink-dim" x-text="uploadError"></p>
 
-                    <button type="button" x-show="barcodeFound || uploaded" x-cloak
-                            wire:click="analyze" wire:loading.attr="disabled"
-                            class="key key-action w-full keycap px-4 py-3.5 text-center">
+                    <x-app.console-key primary x-show="barcodeFound || uploaded" x-cloak wire:click="analyze" wire:loading.attr="disabled">
                         Identify product
-                    </button>
+                    </x-app.console-key>
 
                     <p class="px-1 text-center text-xs text-ink-faint">
                         Prefer to type it in? <a href="{{ route('pantry') }}" class="text-ink-dim underline decoration-seam-strong underline-offset-4 transition hover:text-ink">Add to pantry manually</a>
@@ -434,8 +432,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             {{-- STEP 2 — Confirm "Is this right?" (brief §7.6) --------------------}}
             @if ($step === 'confirm' && $product)
                 <div class="space-y-3">
-                    <div class="module px-5 pb-5 pt-4">
-                        <h2 class="silkscreen">Match — Is this right?</h2>
+                    <x-app.module label="Match — Is this right?">
 
                         <p class="voice-item mt-4 text-ink">{{ $product->brand }} <span class="text-ink-dim">{{ $product->name }}</span></p>
                         @if ($product->variant)
@@ -483,17 +480,15 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         @elseif (! $nutrition)
                             <p class="voice-micro mt-1 text-ink-faint">Nutrition isn't available for this product yet.</p>
                         @endif
-                    </div>
+                    </x-app.module>
 
                     <div class="space-y-2">
-                        <button type="button" wire:click="yesAddIt" wire:loading.attr="disabled"
-                                class="key key-action w-full keycap px-4 py-3.5 text-center">
+                        <x-app.console-key primary wire:click="yesAddIt" wire:loading.attr="disabled">
                             Yes, add it
-                        </button>
-                        <button type="button" wire:click="wrongProduct"
-                                class="key w-full keycap px-4 py-3.5 text-center text-ink-dim">
+                        </x-app.console-key>
+                        <x-app.console-key wire:click="wrongProduct">
                             Wrong product
-                        </button>
+                        </x-app.console-key>
                     </div>
                 </div>
             @endif
@@ -501,8 +496,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             {{-- STEP 3 — Quantity (brief §7.7) -----------------------------------}}
             @if ($step === 'quantity' && $product)
                 <div class="space-y-3">
-                    <div class="module px-5 pb-5 pt-4">
-                        <h2 class="silkscreen">Quantity — how many did you buy?</h2>
+                    <x-app.module label="Quantity — how many did you buy?">
                         <p class="mt-2 text-sm text-ink-dim">{{ $product->brand }} — {{ $product->name }}</p>
 
                         <div class="mt-5 flex items-center justify-center gap-4">
@@ -516,7 +510,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         <div class="mt-5">
                             <label class="silkscreen" for="scan-unit">Unit</label>
                             <select id="scan-unit" wire:model="unit"
-                                    class="data mt-1.5 w-full rounded-[5px] border border-seam bg-plate-well px-3 py-2.5 text-sm text-ink focus:border-action focus:outline-none">
+                                    class="input-well data mt-1.5">
                                 @foreach ($unitOptions as $option)
                                     <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
                                 @endforeach
@@ -524,39 +518,34 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         </div>
                         @error('quantity') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                         @error('unit') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
-                    </div>
+                    </x-app.module>
 
-                    <button type="button" wire:click="addToPantry" wire:loading.attr="disabled"
-                            class="key key-action w-full keycap px-4 py-3.5 text-center">
+                    <x-app.console-key primary wire:click="addToPantry" wire:loading.attr="disabled">
                         Add to pantry
-                    </button>
+                    </x-app.console-key>
                 </div>
             @endif
 
             {{-- Something failed while resolving — actionable, never a blank page --}}
             @if ($step === 'error')
                 <div class="space-y-3">
-                    <div class="module px-6 py-12 text-center">
-                        <p class="data-xl text-high" aria-hidden="true">ERR</p>
-                        <p class="silkscreen mt-2">Resolve failed</p>
-                        <h2 class="voice-item mt-5 text-ink">Something went wrong adding that product</h2>
-                        <p class="voice-caption mx-auto mt-1.5 max-w-xs text-ink-dim">It's been logged. Try again, or add the product to your pantry manually.</p>
+                    <x-app.placeholder glyph="ERR" tone="high" status="Resolve failed"
+                        title="Something went wrong adding that product"
+                        subtitle="It's been logged. Try again, or add the product to your pantry manually.">
                         @if ($errorDetail !== '')
                             <p class="data-sm mx-auto mt-4 max-w-xs break-words border-l border-high bg-plate-well px-3 py-2 text-left text-ink-dim">
                                 DETAIL (share with support): {{ $errorDetail }}
                             </p>
                         @endif
-                    </div>
+                    </x-app.placeholder>
 
                     <div class="space-y-2">
-                        <button type="button" wire:click="scanAnother"
-                                class="key key-action w-full keycap px-4 py-3.5 text-center">
+                        <x-app.console-key primary wire:click="scanAnother">
                             Try another scan
-                        </button>
-                        <a href="{{ route('pantry') }}"
-                           class="key block w-full keycap px-4 py-3.5 text-center text-ink-dim">
+                        </x-app.console-key>
+                        <x-app.console-key :href="route('pantry')">
                             Add manually
-                        </a>
+                        </x-app.console-key>
                     </div>
                 </div>
             @endif
@@ -578,8 +567,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         </div>
                     </div>
 
-                    <div class="module px-5 pb-4 pt-4">
-                        <h2 class="silkscreen">Item</h2>
+                    <x-app.module label="Item" padding="px-5 pb-4 pt-4">
                         <p class="voice-item mt-2 text-ink">{{ $addedProductName }}</p>
                         @php($fmtStamp = fn ($v) => rtrim(rtrim(number_format((float) $v, 1, '.', ''), '0'), '.'))
                         @php($stamp = $nutrition === null ? null : collect([
@@ -599,7 +587,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         <p class="data-sm mt-1.5 border-t border-seam pt-2 text-ink-faint uppercase">
                             {{ $detectedBarcode !== '' ? 'Barcode '.$detectedBarcode.' · ' : '' }}{{ $isSuggestion ? 'Best guess — confirmed by you' : 'Match — confirmed by you' }}
                         </p>
-                    </div>
+                    </x-app.module>
 
                     {{-- Reward strip: the counters that just moved. --}}
                     <div class="flex gap-2" aria-label="Progress update">
@@ -616,14 +604,12 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                     </div>
 
                     <div class="space-y-2 pt-1">
-                        <button type="button" wire:click="scanAnother"
-                                class="key key-action w-full keycap px-4 py-3.5 text-center">
+                        <x-app.console-key primary wire:click="scanAnother">
                             Scan next
-                        </button>
-                        <a href="{{ route('pantry') }}"
-                           class="key block w-full keycap px-4 py-3.5 text-center text-ink-dim">
+                        </x-app.console-key>
+                        <x-app.console-key :href="route('pantry')">
                             Done
-                        </a>
+                        </x-app.console-key>
                     </div>
                 </div>
             @endif
@@ -631,22 +617,17 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             {{-- Unknown / needs-research fallback (research is Milestone 3) ------}}
             @if ($step === 'unknown')
                 <div class="space-y-3">
-                    <div class="module px-6 py-12 text-center">
-                        <p class="data-xl text-ink-faint" aria-hidden="true">?---</p>
-                        <p class="silkscreen mt-2">No confident match</p>
-                        <h2 class="voice-item mt-5 text-ink">We couldn't confidently identify this yet</h2>
-                        <p class="voice-caption mx-auto mt-1.5 max-w-xs text-ink-dim">Scanning the barcode usually works best. You can also add this product to your pantry manually.</p>
-                    </div>
+                    <x-app.placeholder glyph="?---" status="No confident match"
+                        title="We couldn't confidently identify this yet"
+                        subtitle="Scanning the barcode usually works best. You can also add this product to your pantry manually." />
 
                     <div class="space-y-2">
-                        <a href="{{ route('pantry') }}"
-                           class="key key-action block w-full keycap px-4 py-3.5 text-center">
+                        <x-app.console-key primary :href="route('pantry')">
                             Add manually
-                        </a>
-                        <button type="button" wire:click="scanAnother"
-                                class="key w-full keycap px-4 py-3.5 text-center text-ink-dim">
+                        </x-app.console-key>
+                        <x-app.console-key wire:click="scanAnother">
                             Try another photo
-                        </button>
+                        </x-app.console-key>
                     </div>
                 </div>
             @endif
@@ -654,22 +635,17 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             {{-- Photo identification needs AI configuration (key-absent grace) ---}}
             @if ($step === 'ai_unavailable')
                 <div class="space-y-3">
-                    <div class="module px-6 py-12 text-center">
-                        <p class="data-xl text-low" aria-hidden="true">AI--</p>
-                        <p class="silkscreen mt-2">Not configured</p>
-                        <h2 class="voice-item mt-5 text-ink">Photo identification isn't switched on yet</h2>
-                        <p class="voice-caption mx-auto mt-1.5 max-w-xs text-ink-dim">Barcode scanning still works without it — scan the barcode, or add the product manually.</p>
-                    </div>
+                    <x-app.placeholder glyph="AI--" tone="low" status="Not configured"
+                        title="Photo identification isn't switched on yet"
+                        subtitle="Barcode scanning still works without it — scan the barcode, or add the product manually." />
 
                     <div class="space-y-2">
-                        <button type="button" wire:click="scanAnother"
-                                class="key key-action w-full keycap px-4 py-3.5 text-center">
+                        <x-app.console-key primary wire:click="scanAnother">
                             Scan the barcode
-                        </button>
-                        <a href="{{ route('pantry') }}"
-                           class="key block w-full keycap px-4 py-3.5 text-center text-ink-dim">
+                        </x-app.console-key>
+                        <x-app.console-key :href="route('pantry')">
                             Add manually
-                        </a>
+                        </x-app.console-key>
                     </div>
                 </div>
             @endif
@@ -677,22 +653,17 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             {{-- Wrong product recorded — retry or manual (brief §7.6) -----------}}
             @if ($step === 'corrected')
                 <div class="space-y-3">
-                    <div class="module px-6 py-12 text-center">
-                        <p class="data-xl text-info" aria-hidden="true">LOGD</p>
-                        <p class="silkscreen mt-2">Correction recorded</p>
-                        <h2 class="voice-item mt-5 text-ink">Thanks — we've noted that</h2>
-                        <p class="voice-caption mx-auto mt-1.5 max-w-xs text-ink-dim">Your correction helps improve product matching. Try another photo, or add the product manually.</p>
-                    </div>
+                    <x-app.placeholder glyph="LOGD" tone="info" status="Correction recorded"
+                        title="Thanks — we've noted that"
+                        subtitle="Your correction helps improve product matching. Try another photo, or add the product manually." />
 
                     <div class="space-y-2">
-                        <button type="button" wire:click="scanAnother"
-                                class="key key-action w-full keycap px-4 py-3.5 text-center">
+                        <x-app.console-key primary wire:click="scanAnother">
                             Try another photo
-                        </button>
-                        <a href="{{ route('pantry') }}"
-                           class="key block w-full keycap px-4 py-3.5 text-center text-ink-dim">
+                        </x-app.console-key>
+                        <x-app.console-key :href="route('pantry')">
                             Add manually
-                        </a>
+                        </x-app.console-key>
                     </div>
                 </div>
             @endif
