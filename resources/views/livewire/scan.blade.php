@@ -338,11 +338,11 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                                 const watchdog = setTimeout(() => {
                                     if (done) return;
                                     this.uploading = false;
-                                    this.uploadError = 'Photo upload timed out. Add the product manually below, or scan its barcode (which needs no upload).';
+                                    this.uploadError = 'Photo upload timed out. Try the barcode instead — it needs no upload — or add the product from the Pantry tab.';
                                 }, 20000);
                                 $wire.upload('photo', upload,
                                     () => { done = true; clearTimeout(watchdog); this.uploading = false; this.uploaded = true; },
-                                    (message) => { done = true; clearTimeout(watchdog); this.uploading = false; this.uploadError = 'Photo upload was rejected' + (message ? ' (' + message + ')' : '') + '. Add manually below, or scan the barcode instead.'; },
+                                    (message) => { done = true; clearTimeout(watchdog); this.uploading = false; this.uploadError = 'Photo upload was rejected' + (message ? ' (' + message + ')' : '') + '. Try the barcode instead, or add the product from the Pantry tab.'; },
                                     (e) => { this.progress = (e && e.detail) ? e.detail.progress : this.progress; }
                                 );
                             } catch (err) {
@@ -446,7 +446,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         <p class="data-sm mt-3 text-ink-faint uppercase">
                             @if ($detectedBarcode !== '') Barcode {{ $detectedBarcode }} · @endif
                             @if ($product->pack_size_value) {{ rtrim(rtrim(number_format((float) $product->pack_size_value, 3, '.', ''), '0'), '.') }}{{ $product->pack_size_unit }} · @endif
-                            {{ $isSuggestion ? 'Best guess' : 'Matched' }}
+                            {{ $isSuggestion ? 'Best guess' : 'Database match' }}
                         </p>
 
                         @if ($isSuggestion)
@@ -597,7 +597,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         </p>
                         {{-- Provenance is first-class (brief §2.2): only facts we hold. --}}
                         <p class="data-sm mt-1.5 border-t border-seam pt-2 text-ink-faint uppercase">
-                            {{ $detectedBarcode !== '' ? 'Barcode '.$detectedBarcode.' · ' : '' }}{{ $isSuggestion ? 'Best guess — confirmed by you' : 'Verified match' }}
+                            {{ $detectedBarcode !== '' ? 'Barcode '.$detectedBarcode.' · ' : '' }}{{ $isSuggestion ? 'Best guess — confirmed by you' : 'Match — confirmed by you' }}
                         </p>
                     </div>
 
@@ -657,8 +657,8 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                     <div class="module px-6 py-12 text-center">
                         <p class="data-xl text-low" aria-hidden="true">AI--</p>
                         <p class="silkscreen mt-2">Not configured</p>
-                        <h2 class="voice-item mt-5 text-ink">Photo identification needs AI configuration</h2>
-                        <p class="voice-caption mx-auto mt-1.5 max-w-xs text-ink-dim">Scan the barcode instead, or add this product to your pantry manually.</p>
+                        <h2 class="voice-item mt-5 text-ink">Photo identification isn't switched on yet</h2>
+                        <p class="voice-caption mx-auto mt-1.5 max-w-xs text-ink-dim">Barcode scanning still works without it — scan the barcode, or add the product manually.</p>
                     </div>
 
                     <div class="space-y-2">

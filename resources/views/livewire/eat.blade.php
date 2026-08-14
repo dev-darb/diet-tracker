@@ -176,9 +176,9 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                                     <span class="data-sm text-ink-faint">· {{ rtrim(rtrim(number_format((float) $component->quantity, 3, '.', ''), '0'), '.') }} <span class="uppercase">{{ $component->unit->shortLabel() }}</span></span>
                                                 </span>
                                                 <span class="data-sm shrink-0 text-ink-dim">
-                                                    P {{ $component->protein === null ? '--' : number_format((float) $component->protein, 1) }} ·
-                                                    C {{ $component->carbs === null ? '--' : number_format((float) $component->carbs, 1) }} ·
-                                                    F {{ $component->fat === null ? '--' : number_format((float) $component->fat, 1) }}
+                                                    {{ $component->protein === null ? '--' : number_format((float) $component->protein, 1) }}P ·
+                                                    {{ $component->carbs === null ? '--' : number_format((float) $component->carbs, 1) }}C ·
+                                                    {{ $component->fat === null ? '--' : number_format((float) $component->fat, 1) }}F
                                                 </span>
                                             </div>
                                         @endforeach

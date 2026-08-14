@@ -123,7 +123,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                 </div>
                 <p class="data-md text-ink">
                     {{ str_pad((string) $daysLogged, 2, '0', STR_PAD_LEFT) }}<span class="text-ink-faint">/07</span>
-                    <span class="data-sm ml-1 text-ink-dim uppercase">days</span>
+                    <span class="data-sm ml-1 text-ink-dim uppercase">this week</span>
                 </p>
             </section>
 

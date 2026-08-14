@@ -105,7 +105,7 @@ new class extends Component
                 @endif
                 <button type="button" wire:click="dismiss"
                         class="keycap-sm hit px-3.5 py-2 text-ink-faint transition hover:text-ink-dim">
-                    Dismiss
+                    Dismiss for this week
                 </button>
             </div>
 

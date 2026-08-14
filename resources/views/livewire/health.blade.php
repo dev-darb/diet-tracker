@@ -85,7 +85,7 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
                                 <p class="data-sm mt-0.5 text-ink-faint uppercase">No prior week</p>
                             @endif
                             @if ($avg['partial'])
-                                <p class="data-micro text-ink-faint uppercase">Partial — some days not stated</p>
+                                <p class="data-micro text-ink-faint uppercase">Partial — some values unknown</p>
                             @endif
                         </div>
                     @endforeach

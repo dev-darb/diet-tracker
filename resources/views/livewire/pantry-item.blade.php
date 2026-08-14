@@ -86,7 +86,7 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         $service->consumePantryItem(Auth::user(), $this->pantryItem, $amount);
         $this->refreshItem();
         $this->consumeAmount = '1';
-        $this->dispatch('item-changed');
+        $this->dispatch('consumption-logged');
     }
 
     private function refreshItem(): void
@@ -111,8 +111,9 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
     }
 }; ?>
 
-    <div class="space-y-5" x-data="{ toast: false }"
-         x-on:item-changed.window="toast = true; setTimeout(() => toast = false, 2000)">
+    <div class="space-y-5" x-data="{ toast: null }"
+         x-on:consumption-logged.window="toast = 'logged'; setTimeout(() => toast = null, 2000)"
+         x-on:item-changed.window="toast = 'saved'; setTimeout(() => toast = null, 2000)">
 
         <a href="{{ route('pantry') }}" class="keycap-sm inline-flex items-center gap-1.5 px-1 text-ink-dim transition hover:text-ink">
             <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
@@ -235,11 +236,16 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
             </div>
         </section>
 
-        {{-- The logged win, stamped. --}}
-        <div x-show="toast" x-cloak class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
+        {{-- The logged win gets the green stamp; a stock correction is a quiet save. --}}
+        <div x-show="toast === 'logged'" x-cloak class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
             <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md bg-good px-4 py-3 text-black">
                 <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg>
-                <span class="keycap">Logged</span>
+                <span class="keycap">Logged to today</span>
+            </div>
+        </div>
+        <div x-show="toast === 'saved'" x-cloak class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
+            <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md border border-seam bg-plate-raised px-4 py-3 text-ink">
+                <span class="keycap">Stock corrected</span>
             </div>
         </div>
     </div>

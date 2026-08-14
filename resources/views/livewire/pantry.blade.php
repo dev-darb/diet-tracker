@@ -130,7 +130,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                                 @endforeach
                             </ul>
                         @elseif (trim($productSearch) !== '')
-                            <p class="mt-2 text-xs text-ink-dim">No products match. An admin can add it in the console.</p>
+                            <p class="mt-2 text-xs text-ink-dim">No products match. Try scanning its barcode — a scan can add new products to the database.</p>
                         @endif
                     </div>
                 @endif
