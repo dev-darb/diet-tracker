@@ -1,0 +1,46 @@
+# Utility workflow: fetch generated design assets (comps, references) from a
+# CDN into the repo. Needed because Claude Code remote sessions run behind a
+# network allowlist that blocks the image CDN, while Actions runners do not.
+# Dispatch with a JSON map of {dest_path: url} and a target branch.
+name: Fetch design assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to commit the fetched assets to
+        required: true
+      files:
+        description: 'JSON object mapping repo-relative dest paths to https URLs'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+      - name: Download assets
+        env:
+          FILES: ${{ github.event.inputs.files }}
+        run: |
+          echo "$FILES" | jq -r 'to_entries[] | [.key, .value] | @tsv' \
+          | while IFS=$'\t' read -r dest url; do
+              case "$dest" in
+                (/*|*..*) echo "refusing path: $dest" >&2; exit 1;;
+              esac
+              mkdir -p "$(dirname "$dest")"
+              curl -fsSL --max-filesize 26214400 -o "$dest" "$url"
+              echo "fetched $dest ($(wc -c < "$dest") bytes)"
+            done
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "nothing fetched" || git commit -m "Fetch design assets (automated)"
+          git push
