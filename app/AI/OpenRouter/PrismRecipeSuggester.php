@@ -18,14 +18,15 @@ use Throwable;
 
 /**
  * Prism-backed {@see RecipeSuggester} through the env-selectable gateway. The
- * model receives the user's in-stock pantry (ids + labels + quantities), their
- * goal + personalised targets (with receipts), and their dietary constraints —
- * and returns one breakfast, one lunch and one dinner with short recipes.
+ * model receives the user's in-stock pantry (ids + labels + remaining
+ * quantities), their goal + personalised targets, and their dietary
+ * constraints — and returns a full day: breakfast, lunch, dinner and a snack,
+ * each in the standardised recipe format (structured ingredients with amounts
+ * and pantry grounding, upgrade suggestions, short steps).
  *
  * The model plans meals; it never touches the ledger or the deterministic
- * maths. Approximate figures come back as rough estimates and are displayed
- * with a tilde only. Failures report + return null so the Pantry quietly
- * shows no chef rather than an error.
+ * maths. The optional wellness note is population-level, food-first guidance
+ * only — never medical advice (brief §9.10). Failures report + return null.
  */
 class PrismRecipeSuggester implements RecipeSuggester
 {
@@ -79,52 +80,70 @@ class PrismRecipeSuggester implements RecipeSuggester
 
     private function schema(): ObjectSchema
     {
+        $ingredient = new ObjectSchema(
+            name: 'ingredient',
+            description: 'One ingredient line of the recipe.',
+            properties: [
+                new StringSchema('name', 'Ingredient name, e.g. "Chicken thighs" or "Basmati rice".'),
+                new StringSchema('amount', 'How much to use, e.g. "150 g", "1 tbsp", "half the pack".'),
+                new NumberSchema('pantry_item_id', 'The candidate pantry item id this ingredient comes from, ONLY if it is in the provided list. Null for anything not in the pantry.', nullable: true),
+            ],
+            requiredFields: ['name', 'amount', 'pantry_item_id'],
+        );
+
         $suggestion = new ObjectSchema(
             name: 'suggestion',
-            description: 'One meal idea with a short recipe.',
+            description: 'One meal idea in the standardised recipe format.',
             properties: [
-                new EnumSchema('slot', 'Which meal of the day this idea is for.', ['breakfast', 'lunch', 'dinner']),
-                new StringSchema('title', 'Short appetising dish name, e.g. "Coconut chicken curry".'),
+                new EnumSchema('slot', 'Which eating occasion this idea is for.', ['breakfast', 'lunch', 'dinner', 'snack']),
+                new StringSchema('title', 'Short appetising dish name.'),
                 new StringSchema('summary', 'One sentence on why this fits the user (stock, goal, speed).'),
-                new ArraySchema('pantry_item_ids', 'Ids of the candidate pantry items this recipe uses. ONLY ids from the provided list.', new NumberSchema('id', 'A candidate pantry item id.')),
-                new ArraySchema('also_needed', 'Ingredients the recipe needs that are NOT in the candidate list (short names, common staples like oil/salt included). Empty if none.', new StringSchema('name', 'An ingredient not in the pantry list.')),
-                new ArraySchema('steps', 'The recipe as 3-8 short numbered-style steps.', new StringSchema('step', 'One concise cooking step.')),
+                new ArraySchema('ingredients', 'The full ingredient list with amounts. Pantry items carry their id; everything else has pantry_item_id null.', $ingredient),
+                new ArraySchema('upgrades', 'Up to 3 optional extras worth BUYING to make this dish even better (e.g. "fresh coriander lifts the curry"). Empty if none.', new StringSchema('upgrade', 'One optional extra and why.')),
+                new ArraySchema('steps', 'The recipe as 3-8 short steps.', new StringSchema('step', 'One concise cooking step.')),
                 new NumberSchema('approx_calories', 'Very rough kcal per serving. Null if unguessable.', nullable: true),
                 new NumberSchema('approx_protein', 'Very rough protein grams per serving. Null if unguessable.', nullable: true),
             ],
-            requiredFields: ['slot', 'title', 'summary', 'pantry_item_ids', 'also_needed', 'steps', 'approx_calories', 'approx_protein'],
+            requiredFields: ['slot', 'title', 'summary', 'ingredients', 'upgrades', 'steps', 'approx_calories', 'approx_protein'],
         );
 
         return new ObjectSchema(
             name: 'recipe_ideas',
-            description: 'One breakfast, one lunch and one dinner idea from the pantry.',
+            description: "A full day of meal ideas from the user's pantry.",
             properties: [
-                new ArraySchema('suggestions', 'Exactly three ideas: one breakfast, one lunch, one dinner.', $suggestion),
+                new ArraySchema('suggestions', 'Exactly four ideas: one breakfast, one lunch, one dinner, one snack.', $suggestion),
+                new StringSchema('wellness_note', 'ONE optional short general-wellbeing line, UK population guidance flavour, food-first (e.g. oily fish for omega-3; NHS suggests considering vitamin D October-March). NEVER medical advice, doses, or condition-specific claims. Null if nothing worth saying.', nullable: true),
             ],
-            requiredFields: ['suggestions'],
+            requiredFields: ['suggestions', 'wellness_note'],
         );
     }
 
     private function systemPrompt(): string
     {
         return <<<'PROMPT'
-        You are a practical home chef planning today's meals from what the user actually has.
+        You are a practical home chef planning today's eating from what the user actually has.
 
         Rules:
-        - Suggest exactly three ideas: one breakfast, one lunch, one dinner.
-        - Build each meal PRIMARILY from the numbered pantry list. Claim an item only by its
-          id from the list; anything else the recipe needs goes in also_needed (common
-          staples like oil, salt and pepper are fine there).
+        - Suggest exactly four ideas: one breakfast, one lunch, one dinner, one snack.
+        - Build each meal PRIMARILY from the numbered pantry list. In the ingredients list,
+          set pantry_item_id ONLY for items from the list; every other ingredient (including
+          staples like oil, salt, pepper) has pantry_item_id null so the user can see exactly
+          what they'd need to get.
+        - Give every ingredient a realistic amount, and never use more of a pantry item than
+          the remaining quantity shown in the list.
+        - upgrades are OPTIONAL nice-to-haves worth buying to lift the dish — short, concrete,
+          with the why ("fresh coriander lifts the curry"). Never list an allergen there.
         - ABSOLUTE EXCLUSIONS: never use, suggest, or garnish with any listed allergen or
-          avoided food — not even as an optional extra. Respect the dietary pattern strictly
+          avoided food — not even as an optional upgrade. Respect the dietary pattern strictly
           (e.g. vegan means no animal products anywhere).
-        - Lean each meal toward the user's goal and daily targets (given below): e.g. protein
-          -forward for muscle/recomposition goals, lighter for weight loss.
-        - Keep recipes genuinely simple: 3-8 short steps, everyday techniques, no equipment
-          most kitchens lack.
+        - Lean the day toward the user's goal and daily targets: protein-forward for
+          muscle/recomposition goals, lighter for weight loss. The snack should be genuinely
+          snack-sized.
+        - Keep recipes genuinely simple: 3-8 short steps, everyday techniques.
         - approx figures are rough per-serving estimates only; use null when unguessable.
-        - Do not invent pantry quantities the list contradicts (e.g. don't build dinner
-          around 500g of chicken when the list says 100g remains).
+        - wellness_note: at most ONE short food-first general note in the style of UK public
+          health guidance. No medical claims, no doses, no supplements beyond what NHS
+          population guidance mentions (e.g. vitamin D in winter). Null if nothing useful.
         PROMPT;
     }
 
@@ -134,7 +153,7 @@ class PrismRecipeSuggester implements RecipeSuggester
     private function userPrompt(User $user, array $pantryCandidates): string
     {
         $pantry = implode("\n", array_map(
-            static fn (array $c): string => "- id {$c['id']}: {$c['label']} ({$c['quantity']})",
+            static fn (array $c): string => "- id {$c['id']}: {$c['label']} ({$c['quantity']} remaining)",
             $pantryCandidates,
         ));
 
@@ -157,7 +176,7 @@ class PrismRecipeSuggester implements RecipeSuggester
             $targets['calories']['personalised'] ? 'personalised' : 'general guidance',
         );
         $lines[] = '';
-        $lines[] = 'Suggest one breakfast, one lunch and one dinner.';
+        $lines[] = 'Plan the day: breakfast, lunch, dinner and one snack.';
 
         return implode("\n", $lines);
     }

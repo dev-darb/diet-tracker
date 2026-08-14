@@ -7,20 +7,27 @@ use Illuminate\Support\Facades\Cache;
 use Livewire\Volt\Component;
 
 /**
- * AI chef (Pantry): breakfast / lunch / dinner ideas with short recipes,
- * grounded in the user's ACTUAL stock and shaped by their goal, targets and
- * dietary constraints (all assembled by PrismRecipeSuggester).
+ * AI chef — the Pantry's DEFAULT face: a proactive day plan (breakfast, lunch,
+ * dinner, snack) grounded in the user's actual stock, shaped by their goal,
+ * targets and dietary constraints (assembled by PrismRecipeSuggester).
  *
- * Results are cached per user per day — revisiting the Pantry shows today's
- * ideas instantly; "Fresh ideas" bypasses the cache. Keyless -> the module
- * renders nothing at all (same grace rule as every AI feature). Approx figures
- * are advisory (~) and never logged; cooking one of these meals is logged via
- * the normal compose flow, which also deducts the pantry.
+ * Proactive: suggestions load automatically via wire:init — instantly from the
+ * per-user day cache, or generated on first visit. "Fresh ideas" bypasses the
+ * cache. Keyless -> renders a quiet not-configured note (the pantry defaults to
+ * the Stock view instead, see pantry.blade.php).
+ *
+ * Standardised recipe format (design: instrument console): each card carries a
+ * silkscreen slot label, the dish, a structured INGREDIENTS list where in-stock
+ * rows are lit (LED dot + IN STOCK) and everything else reads as shopping-list
+ * honesty, optional UPGRADES worth buying, and a collapsible recipe. Approx
+ * figures are advisory (~ EST.) and never logged.
  */
 new class extends Component
 {
     /** @var array<int, array<string, mixed>>|null */
     public ?array $suggestions = null;
+
+    public ?string $wellness = null;
 
     public bool $failed = false;
 
@@ -28,11 +35,17 @@ new class extends Component
 
     private function cacheKey(): string
     {
-        return 'ai-chef.'.Auth::id().'.'.now()->toDateString();
+        return 'ai-chef.v2.'.Auth::id().'.'.now()->toDateString();
     }
 
     public function suggest(RecipeSuggester $chef, bool $fresh = false): void
     {
+        if (! $chef->available()) {
+            $this->loaded = true;
+
+            return;
+        }
+
         $this->failed = false;
 
         if ($fresh) {
@@ -43,6 +56,7 @@ new class extends Component
 
         if ($cached !== null) {
             $this->suggestions = $cached['suggestions'];
+            $this->wellness = $cached['wellness'] ?? null;
             $this->loaded = true;
 
             return;
@@ -66,18 +80,9 @@ new class extends Component
             return;
         }
 
-        // Resolve pantry names for display once, server-side.
-        $names = PantryItem::with('canonicalProduct')
-            ->whereIn('id', collect($ideas->suggestions)->flatMap(fn ($s) => $s['pantry_item_ids'])->unique())
-            ->get()
-            ->mapWithKeys(fn (PantryItem $i) => [$i->id => $i->canonicalProduct->name]);
-
-        $this->suggestions = array_map(fn (array $s) => [
-            ...$s,
-            'uses' => array_values(array_filter(array_map(fn (int $id) => $names[$id] ?? null, $s['pantry_item_ids']))),
-        ], $ideas->suggestions);
-
-        Cache::put($this->cacheKey(), ['suggestions' => $this->suggestions], now()->endOfDay());
+        $this->suggestions = $ideas->suggestions;
+        $this->wellness = $ideas->wellnessNote;
+        Cache::put($this->cacheKey(), ['suggestions' => $this->suggestions, 'wellness' => $this->wellness], now()->endOfDay());
         $this->loaded = true;
     }
 
@@ -110,55 +115,83 @@ new class extends Component
     }
 }; ?>
 
-<div>
-    @if ($chefAvailable)
-        <x-app.module label="AI chef">
-            <p class="voice-caption mt-2 text-ink-dim">Meal ideas from what you actually have — shaped by your goal and any allergies.</p>
+<div wire:init="suggest">
+    @if (! $chefAvailable)
+        <x-app.placeholder
+            status="AI-- NOT CONFIGURED"
+            title="The chef isn't switched on yet"
+            subtitle="Meal suggestions need the AI gateway key. Your stock still works — switch to the Stock view above." />
+    @else
+        {{-- Booting / thinking state: honest machine-at-work, not a fake list. --}}
+        <div wire:loading.delay wire:target="suggest, freshIdeas">
+            <div class="module flex flex-col items-center px-6 py-12 text-center">
+                <svg class="size-6 animate-spin text-action" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <p class="silkscreen mt-4">CHEF THINKING</p>
+                <p class="voice-caption mt-1 text-ink-dim">Planning today from your stock…</p>
+            </div>
+        </div>
 
-            @if ($suggestions === null && ! $loaded)
-                <div class="mt-3">
-                    <x-app.console-key primary wire:click="suggest" wire:loading.attr="disabled">
-                        <span wire:loading.remove wire:target="suggest">Suggest today's meals</span>
-                        <span wire:loading wire:target="suggest">Thinking about your pantry…</span>
-                    </x-app.console-key>
-                </div>
-            @endif
-
+        <div wire:loading.remove wire:target="suggest, freshIdeas" class="space-y-3">
             @if ($failed)
-                <p class="mt-3 rounded bg-plate-well px-3 py-2 text-xs text-ink-dim">
-                    Couldn't cook anything up — you may need a few more items in stock. Try again after your next scan.
-                </p>
+                <x-app.placeholder
+                    status="NO PLAN"
+                    title="Couldn't cook anything up"
+                    subtitle="A few more items in stock gives the chef more to work with — scan your next shop, then try again." />
+                <x-app.console-key wire:click="freshIdeas">Try again</x-app.console-key>
             @endif
 
             @if ($suggestions !== null)
-                <div class="mt-3 space-y-3">
-                    @foreach ($suggestions as $i => $idea)
-                        <div class="rounded border border-seam bg-plate-well p-3.5" x-data="{ open: false }">
-                            <p class="silkscreen">{{ strtoupper($idea['slot']) }}</p>
-                            <p class="voice-item mt-1 text-ink">{{ $idea['title'] }}</p>
-                            @if ($idea['summary'] !== '')
-                                <p class="voice-caption mt-0.5 text-ink-dim">{{ $idea['summary'] }}</p>
-                            @endif
-
-                            <p class="data-sm mt-2 text-ink-faint">
-                                @if (($idea['uses'] ?? []) !== [])
-                                    FROM YOUR PANTRY: {{ strtoupper(implode(', ', $idea['uses'])) }}
-                                @endif
-                                @if ($idea['also_needed'] !== [])
-                                    <span class="block">ALSO NEEDED: {{ strtoupper(implode(', ', $idea['also_needed'])) }}</span>
-                                @endif
-                            </p>
-
+                @foreach ($suggestions as $idea)
+                    <section class="module px-5 pb-4 pt-4">
+                        <div class="flex items-baseline justify-between">
+                            <h2 class="silkscreen">{{ strtoupper($idea['slot']) }}</h2>
                             @php($figures = array_filter([
                                 $idea['approx_calories'] !== null ? '~'.number_format($idea['approx_calories']).' KCAL' : null,
-                                $idea['approx_protein'] !== null ? '~'.number_format($idea['approx_protein']).'G PROTEIN' : null,
+                                $idea['approx_protein'] !== null ? '~'.number_format($idea['approx_protein']).'G' : null,
                             ]))
                             @if ($figures !== [])
-                                <p class="data-sm mt-1.5 text-ink-dim">{{ implode(' · ', $figures) }} <span class="text-ink-faint">EST.</span></p>
+                                <span class="data-sm text-ink-faint">{{ implode(' · ', $figures) }} EST.</span>
                             @endif
+                        </div>
 
-                            <button type="button" x-on:click="open = !open" class="keycap-sm mt-2.5 flex items-center gap-1.5 text-ink-dim transition hover:text-ink">
-                                <span x-text="open ? 'Hide recipe' : 'Show recipe'"></span>
+                        <p class="voice-item mt-2 text-ink">{{ $idea['title'] }}</p>
+                        @if ($idea['summary'] !== '')
+                            <p class="voice-caption mt-0.5 text-ink-dim">{{ $idea['summary'] }}</p>
+                        @endif
+
+                        {{-- INGREDIENTS: in-stock rows are lit; the rest is shopping-list honesty. --}}
+                        @if ($idea['ingredients'] !== [])
+                            <p class="silkscreen mt-3.5">Ingredients</p>
+                            <ul class="mt-1.5 divide-y divide-seam">
+                                @foreach ($idea['ingredients'] as $ingredient)
+                                    @php($inStock = $ingredient['pantry_item_id'] !== null)
+                                    <li class="flex min-h-[36px] items-center gap-2.5 py-1.5">
+                                        <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full {{ $inStock ? 'bg-good' : 'bg-seam-strong' }}"></span>
+                                        <span class="voice-caption min-w-0 flex-1 truncate {{ $inStock ? 'text-ink' : 'text-ink-dim' }}">{{ $ingredient['name'] }}</span>
+                                        @if ($ingredient['amount'] !== '')
+                                            <span class="data-sm shrink-0 text-ink-dim uppercase">{{ $ingredient['amount'] }}</span>
+                                        @endif
+                                        <span class="data-micro shrink-0 {{ $inStock ? 'text-good' : 'text-ink-faint' }} uppercase">{{ $inStock ? 'In stock' : 'To get' }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+
+                        @if ($idea['upgrades'] !== [])
+                            <p class="silkscreen mt-3">Make it better</p>
+                            <ul class="mt-1 space-y-1">
+                                @foreach ($idea['upgrades'] as $upgrade)
+                                    <li class="voice-caption text-ink-dim">+ {{ $upgrade }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+
+                        <div x-data="{ open: false }" class="mt-3 border-t border-seam pt-2.5">
+                            <button type="button" x-on:click="open = !open" class="keycap-sm flex w-full items-center justify-between text-ink-dim transition hover:text-ink">
+                                <span>Recipe</span>
                                 <span x-text="open ? '−' : '+'" class="data-sm"></span>
                             </button>
                             <ol x-show="open" x-cloak class="mt-2 list-decimal space-y-1.5 pl-5 text-sm text-ink-dim">
@@ -167,17 +200,20 @@ new class extends Component
                                 @endforeach
                             </ol>
                         </div>
-                    @endforeach
-                </div>
+                    </section>
+                @endforeach
 
-                <div class="mt-3">
-                    <x-app.console-key wire:click="freshIdeas" wire:loading.attr="disabled">
-                        <span wire:loading.remove wire:target="freshIdeas">Fresh ideas</span>
-                        <span wire:loading wire:target="freshIdeas">Thinking…</span>
-                    </x-app.console-key>
-                </div>
-                <p class="mt-2 text-xs text-ink-faint">Cooked one? Log it via Eat → Log a meal → Home-cooked and your pantry updates itself.</p>
+                @if ($wellness !== null)
+                    <section class="well !rounded-md px-5 py-3.5">
+                        <h2 class="silkscreen">Worth knowing</h2>
+                        <p class="voice-caption mt-1.5 text-ink-dim">{{ $wellness }}</p>
+                        <p class="data-micro mt-1.5 text-ink-faint uppercase">General guidance, not medical advice</p>
+                    </section>
+                @endif
+
+                <x-app.console-key wire:click="freshIdeas" wire:loading.attr="disabled">Fresh ideas</x-app.console-key>
+                <p class="text-center text-xs text-ink-faint">Cooked one? Log it via Eat → Log a meal → Home-cooked and your stock updates itself.</p>
             @endif
-        </x-app.module>
+        </div>
     @endif
 </div>

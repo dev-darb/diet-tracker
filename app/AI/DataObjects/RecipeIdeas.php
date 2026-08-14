@@ -5,25 +5,33 @@ namespace App\AI\DataObjects;
 use App\AI\Contracts\RecipeSuggester;
 
 /**
- * AI-chef meal ideas for one day (breakfast / lunch / dinner), grounded in the
- * user's pantry. Produced by a {@see RecipeSuggester}.
+ * AI-chef meal ideas for one day — breakfast, lunch, dinner and a snack —
+ * grounded in the user's pantry. Produced by a {@see RecipeSuggester}.
  *
- * Grounding rules mirror the meal-photo reading: `pantry_item_ids` are chosen
- * strictly from the candidate list the caller supplied (invented ids are
- * dropped defensively); anything else the recipe needs is declared under
- * `also_needed` — never silently assumed to be in stock. Approximate figures
- * are rough per-serving estimates for display only, always shown with a tilde
- * and NEVER logged to the ledger (the deterministic maths rules, brief §8.9,
- * are untouched — logging a cooked meal still goes through the compose flow).
+ * Standardised recipe format: each idea carries a structured INGREDIENTS list
+ * ({name, amount, pantry_item_id}) where a non-null pantry_item_id marks "you
+ * already have this" (ids validated against the offered candidates — invented
+ * ids are stripped to null, demoting the ingredient to shopping-list honesty),
+ * plus `upgrades` — extra things worth buying to make the dish better.
+ *
+ * `wellnessNote` is a single OPTIONAL general-wellbeing line (UK-population
+ * guidance flavour, food-first). It is general guidance, never medical advice,
+ * and the UI must label it as such (brief §9.10).
+ *
+ * Approximate figures are rough per-serving estimates for display only (~),
+ * never logged — the deterministic maths rules (brief §8.9) are untouched.
  */
 final class RecipeIdeas
 {
-    public const SLOTS = ['breakfast', 'lunch', 'dinner'];
+    public const SLOTS = ['breakfast', 'lunch', 'dinner', 'snack'];
 
     /**
-     * @param  list<array{slot: string, title: string, summary: string, pantry_item_ids: list<int>, also_needed: list<string>, steps: list<string>, approx_calories: float|null, approx_protein: float|null}>  $suggestions
+     * @param  list<array{slot: string, title: string, summary: string, ingredients: list<array{name: string, amount: string, pantry_item_id: int|null}>, upgrades: list<string>, steps: list<string>, approx_calories: float|null, approx_protein: float|null}>  $suggestions
      */
-    public function __construct(public readonly array $suggestions) {}
+    public function __construct(
+        public readonly array $suggestions,
+        public readonly ?string $wellnessNote = null,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -45,10 +53,23 @@ final class RecipeIdeas
                 continue;
             }
 
-            $ids = [];
-            foreach ((array) ($raw['pantry_item_ids'] ?? []) as $id) {
-                if (is_numeric($id) && in_array((int) $id, $allowedIds, true) && ! in_array((int) $id, $ids, true)) {
-                    $ids[] = (int) $id;
+            $ingredients = [];
+            foreach ((array) ($raw['ingredients'] ?? []) as $entry) {
+                if (! is_array($entry) || ! is_string($entry['name'] ?? null) || trim($entry['name']) === '') {
+                    continue;
+                }
+
+                $id = $entry['pantry_item_id'] ?? null;
+                $id = is_numeric($id) && in_array((int) $id, $allowedIds, true) ? (int) $id : null;
+
+                $ingredients[] = [
+                    'name' => mb_substr(trim($entry['name']), 0, 80),
+                    'amount' => is_string($entry['amount'] ?? null) ? mb_substr(trim($entry['amount']), 0, 40) : '',
+                    'pantry_item_id' => $id,
+                ];
+
+                if (count($ingredients) === 12) {
+                    break;
                 }
             }
 
@@ -76,8 +97,8 @@ final class RecipeIdeas
                 'slot' => $slot,
                 'title' => $title,
                 'summary' => is_string($raw['summary'] ?? null) ? mb_substr(trim($raw['summary']), 0, 240) : '',
-                'pantry_item_ids' => $ids,
-                'also_needed' => $strings($raw['also_needed'] ?? [], 6, 60),
+                'ingredients' => $ingredients,
+                'upgrades' => $strings($raw['upgrades'] ?? [], 6, 80),
                 'steps' => $strings($raw['steps'] ?? [], 8, 240),
                 'approx_calories' => $figure($raw['approx_calories'] ?? null),
                 'approx_protein' => $figure($raw['approx_protein'] ?? null),
@@ -97,7 +118,12 @@ final class RecipeIdeas
             }
         }
 
-        return new self($ordered);
+        $wellness = $data['wellness_note'] ?? null;
+
+        return new self(
+            $ordered,
+            is_string($wellness) && trim($wellness) !== '' ? mb_substr(trim($wellness), 0, 280) : null,
+        );
     }
 
     public function hasSuggestions(): bool
