@@ -35,7 +35,7 @@
                 <span class="voice-caption min-w-0 flex-1 truncate text-ink">
                     {{ $indicator['label'] }}
                     @if ($indicator['personalised'] ?? false)
-                        <span class="data-micro text-phosphor uppercase" title="Personal target from your profile">· yours</span>
+                        
                     @endif
                 </span>
                 <span class="data-md text-ink-dim">

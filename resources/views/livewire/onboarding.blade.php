@@ -171,9 +171,7 @@ new #[Layout('components.layouts.focus')] class extends Component {
     @if ($step === 1)
         <div class="flex flex-1 flex-col">
             <h1 class="text-2xl font-semibold tracking-tight text-ink">What brings you here?</h1>
-            <p class="mt-2 text-sm leading-relaxed text-ink-dim">
-                Pick the goal that fits best. You can change it any time — this just helps us tailor your guidance.
-            </p>
+            <p class="mt-2 text-sm leading-relaxed text-ink-dim">You can change this any time.</p>
 
             <div class="mt-6 space-y-2.5">
                 @foreach ($goals as $goal)
@@ -245,10 +243,7 @@ new #[Layout('components.layouts.focus')] class extends Component {
     @if ($step === 3)
         <div class="flex flex-1 flex-col">
             <h1 class="text-2xl font-semibold tracking-tight text-ink">A little about you</h1>
-            <p class="mt-2 text-sm leading-relaxed text-ink-dim">
-                Entirely optional. Adding your height and weight lets us personalise energy and protein guidance —
-                but you can skip this and add it later.
-            </p>
+            <p class="mt-2 text-sm leading-relaxed text-ink-dim">Optional — height and weight personalise your targets.</p>
 
             <div class="mt-6 space-y-5">
                 <div class="grid grid-cols-2 gap-3">

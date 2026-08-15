@@ -420,27 +420,11 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
             Eat
         </a>
 
-        {{-- STEP — context: where did this meal come from? --------------------}}
+        {{-- STEP — context. Recognition beats the form: usuals first — the
+             repeat meal is one tap; the taxonomy is for new ones. --}}
         @if ($step === 'context')
-            <x-app.module label="Log a meal">
-                <p class="voice-caption mt-2 text-ink-dim">Every meal counts towards your picture — even rough ones.</p>
-
-                <div class="mt-4 space-y-2">
-                    <x-app.console-key primary wire:click="chooseHomeCooked">
-                        <span class="flex items-center justify-center gap-2"><x-app.icon name="pan" />Home-cooked</span>
-                    </x-app.console-key>
-                    <x-app.console-key wire:click="chooseEatingOut">
-                        <span class="flex items-center justify-center gap-2"><x-app.icon name="storefront" />Eating out</span>
-                    </x-app.console-key>
-                    <x-app.console-key :href="route('scan')">
-                        <span class="flex items-center justify-center gap-2"><x-app.icon name="barcode" />Packaged — scan it</span>
-                    </x-app.console-key>
-                </div>
-            </x-app.module>
-
             @if ($usuals->isNotEmpty())
                 <x-app.module label="Your usuals">
-                    <p class="voice-caption mt-2 text-ink-dim">Eating-out usuals log in one tap; home-cooked ones prefill for you to confirm.</p>
                     <div class="mt-3 space-y-2">
                         @foreach ($usuals as $usual)
                             <button type="button" wire:click="useUsual({{ $usual->id }})" wire:loading.attr="disabled"
@@ -455,6 +439,20 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                     </div>
                 </x-app.module>
             @endif
+
+            <x-app.module :label="$usuals->isNotEmpty() ? 'Something new' : 'Log a meal'">
+                <div class="mt-4 space-y-2">
+                    <x-app.console-key primary wire:click="chooseHomeCooked">
+                        <span class="flex items-center justify-center gap-2"><x-app.icon name="pan" />Home-cooked</span>
+                    </x-app.console-key>
+                    <x-app.console-key wire:click="chooseEatingOut">
+                        <span class="flex items-center justify-center gap-2"><x-app.icon name="storefront" />Eating out</span>
+                    </x-app.console-key>
+                    <x-app.console-key :href="route('scan')">
+                        <span class="flex items-center justify-center gap-2"><x-app.icon name="barcode" />Packaged — scan it</span>
+                    </x-app.console-key>
+                </div>
+            </x-app.module>
         @endif
 
         {{-- STEP — home-cooked: compose from pantry ---------------------------}}
@@ -464,7 +462,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                     {{-- Photo shortcut: the AI proposes components FROM YOUR PANTRY; you confirm. --}}
                     <div class="mt-3" x-data="{ up: false, progress: 0, err: null }">
                         <label class="key keycap-sm block w-full cursor-pointer px-4 py-3 text-center text-ink-dim">
-                            <span x-show="!up">Photo the plate — we'll suggest what's in it</span>
+                            <span x-show="!up">Photo the plate</span>
                             <span x-show="up" x-cloak>Uploading… <span x-text="progress + '%'"></span></span>
                             <input type="file" accept="image/*" class="sr-only"
                                    x-on:change="
@@ -557,19 +555,12 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         {{-- STEP — eating out: we estimate, you confirm -----------------------}}
         @if ($step === 'out')
             <x-app.module label="Eating out">
-                <p class="voice-caption mt-2 text-ink-dim">
-                    @if ($estimatorAvailable)
-                        Say what and where — we'll estimate the figures. You just confirm.
-                    @else
-                        Name it; figures are optional. Unknowns stay unknown — they're never faked.
-                    @endif
-                </p>
 
                 @if ($photoAvailable)
                     {{-- Photo shortcut: name the dish from the photo, then estimate it. --}}
                     <div class="mt-3" x-data="{ up: false, progress: 0, err: null }">
                         <label class="key keycap-sm block w-full cursor-pointer px-4 py-3 text-center text-ink-dim">
-                            <span x-show="!up">Photo the dish — we'll name and estimate it</span>
+                            <span x-show="!up">Photo the dish</span>
                             <span x-show="up" x-cloak>Uploading… <span x-text="progress + '%'"></span></span>
                             <input type="file" accept="image/*" class="sr-only"
                                    x-on:change="

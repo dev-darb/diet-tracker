@@ -147,7 +147,6 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
          x-on:consumption-deleted.window="del = true; clearTimeout(delT); delT = setTimeout(() => { del = false; $wire.commitDelete(); }, 6000)">
         <div class="px-1">
             <h1 class="voice-title text-ink">Eat</h1>
-            <p class="voice-caption mt-0.5 text-ink-dim">What you've logged. Consume items from your <a href="{{ route('pantry') }}" wire:navigate class="text-ink underline decoration-seam-strong underline-offset-4 transition hover:decoration-action">pantry</a>, or log any meal.</p>
         </div>
 
         {{-- The capture flow entry — the ledger records EVERY meal (Reframe, Aug 2026). --}}
@@ -157,7 +156,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
             <x-app.placeholder
                 status="NO ENTRIES"
                 title="Nothing logged yet"
-                subtitle="Open a pantry item and tap &ldquo;I ate one&rdquo;. It'll show up here as today's log, with what it added to your intake." />
+                subtitle="Log a meal, or tap Eat on a pantry item." />
         @else
             {{-- The day log: a terminal feed, newest day first (comp C grammar). --}}
             @foreach ($groups as $group)
@@ -172,8 +171,13 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                     <ul class="mt-2 divide-y divide-seam">
                         @foreach ($group['events'] as $event)
                             @php($line = $event->items->first())
+                            {{-- The row is the record; touching it opens the record's
+                                 detail + actions. Corrective controls (edit/delete) are
+                                 occasional acts and live inside, not on every row
+                                 (clutter critique, Aug 2026). --}}
                             <li x-data="{ inspect: false }">
-                                <div class="flex min-h-[44px] items-center gap-2.5 px-4 py-2.5">
+                                <button type="button" x-on:click="inspect = !inspect"
+                                        class="flex min-h-[44px] w-full items-center gap-2.5 px-4 py-2.5 text-left transition hover:bg-plate-raised">
                                     <span class="data-sm w-10 shrink-0 text-ink-faint">{{ $event->consumed_at->format('H:i') }}</span>
                                     <div class="min-w-0 flex-1">
                                         <p class="data-md leading-snug text-ink uppercase">{{ $event->name ?: 'Consumption' }}</p>
@@ -204,33 +208,16 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                     <span class="data-md shrink-0 whitespace-nowrap text-ink">
                                         {{ $event->calories === null ? '----' : ($event->estimated ? '~' : '').number_format((float) $event->calories, 0) }}
                                     </span>
-                                    <div class="flex shrink-0 items-center gap-1.5">
-                                        @if ($event->items->isNotEmpty())
-                                        <button type="button" x-on:click="inspect = !inspect" title="Details" aria-label="Details"
-                                                class="hit flex size-8 items-center justify-center text-ink-faint transition hover:text-ink">
-                                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
-                                        </button>
-                                        @endif
-                                        {{-- Amount edit is for single items only; meals delete + re-log (per-line editing is M5). --}}
-                                        @if ($event->type !== \App\Enums\ConsumptionType::Meal)
-                                        <button type="button" wire:click="startEdit({{ $event->id }})" title="Edit" aria-label="Edit"
-                                                class="hit flex size-8 items-center justify-center text-ink-faint transition hover:text-ink">
-                                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
-                                        </button>
-                                        @endif
-                                        <button type="button" wire:click="deleteEntry({{ $event->id }})" wire:loading.attr="disabled" title="Delete" aria-label="Delete"
-                                                class="hit flex size-8 items-center justify-center text-ink-faint transition hover:text-high">
-                                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-                                        </button>
-                                    </div>
-                                </div>
+                                    <svg class="size-3.5 shrink-0 text-ink-faint transition-transform" :class="inspect && 'rotate-180'"
+                                         fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                                </button>
 
-                                {{-- Inspect components — pure disclosure, so pure client state.
-                                     SPLIT: the row parts to reveal the breakdown. --}}
-                                @if ($event->items->isNotEmpty())
-                                    <div class="split" :class="inspect && 'split-open'">
-                                    <div>
-                                    <div class="border-t border-seam bg-plate-well px-5 py-3">
+                                {{-- The opened record: component breakdown (when there is
+                                     one) + the corrective actions. SPLIT reveal. --}}
+                                <div class="split" :class="inspect && 'split-open'">
+                                <div>
+                                <div class="border-t border-seam bg-plate-well px-5 py-3">
+                                    @if ($event->items->isNotEmpty())
                                         @foreach ($event->items as $component)
                                             <div class="flex items-center justify-between gap-3 py-1 text-xs">
                                                 <span class="voice-micro min-w-0 truncate text-ink-dim">{{ $component->canonicalProduct?->name ?? 'Item' }}
@@ -243,10 +230,20 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                                 </span>
                                             </div>
                                         @endforeach
+                                    @endif
+
+                                    <div class="flex items-center gap-2 {{ $event->items->isNotEmpty() ? 'mt-2 border-t border-seam pt-2.5' : '' }}">
+                                        {{-- Amount edit is for single items only; meals delete + re-log (per-line editing is M5). --}}
+                                        @if ($event->type !== \App\Enums\ConsumptionType::Meal)
+                                            <button type="button" wire:click="startEdit({{ $event->id }})"
+                                                    class="key keycap-sm hit px-3 py-1.5 text-ink-dim">Edit</button>
+                                        @endif
+                                        <button type="button" wire:click="deleteEntry({{ $event->id }})" wire:loading.attr="disabled"
+                                                class="keycap-sm hit px-2 py-1.5 text-ink-faint transition hover:text-high">Delete</button>
                                     </div>
-                                    </div>
-                                    </div>
-                                @endif
+                                </div>
+                                </div>
+                                </div>
 
                                 {{-- Edit quantity + time --}}
                                 @if ($editingId === $event->id)

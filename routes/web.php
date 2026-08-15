@@ -43,7 +43,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::redirect('settings', 'settings/password');
         Volt::route('settings/password', 'settings.password')->name('settings.password');
-        Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
+        Route::redirect('settings/appearance', 'settings/password'); // page retired (clutter critique, Aug 2026)
     });
 
     // Admin console (BUILD_PLAN §11) — Products section for Milestone 1.

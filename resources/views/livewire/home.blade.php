@@ -63,7 +63,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                 <div class="data-micro flex justify-between text-ink-faint">
                     <span>0</span>
                     <span title="{{ $calorieTarget['basis'] ?? '' }}">
-                        {{ number_format($scaleMax, 0, '', '') }}{{ ($calorieTarget['personalised'] ?? false) ? ' · YOURS' : '' }}
+                        {{ number_format($scaleMax, 0, '', '') }}
                     </span>
                 </div>
             </div>
@@ -105,7 +105,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
             </p>
             @else
                 <p class="voice-body mt-4 border-t border-seam pt-3 text-ink-dim">
-                    Nothing logged yet — scan what you bought or log what you ate, and today's readout wakes up.
+                    Nothing logged yet.
                 </p>
             @endif
         </section>
@@ -123,28 +123,22 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
             </section>
         @endif
 
-        {{-- MOTIVATE + GUIDE — the streak strip and the focus printout pair. --}}
-        <div class="space-y-2">
-            <section class="module flex items-center justify-between px-5 py-3.5">
-                <div class="flex items-center gap-4">
-                    <h2 class="silkscreen">Streak</h2>
-                    <div class="flex gap-1.5" aria-hidden="true">
-                        @foreach ($streakDays as $day)
-                            <span class="led {{ $day['has_data'] ? 'led-on' : '' }}"></span>
-                        @endforeach
-                    </div>
+        {{-- MOTIVATE — the streak strip. The focus insight lives on Health
+             (its single home); the legal line lives inside the indicators'
+             "Where these targets come from" disclosure. Home stays a pure
+             daily readout (clutter critique, Aug 2026). --}}
+        <section class="module flex items-center justify-between px-5 py-3.5">
+            <div class="flex items-center gap-4">
+                <h2 class="silkscreen">Streak</h2>
+                <div class="flex gap-1.5" aria-hidden="true">
+                    @foreach ($streakDays as $day)
+                        <span class="led {{ $day['has_data'] ? 'led-on' : '' }}"></span>
+                    @endforeach
                 </div>
-                <p class="data-md text-ink">
-                    {{ str_pad((string) $daysLogged, 2, '0', STR_PAD_LEFT) }}<span class="text-ink-faint">/07</span>
-                    <span class="data-sm ml-1 text-ink-dim uppercase">this week</span>
-                </p>
-            </section>
-
-            {{-- Your focus this week — the top AI (or deterministic) insight (brief §9.6). --}}
-            <livewire:insight-card />
-        </div>
-
-        @if ($today['has_data'])
-            <x-app.health-disclaimer />
-        @endif
+            </div>
+            <p class="data-md text-ink">
+                {{ str_pad((string) $daysLogged, 2, '0', STR_PAD_LEFT) }}<span class="text-ink-faint">/07</span>
+                <span class="data-sm ml-1 text-ink-dim uppercase">this week</span>
+            </p>
+        </section>
     </div>

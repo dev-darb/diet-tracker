@@ -20,7 +20,9 @@ use Livewire\Volt\Component;
  */
 new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Component
 {
-    /** chef | stock — the chef is the pantry's default face when configured. */
+    /** stock | chef — the pantry is an INVENTORY first (founder, Aug 2026);
+     * the chef is an invited view today and becomes a resident module of the
+     * stock face in the next chef pass. */
     public string $view = 'stock';
 
     // Manual-add form (visibility is client state; only the data lives here)
@@ -32,9 +34,9 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
 
     public string $addUnit = QuantityUnit::Unit->value;
 
-    public function mount(RecipeSuggester $chef): void
+    public function mount(): void
     {
-        $this->view = $chef->available() ? 'chef' : 'stock';
+        $this->view = 'stock';
     }
 
     public function showChef(): void
@@ -100,6 +102,10 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
         $choice = $portions->suggestionsFor($item, Auth::user())[0] ?? null;
 
         if ($choice === null || $choice['quantity'] <= 0 || $choice['quantity'] > (float) $item->current_quantity + 1e-9) {
+            // An encouraged action must never fail silently: say why, point at
+            // the custom-amount path on the item page.
+            $this->dispatch('consumption-blocked');
+
             return;
         }
 
@@ -153,13 +159,11 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
     <div class="space-y-3" x-data="{ addOpen: false, added: false, toast: null, toastT: null }"
          x-on:pantry-updated.window="added = true; setTimeout(() => added = false, 2000)"
          x-on:consumption-logged.window="toast = 'logged'; clearTimeout(toastT); toastT = setTimeout(() => toast = null, 5000)"
-         x-on:consumption-undone.window="toast = 'undone'; clearTimeout(toastT); toastT = setTimeout(() => toast = null, 2000)">
+         x-on:consumption-undone.window="toast = 'undone'; clearTimeout(toastT); toastT = setTimeout(() => toast = null, 2000)"
+         x-on:consumption-blocked.window="toast = 'blocked'; clearTimeout(toastT); toastT = setTimeout(() => toast = null, 3000)">
         <div class="flex items-center justify-between px-1">
             <div>
                 <h1 class="voice-title text-ink">Pantry</h1>
-                <p class="voice-caption mt-0.5 text-ink-dim">
-                    {{ $view === 'chef' ? "Today's plan from what you have." : 'What food you currently have.' }}
-                </p>
             </div>
             @if ($view === 'stock')
                 <button type="button" x-on:click="addOpen = !addOpen"
@@ -170,7 +174,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
             @endif
         </div>
 
-        {{-- View switch: the chef is the default face; the stock list is one key away. --}}
+        {{-- View switch: stock is the pantry; the chef is one key away. --}}
         @if ($chefAvailable)
             <div class="grid grid-cols-2 gap-2">
                 <button type="button" wire:click="showChef"
@@ -222,7 +226,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                                 @endforeach
                             </ul>
                         @elseif (trim($productSearch) !== '')
-                            <p class="mt-2 text-xs text-ink-dim">No products match. Try scanning its barcode — a scan can add new products to the database.</p>
+                            <p class="mt-2 text-xs text-ink-dim">No match — scan it to add it.</p>
                         @endif
                     </div>
                 @endif
@@ -259,7 +263,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
             <x-app.placeholder
                 status="EMPTY"
                 title="Your pantry is empty"
-                subtitle="Scan what you bought, or add an item manually — stock and remaining quantities show here." />
+                subtitle="Scan what you bought, or add an item manually." />
         @else
             <section class="module px-0 pb-1 pt-4">
                 <div class="flex items-baseline justify-between px-5">
@@ -293,7 +297,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                                  Custom amounts live on the item page. --}}
                             <button type="button" wire:click="eatOne({{ $item->id }})" wire:loading.attr="disabled"
                                     aria-label="Eat one portion of {{ $item->canonicalProduct->name }}"
-                                    class="key keycap-sm hit shrink-0 px-3 py-2 text-ink-dim">
+                                    class="key keycap hit shrink-0 border-seam-strong px-3.5 py-2.5 text-ink">
                                 Eat
                             </button>
                         </li>
@@ -320,4 +324,5 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
             </div>
         </div>
         <x-app.stamp-toast show="toast === 'undone'" tone="neutral">Removed — stock restored</x-app.stamp-toast>
+        <x-app.stamp-toast show="toast === 'blocked'" tone="neutral">Not enough left — open the item</x-app.stamp-toast>
     </div>

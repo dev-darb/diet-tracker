@@ -118,7 +118,7 @@ class ScanFlowTest extends TestCase
             ->assertSee('IN PANTRY')
             ->assertSee('is this right?')
             ->assertSee('IDENTIFY THIS YET')
-            ->assertSee('SWITCHED ON YET')
+            ->assertSee('OFF FOR NOW')
             ->assertSee('IDENTIFICATION FAILED')
             ->assertSee('+1 ITEM');
     }

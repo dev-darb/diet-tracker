@@ -179,26 +179,28 @@ class AiChefTest extends TestCase
         $this->assertInstanceOf(UnavailableRecipeSuggester::class, app(RecipeSuggester::class));
 
         Volt::actingAs($this->user)->test('ai-chef')
-            ->assertSee('switched on yet');
+            ->assertSee('off for now');
 
         Volt::actingAs($this->user)->test('pantry')
             ->assertSet('view', 'stock');
     }
 
-    public function test_pantry_defaults_to_chef_and_switches_to_stock(): void
+    public function test_pantry_defaults_to_stock_and_the_chef_is_one_key_away(): void
     {
+        // The pantry is an INVENTORY first (founder, Aug 2026): stock is the
+        // default face even when the chef is configured.
         $chicken = $this->stocked('Chicken thighs');
         $this->bindChef($this->curryIdeas($chicken->id));
 
         Volt::actingAs($this->user)->test('pantry')
-            ->assertSet('view', 'chef')
-            ->assertDontSee('Add item')     // stock affordances live in the stock view
-            ->call('showStock')
             ->assertSet('view', 'stock')
             ->assertSee('Add item')
             ->assertSee('Chicken thighs')
             ->call('showChef')
-            ->assertSet('view', 'chef');
+            ->assertSet('view', 'chef')
+            ->assertDontSee('Add item')     // stock affordances live in the stock view
+            ->call('showStock')
+            ->assertSet('view', 'stock');
     }
 
     public function test_failure_shows_a_friendly_note_with_retry(): void

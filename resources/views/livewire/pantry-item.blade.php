@@ -166,36 +166,9 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
             @endif
         </x-app.module>
 
-        {{-- Nutrition (computed by NutritionCalculator for what's currently held) --}}
-        <x-app.module label="Nutrition in what you have" padding="px-5 pb-2 pt-4" class="-mt-3">
-            @if ($hasNutrition)
-                <div class="mt-2 grid grid-cols-2 gap-x-6">
-                    @foreach ([
-                        ['Calories', $nutrition->calories, 'KCAL'],
-                        ['Protein', $nutrition->protein, 'G'],
-                        ['Carbs', $nutrition->carbs, 'G'],
-                        ['Sugars', $nutrition->sugars, 'G'],
-                        ['Fat', $nutrition->fat, 'G'],
-                        ['Saturated', $nutrition->saturatedFat, 'G'],
-                        ['Fibre', $nutrition->fibre, 'G'],
-                        ['Salt', $nutrition->salt, 'G'],
-                    ] as [$label, $value, $unit])
-                        <div class="flex items-baseline justify-between border-b border-seam py-2 last:border-b-0 [&:nth-last-child(2)]:border-b-0">
-                            <span class="voice-caption text-ink-dim">{{ $label }}</span>
-                            <span class="data-md text-ink">
-                                @if ($value !== null){{ rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.') }}<span class="data-micro text-ink-faint"> {{ $unit }}</span>@else <span class="text-ink-faint">----</span>@endif
-                            </span>
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <p class="voice-caption mt-2 pb-2 text-ink-dim">Nutrition isn't available for this item yet.</p>
-            @endif
-        </x-app.module>
-
         {{-- Consume — the daily action, and a win when it lands. --}}
         @php($outOfStock = (float) $pantryItem->current_quantity <= 0)
-        <x-app.module label="Consume — logs it to today">
+        <x-app.module label="Consume">
             {{-- Natural portions: chips derived server-side from the product's
                  pack/serving and the user's own last portion. Labels are
                  presentation; the quantity is deterministic (PortionSuggestionService). --}}
@@ -224,6 +197,44 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
                 </button>
             </div>
             @error('consumeAmount') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
+        </x-app.module>
+
+        {{-- Nutrition for what's currently held — one summary line; the full
+             table is a disclosure (it's reference, not a daily read). --}}
+        <x-app.module label="Nutrition" padding="px-5 pb-2 pt-4">
+            @if ($hasNutrition)
+                <p class="data-md mt-2 text-ink">
+                    {{ $nutrition->calories === null ? '----' : rtrim(rtrim(number_format($nutrition->calories, 1, '.', ''), '0'), '.') }}<span class="data-micro text-ink-faint"> KCAL</span>
+                    <span class="data-sm text-ink-dim">
+                        · {{ $nutrition->protein === null ? '--' : rtrim(rtrim(number_format($nutrition->protein, 1, '.', ''), '0'), '.') }}P
+                        · {{ $nutrition->carbs === null ? '--' : rtrim(rtrim(number_format($nutrition->carbs, 1, '.', ''), '0'), '.') }}C
+                        · {{ $nutrition->fat === null ? '--' : rtrim(rtrim(number_format($nutrition->fat, 1, '.', ''), '0'), '.') }}F
+                    </span>
+                </p>
+                <div x-data="{ open: false }" class="mt-2 border-t border-seam py-2">
+                    <button type="button" x-on:click="open = !open" class="keycap-sm flex w-full items-center justify-between text-ink-faint transition hover:text-ink">
+                        <span>Full breakdown</span>
+                        <span x-text="open ? '−' : '+'" class="data-sm"></span>
+                    </button>
+                    <div x-show="open" x-cloak class="mt-1 grid grid-cols-2 gap-x-6">
+                        @foreach ([
+                            ['Sugars', $nutrition->sugars, 'G'],
+                            ['Saturated', $nutrition->saturatedFat, 'G'],
+                            ['Fibre', $nutrition->fibre, 'G'],
+                            ['Salt', $nutrition->salt, 'G'],
+                        ] as [$label, $value, $unit])
+                            <div class="flex items-baseline justify-between py-1.5">
+                                <span class="voice-caption text-ink-dim">{{ $label }}</span>
+                                <span class="data-md text-ink">
+                                    @if ($value !== null){{ rtrim(rtrim(number_format($value, 1, '.', ''), '0'), '.') }}<span class="data-micro text-ink-faint"> {{ $unit }}</span>@else <span class="text-ink-faint">----</span>@endif
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @else
+                <p class="voice-caption mt-2 pb-2 text-ink-dim">No nutrition data.</p>
+            @endif
         </x-app.module>
 
         {{-- Inventory corrections --}}
