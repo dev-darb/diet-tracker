@@ -42,6 +42,9 @@ enum ScanCaptureStatus: string
     /** Suggested match rejected by the user (correction recorded as evidence). */
     case Rejected = 'rejected';
 
+    /** Removed from the stack by the user (mis-fire, duplicate, noise). */
+    case Dismissed = 'dismissed';
+
     /** Still moving through the pipeline (worth polling). */
     public function inFlight(): bool
     {

@@ -152,6 +152,21 @@ class ScanCaptureService
     }
 
     /**
+     * Remove a capture from the stack — a mis-fired shutter, a duplicate, or
+     * settled noise. Never valid on an applied capture (undo that first: a
+     * dismiss must not silently strand pantry/intake writes). Dismissing an
+     * in-flight capture is safe: the job's inFlight() guard skips it.
+     */
+    public function discard(ScanCapture $capture): void
+    {
+        if ($capture->status->applied()) {
+            return;
+        }
+
+        $capture->update(['status' => ScanCaptureStatus::Dismissed]);
+    }
+
+    /**
      * "…and I'm eating it now", tapped on an applied result card: log one unit
      * of the just-stocked item to today. One tap, undoable via undo().
      */
