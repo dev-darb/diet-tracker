@@ -4,7 +4,7 @@
      foot of a flow step. Inline and compact keys keep their own markup. --}}
 @php($classes = 'key keycap block w-full px-4 py-3.5 text-center '.($primary ? 'key-action' : 'text-ink-dim'))
 @if ($href !== null)
-    <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes]) }}>{{ $slot }}</a>
+    <a href="{{ $href }}" wire:navigate {{ $attributes->merge(['class' => $classes]) }}>{{ $slot }}</a>
 @else
     <button type="button" {{ $attributes->merge(['class' => $classes]) }}>{{ $slot }}</button>
 @endif

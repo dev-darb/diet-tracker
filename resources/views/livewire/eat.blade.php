@@ -22,7 +22,12 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
 
     public string $editTime = '';
 
-    public ?int $inspectingId = null;
+    /**
+     * Delete is an undoable automatic action, not a confirmation dialog: the
+     * entry is marked here (and vanishes from the log), the toast offers Undo,
+     * and only after the undo window closes does the service really delete.
+     */
+    public ?int $pendingDeleteId = null;
 
     public function startEdit(int $id): void
     {
@@ -30,7 +35,6 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
         $line = $event->items()->first();
 
         $this->editingId = $id;
-        $this->inspectingId = null;
         $this->editQuantity = $line
             ? rtrim(rtrim(number_format((float) $line->quantity, 3, '.', ''), '0'), '.')
             : '1';
@@ -64,17 +68,37 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
 
     public function deleteEntry(int $id, ConsumptionService $service): void
     {
-        $service->deleteConsumption($this->ownedEvent($id));
+        // A second delete while one is pending commits the first immediately.
+        $this->commitDelete($service);
+
+        $this->ownedEvent($id); // authorisation check before we claim "deleted"
+        $this->pendingDeleteId = $id;
 
         if ($this->editingId === $id) {
             $this->cancelEdit();
         }
-        $this->dispatch('consumption-updated');
+        $this->dispatch('consumption-deleted');
     }
 
-    public function toggleInspect(int $id): void
+    /** The undo window closed — make the deletion real (pantry is restored). */
+    public function commitDelete(ConsumptionService $service): void
     {
-        $this->inspectingId = $this->inspectingId === $id ? null : $id;
+        if ($this->pendingDeleteId === null) {
+            return;
+        }
+
+        $event = Auth::user()->consumptionEvents()->find($this->pendingDeleteId);
+
+        if ($event !== null) {
+            $service->deleteConsumption($event);
+        }
+
+        $this->pendingDeleteId = null;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->pendingDeleteId = null;
     }
 
     private function ownedEvent(int $id): ConsumptionEvent
@@ -89,7 +113,10 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
             ->orderByDesc('consumed_at')
             ->orderByDesc('id')
             ->limit(100)
-            ->get();
+            ->get()
+            // An entry pending deletion is already gone from the user's view;
+            // the toast's Undo is its only way back.
+            ->reject(fn (ConsumptionEvent $e) => $e->id === $this->pendingDeleteId);
 
         $groups = $events
             ->groupBy(fn (ConsumptionEvent $e) => $e->consumed_at->toDateString())
@@ -115,11 +142,12 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
     }
 }; ?>
 
-    <div class="space-y-3" x-data="{ toast: false }"
-         x-on:consumption-updated.window="toast = true; setTimeout(() => toast = false, 2000)">
+    <div class="space-y-3" x-data="{ toast: false, del: false, delT: null }"
+         x-on:consumption-updated.window="toast = true; setTimeout(() => toast = false, 2000)"
+         x-on:consumption-deleted.window="del = true; clearTimeout(delT); delT = setTimeout(() => { del = false; $wire.commitDelete(); }, 6000)">
         <div class="px-1">
             <h1 class="voice-title text-ink">Eat</h1>
-            <p class="voice-caption mt-0.5 text-ink-dim">What you've logged. Consume items from your <a href="{{ route('pantry') }}" class="text-ink underline decoration-seam-strong underline-offset-4 transition hover:decoration-action">pantry</a>, or log any meal.</p>
+            <p class="voice-caption mt-0.5 text-ink-dim">What you've logged. Consume items from your <a href="{{ route('pantry') }}" wire:navigate class="text-ink underline decoration-seam-strong underline-offset-4 transition hover:decoration-action">pantry</a>, or log any meal.</p>
         </div>
 
         {{-- The capture flow entry — the ledger records EVERY meal (Reframe, Aug 2026). --}}
@@ -144,7 +172,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                     <ul class="mt-2 divide-y divide-seam">
                         @foreach ($group['events'] as $event)
                             @php($line = $event->items->first())
-                            <li>
+                            <li x-data="{ inspect: false }">
                                 <div class="flex min-h-[44px] items-center gap-2.5 px-4 py-2.5">
                                     <span class="data-sm w-10 shrink-0 text-ink-faint">{{ $event->consumed_at->format('H:i') }}</span>
                                     <div class="min-w-0 flex-1">
@@ -178,7 +206,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                     </span>
                                     <div class="flex shrink-0 items-center gap-1.5">
                                         @if ($event->items->isNotEmpty())
-                                        <button type="button" wire:click="toggleInspect({{ $event->id }})" title="Details" aria-label="Details"
+                                        <button type="button" x-on:click="inspect = !inspect" title="Details" aria-label="Details"
                                                 class="hit flex size-8 items-center justify-center text-ink-faint transition hover:text-ink">
                                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
                                         </button>
@@ -190,16 +218,16 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
                                         </button>
                                         @endif
-                                        <button type="button" wire:click="deleteEntry({{ $event->id }})" wire:loading.attr="disabled" wire:confirm="Delete this entry? Your pantry will be restored." title="Delete" aria-label="Delete"
+                                        <button type="button" wire:click="deleteEntry({{ $event->id }})" wire:loading.attr="disabled" title="Delete" aria-label="Delete"
                                                 class="hit flex size-8 items-center justify-center text-ink-faint transition hover:text-high">
                                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                                         </button>
                                     </div>
                                 </div>
 
-                                {{-- Inspect components (single items show the product; meals arrive in M5) --}}
-                                @if ($inspectingId === $event->id)
-                                    <div class="border-t border-seam bg-plate-well px-5 py-3">
+                                {{-- Inspect components — pure disclosure, so pure client state. --}}
+                                @if ($event->items->isNotEmpty())
+                                    <div x-show="inspect" x-cloak class="border-t border-seam bg-plate-well px-5 py-3">
                                         @foreach ($event->items as $component)
                                             <div class="flex items-center justify-between gap-3 py-1 text-xs">
                                                 <span class="voice-micro min-w-0 truncate text-ink-dim">{{ $component->canonicalProduct?->name ?? 'Item' }}
@@ -247,4 +275,17 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
         @endif
 
         <x-app.stamp-toast show="toast">Updated</x-app.stamp-toast>
+
+        {{-- Deletion's undo window: the entry is out of the log, the pantry will
+             be restored when the window closes — one tap brings it straight back. --}}
+        <div x-show="del" x-cloak role="status" class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
+            <div class="stamp-in flex items-center justify-between gap-3 rounded-md border border-seam bg-plate-raised px-4 py-3 text-ink">
+                <span class="keycap">Entry deleted</span>
+                <button type="button"
+                        x-on:click="del = false; clearTimeout(delT); $wire.cancelDelete()"
+                        class="keycap hit shrink-0 text-action">
+                    Undo
+                </button>
+            </div>
+        </div>
     </div>

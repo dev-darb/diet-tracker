@@ -424,7 +424,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                     </x-app.console-key>
 
                     <p class="px-1 text-center text-xs text-ink-faint">
-                        Prefer to type it in? <a href="{{ route('pantry') }}" class="text-ink-dim underline decoration-seam-strong underline-offset-4 transition hover:text-ink">Add to pantry manually</a>
+                        Prefer to type it in? <a href="{{ route('pantry') }}" wire:navigate class="text-ink-dim underline decoration-seam-strong underline-offset-4 transition hover:text-ink">Add to pantry manually</a>
                     </p>
                 </div>
             @endif

@@ -20,9 +20,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
     /** chef | stock — the chef is the pantry's default face when configured. */
     public string $view = 'stock';
 
-    // Manual-add form
-    public bool $showAdd = false;
-
+    // Manual-add form (visibility is client state; only the data lives here)
     public string $productSearch = '';
 
     public ?int $selectedProductId = null;
@@ -44,15 +42,6 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
     public function showStock(): void
     {
         $this->view = 'stock';
-    }
-
-    public function toggleAdd(): void
-    {
-        $this->showAdd = ! $this->showAdd;
-        $this->reset(['productSearch', 'selectedProductId', 'addQuantity', 'addUnit']);
-        $this->addQuantity = '1';
-        $this->addUnit = QuantityUnit::Unit->value;
-        $this->resetValidation();
     }
 
     public function selectProduct(int $productId): void
@@ -83,7 +72,11 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
             QuantityUnit::from($data['addUnit']),
         );
 
-        $this->toggleAdd();
+        // Stay open for the next item — unloading a shop is a run, not a one-off.
+        $this->reset(['productSearch', 'selectedProductId', 'addQuantity', 'addUnit']);
+        $this->addQuantity = '1';
+        $this->addUnit = QuantityUnit::Unit->value;
+        $this->resetValidation();
         $this->dispatch('pantry-updated');
     }
 
@@ -98,7 +91,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
 
         $matches = [];
         $term = trim($this->productSearch);
-        if ($this->showAdd && $this->selectedProductId === null && $term !== '') {
+        if ($this->selectedProductId === null && $term !== '') {
             $like = '%'.$term.'%';
             $matches = CanonicalProduct::query()
                 ->where(fn ($q) => $q->where('brand', 'like', $like)->orWhere('name', 'like', $like)->orWhere('gtin', 'like', $like))
@@ -116,7 +109,8 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
     }
 }; ?>
 
-    <div class="space-y-3">
+    <div class="space-y-3" x-data="{ addOpen: false, added: false }"
+         x-on:pantry-updated.window="added = true; setTimeout(() => added = false, 2000)">
         <div class="flex items-center justify-between px-1">
             <div>
                 <h1 class="voice-title text-ink">Pantry</h1>
@@ -125,9 +119,10 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                 </p>
             </div>
             @if ($view === 'stock')
-                <button type="button" wire:click="toggleAdd"
-                        class="key keycap-sm {{ $showAdd ? 'text-ink-dim' : 'key-action' }} px-3.5 py-2.5">
-                    {{ $showAdd ? 'Close' : 'Add item' }}
+                <button type="button" x-on:click="addOpen = !addOpen"
+                        :class="addOpen ? 'text-ink-dim' : 'key-action'"
+                        class="key keycap-sm px-3.5 py-2.5">
+                    <span x-text="addOpen ? 'Close' : 'Add item'">Add item</span>
                 </button>
             @endif
         </div>
@@ -153,8 +148,9 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
 
         @if ($view === 'stock')
 
-        {{-- Manual add (pre-Scan path) --}}
-        @if ($showAdd)
+        {{-- Manual add (pre-Scan path) — opens instantly, stays open for the
+             next item so a shop unloads in one run. --}}
+        <div x-show="addOpen" x-cloak>
             <x-app.module label="Add to pantry">
 
                 @if ($selectedProduct)
@@ -207,7 +203,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                     Add to pantry
                 </x-app.console-key>
             </x-app.module>
-        @endif
+        </div>
 
         {{-- Pantry list: dense data rows, quantity as a readout. --}}
         @if ($items->isEmpty())
@@ -224,7 +220,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                 <ul class="mt-2 divide-y divide-seam">
                     @foreach ($items as $item)
                         <li>
-                            <a href="{{ route('pantry.item', $item) }}"
+                            <a href="{{ route('pantry.item', $item) }}" wire:navigate
                                class="flex min-h-[44px] items-center justify-between gap-4 px-5 py-3 transition hover:bg-plate-raised">
                                 <span class="min-w-0">
                                     <span class="voice-caption block truncate text-ink">{{ $item->canonicalProduct->brand }} — {{ $item->canonicalProduct->name }}</span>
@@ -243,4 +239,6 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
             </section>
         @endif
         @endif
+
+        <x-app.stamp-toast show="added">Added to stock</x-app.stamp-toast>
     </div>

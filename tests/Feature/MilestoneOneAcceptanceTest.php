@@ -60,7 +60,6 @@ class MilestoneOneAcceptanceTest extends TestCase
         $user = User::factory()->onboarded()->create();
 
         Volt::actingAs($user)->test('pantry')
-            ->call('toggleAdd')
             ->call('selectProduct', $product->id)
             ->set('addQuantity', '500')
             ->set('addUnit', QuantityUnit::Gram->value)
