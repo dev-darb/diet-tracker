@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-15T02:30:00Z",
+  "generatedAt": "2026-08-15T03:30:00Z",
   "title": "Design System: Jabba",
   "extensions": {
     "colorMeta": {
@@ -313,8 +313,8 @@
       },
       {
         "name": "motion-nav",
-        "value": "220ms",
-        "purpose": "Plate travel between screens (push/uncover)."
+        "value": "320ms",
+        "purpose": "Plate travel between screens — native cadence (push/cover/uncover)."
       },
       {
         "name": "motion-wipe",
@@ -338,8 +338,8 @@
       },
       {
         "name": "plate-travel",
-        "value": "html[data-motion] main animations: push-fwd/push-back (3.5rem X-travel), cover (2.75rem rise, 260ms), uncover (settle from 98% scale)",
-        "purpose": "Navigation choreography — the chassis is bolted down, the plates travel. Reduced motion: 120ms opacity-only."
+        "value": "two-plate choreography: outgoing <main> cloned into a fixed .plate-ghost clip layer across the body swap; push = incoming full-width slide + outgoing 32% parallax with dim; cover = tool rises over receding desk (scale .97); uncover = tool slides off downward over the brightening desk; 320ms ease-travel",
+        "purpose": "Navigation choreography — old and new plates travel together like a native OS stack, chassis bolted still. Reduced motion: no ghost, 120ms opacity-only."
       },
       {
         "name": "wipe-busy / wipe-in",
@@ -544,13 +544,13 @@
       },
       {
         "name": "The Crisp Motion Rule",
-        "body": "All motion draws from four durations (100/160/220/420ms) and three curves (travel, arrive, exit) — never springy, bouncy, or decoratively looping. Every authored move degrades under prefers-reduced-motion to opacity-only or nothing, without losing state feedback.",
+        "body": "All motion draws from four durations (100/160/320/420ms) and three curves (travel, arrive, exit) — never springy, bouncy, or decoratively looping. Every authored move degrades under prefers-reduced-motion to opacity-only or nothing, without losing state feedback.",
         "section": "components"
       },
       {
         "name": "The Bolted Chassis Rule",
         "section": "layout",
-        "body": "The chassis (top bar, control strip) never moves; the plate stack (<main>) travels. Navigation names its spatial meaning on html[data-motion]: push-fwd/push-back between sibling tabs by key order, cover descending into a focused tool, uncover surfacing back. Fade is reserved for non-spatial relationships — never the default."
+        "body": "The chassis (top bar, control strip) never moves; the plate stack (<main>) travels as a PAIR — the outgoing plate is cloned into a fixed .plate-ghost clip layer across the body swap so old and new move together like a native OS stack. push-fwd/push-back between sibling tabs by key order (incoming full-width, outgoing 32% parallax + dim); cover: a tool rises over the visibly receding desk; uncover: the tool slides off downward over the brightening desk. Fade is reserved for non-spatial relationships — never the default."
       },
       {
         "name": "The Wipe Rule",

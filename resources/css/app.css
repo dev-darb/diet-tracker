@@ -91,7 +91,7 @@
     ------------------------------------------------------------------ */
     --motion-micro: 100ms;  /* key presses, chips, immediate feedback */
     --motion-state: 160ms;  /* small state changes, toasts, splits */
-    --motion-nav: 220ms;    /* plate travel between screens */
+    --motion-nav: 320ms;    /* plate travel between screens — native cadence */
     --motion-wipe: 420ms;   /* analysis wipes — the duration IS the message */
 
     --ease-travel: cubic-bezier(0.2, 0, 0, 1);      /* decisive mechanical travel */
@@ -344,15 +344,19 @@
    MOTION — the plate-travel system.
 
    The chassis (top bar, control strip) is bolted down and never moves. The
-   plate stack (<main>) travels. Each navigation names its spatial meaning via
-   html[data-motion], set by the direction module in app.js before Livewire
-   swaps the body; the incoming plates then arrive with the matching move:
+   plate stack (<main>) travels — and it travels as a PAIR: app.js clones the
+   outgoing plate into a fixed clip layer (.plate-ghost) across the body swap,
+   so old and new move together like a native OS stack. html[data-motion]
+   names each move's spatial meaning:
 
      push-fwd / push-back  sibling tabs, direction from the control strip's
-                           physical key order (Home → Pantry → Eat → Health)
+                           physical key order (Home → Pantry → Eat → Health):
+                           incoming slides full-width, outgoing parallaxes
+                           away at a third speed and dims
      cover                 descending into a focused tool (Scan, Log, detail):
-                           the tool plate slides up over the desk
-     uncover               surfacing back out: the desk settles up from beneath
+                           the tool rises over the desk, which stays beneath
+     uncover               surfacing back out: the tool slides off downward,
+                           revealing the desk brightening to meet you
      (no attribute)        unrelated moves stay instant — fade is reserved,
                            never the default
 
@@ -361,20 +365,51 @@
    .split disclosure primitive — a surface parting to reveal controls.
    All motion is transform / opacity / clip-path; plates never animate layout.
 --------------------------------------------------------------------------- */
+/* The outgoing plate rides in a fixed, clipped, inert layer (.plate-ghost,
+   built by app.js) so old and new travel TOGETHER — the native-stack illusion.
+   The ghost sits between the chassis bars (header z-20 / strip z-30) and the
+   page; cover/uncover flip which plate rides on top. */
+.plate-ghost {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    overflow: hidden;
+    pointer-events: none;
+    background: var(--color-chassis);
+}
 @media (prefers-reduced-motion: no-preference) {
-    html[data-motion='push-fwd'] main { animation: plate-push-fwd var(--motion-nav) var(--ease-travel) both; }
-    html[data-motion='push-back'] main { animation: plate-push-back var(--motion-nav) var(--ease-travel) both; }
-    html[data-motion='cover'] main { animation: plate-cover 260ms var(--ease-arrive) both; }
-    html[data-motion='uncover'] main { animation: plate-uncover var(--motion-nav) var(--ease-arrive) both; }
+    html[data-motion] main { position: relative; }
+
+    /* PUSH — sibling tabs: incoming slides full-width from the travel side;
+       outgoing parallaxes away at a third of the distance and dims beneath. */
+    html[data-motion='push-fwd'] main { animation: plate-in-right var(--motion-nav) var(--ease-travel) both; }
+    .plate-ghost[data-motion='push-fwd'] { animation: plate-out-left var(--motion-nav) var(--ease-travel) both; }
+    html[data-motion='push-back'] main { animation: plate-in-left var(--motion-nav) var(--ease-travel) both; }
+    .plate-ghost[data-motion='push-back'] { animation: plate-out-right var(--motion-nav) var(--ease-travel) both; }
+
+    /* COVER — the tool rises over the desk; the desk visibly stays beneath,
+       settling back and dimming like hardware pushed down a slot. */
+    html[data-motion='cover'] main { z-index: 10; animation: plate-in-up var(--motion-nav) var(--ease-travel) both; }
+    .plate-ghost[data-motion='cover'] { animation: plate-recede var(--motion-nav) var(--ease-travel) both; }
+
+    /* UNCOVER — the tool slides off downward; the desk is already there,
+       brightening back up to meet you. */
+    html[data-motion='uncover'] main { animation: plate-return var(--motion-nav) var(--ease-travel) both; }
+    .plate-ghost[data-motion='uncover'] { z-index: 10; animation: plate-out-down 300ms var(--ease-travel) both; }
 }
 @media (prefers-reduced-motion: reduce) {
     /* The state change stays legible; the travel goes away. */
     html[data-motion] main { animation: plate-fade 120ms ease-out both; }
+    .plate-ghost { display: none; }
 }
-@keyframes plate-push-fwd { from { transform: translateX(3.5rem); opacity: 0.35; } }
-@keyframes plate-push-back { from { transform: translateX(-3.5rem); opacity: 0.35; } }
-@keyframes plate-cover { from { transform: translateY(2.75rem); opacity: 0.25; } }
-@keyframes plate-uncover { from { transform: scale(0.98); opacity: 0.45; } }
+@keyframes plate-in-right { from { transform: translateX(100%); } }
+@keyframes plate-in-left { from { transform: translateX(-32%); opacity: 0.6; } }
+@keyframes plate-out-left { to { transform: translateX(-32%); opacity: 0.55; } }
+@keyframes plate-out-right { to { transform: translateX(100%); } }
+@keyframes plate-in-up { from { transform: translateY(100%); } }
+@keyframes plate-out-down { to { transform: translateY(103%); } }
+@keyframes plate-recede { to { transform: scale(0.97); opacity: 0.45; } }
+@keyframes plate-return { from { transform: scale(0.97); opacity: 0.55; } }
 @keyframes plate-fade { from { opacity: 0.6; } }
 
 /* SPLIT — a surface parts to reveal another (disclosures, inline forms).
