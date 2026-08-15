@@ -28,6 +28,18 @@ use Livewire\Volt\Component;
  */
 new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Component
 {
+    /**
+     * The poll tick. Beyond re-reading the stack it RESCUES stranded work:
+     * any capture the queue has abandoned (no worker, dead worker, lost job)
+     * is processed inline right here after ~20s, so the stack always makes
+     * progress while the user is watching. With a healthy worker this finds
+     * nothing.
+     */
+    public function pulse(ScanCaptureService $captures, \App\AI\Contracts\ProductIdentifier $identifier): void
+    {
+        $captures->rescueStale(Auth::user(), $identifier);
+    }
+
     /** "Yes, add it" on a suggestion-band card. */
     public function confirmCapture(ScanCaptureService $captures, int $id): void
     {
@@ -83,7 +95,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
     }
 }; ?>
 
-    <div class="space-y-3" @if ($hasInFlight) wire:poll.2s @endif
+    <div class="space-y-3" @if ($hasInFlight) wire:poll.2s="pulse" @endif
          x-data="{
             mode: 'booting',            // booting | camera | fallback
             stream: null,
@@ -368,7 +380,18 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             <div class="led-sweep flex w-fit gap-1" aria-hidden="true">
                                 @for ($i = 0; $i < 6; $i++) <span class="led led-on"></span> @endfor
                             </div>
-                            <p class="data-sm mt-1.5 text-ink">IDENTIFYING{{ $capture->barcode ? ' · '.$capture->barcode : '' }}</p>
+                            {{-- The work ticker: the 2s poll re-renders this line,
+                                 so it advances by itself — deadpan status theatre
+                                 while the real pipeline runs. Offset by capture id
+                                 so parallel cards don't chant in unison. --}}
+                            @php($tickerLines = [
+                                'reading the label', 'counting pixels', 'squinting at crumbs',
+                                'checking the shelves', 'weighing the evidence', 'comparing barcodes',
+                                'consulting the archive', 'measuring twice',
+                            ])
+                            <p class="data-sm mt-1.5 text-ink" aria-label="Identifying">
+                                {{ strtoupper($tickerLines[(int) (now()->timestamp / 2 + $capture->id) % count($tickerLines)]) }}{{ $capture->barcode ? ' · '.$capture->barcode : '' }}
+                            </p>
 
 
                         @elseif ($capture->status->applied())

@@ -241,4 +241,58 @@ class ScanCapturePipelineTest extends TestCase
         $this->assertSame(1.0, (float) PantryItem::findOrFail($capture->fresh()->pantry_item_id)->current_quantity);
         $this->assertSame(1, ScanCapture::count());
     }
+
+    // --- Self-healing: the poll rescues captures the queue abandoned --------
+
+    public function test_a_stranded_capture_is_rescued_and_settles(): void
+    {
+        // A capture the queue never processed (worker down / job lost):
+        // created directly, in-flight, last touched beyond the staleness bar.
+        $product = $this->localProduct();
+        $capture = ScanCapture::create([
+            'user_id' => $this->user->id,
+            'barcode' => $product->gtin,
+            'status' => ScanCaptureStatus::Queued,
+        ]);
+        ScanCapture::whereKey($capture->id)->update([
+            'updated_at' => now()->subSeconds(ScanCaptureService::STALE_AFTER_SECONDS + 10),
+        ]);
+
+        $this->service()->rescueStale($this->user, app(ProductIdentifier::class));
+
+        $capture->refresh();
+        $this->assertSame(ScanCaptureStatus::AutoAdded, $capture->status);
+        $this->assertSame(1.0, (float) PantryItem::findOrFail($capture->pantry_item_id)->current_quantity);
+    }
+
+    public function test_rescue_leaves_fresh_in_flight_captures_to_the_worker(): void
+    {
+        // Still inside the staleness window — a live worker owns it.
+        $capture = ScanCapture::create([
+            'user_id' => $this->user->id,
+            'barcode' => '2885053319044',
+            'status' => ScanCaptureStatus::Queued,
+        ]);
+
+        $this->service()->rescueStale($this->user, app(ProductIdentifier::class));
+
+        $this->assertSame(ScanCaptureStatus::Queued, $capture->fresh()->status);
+    }
+
+    public function test_rescue_never_touches_another_users_captures(): void
+    {
+        $other = User::factory()->onboarded()->create();
+        $capture = ScanCapture::create([
+            'user_id' => $other->id,
+            'barcode' => '2885053319044',
+            'status' => ScanCaptureStatus::Queued,
+        ]);
+        ScanCapture::whereKey($capture->id)->update([
+            'updated_at' => now()->subSeconds(ScanCaptureService::STALE_AFTER_SECONDS + 10),
+        ]);
+
+        $this->service()->rescueStale($this->user, app(ProductIdentifier::class));
+
+        $this->assertSame(ScanCaptureStatus::Queued, $capture->fresh()->status);
+    }
 }

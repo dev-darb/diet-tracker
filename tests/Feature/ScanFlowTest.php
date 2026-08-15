@@ -114,7 +114,8 @@ class ScanFlowTest extends TestCase
         ScanCapture::create(['user_id' => $this->user->id, 'status' => ScanCaptureStatus::Failed, 'error' => 'boom']);
 
         Volt::actingAs($this->user)->test('scan')
-            ->assertSee('IDENTIFYING')
+            // In-flight shows the work ticker (any line) with the barcode.
+            ->assertSee('· 111')
             ->assertSee('IN PANTRY')
             ->assertSee('is this right?')
             ->assertSee('IDENTIFY THIS YET')
