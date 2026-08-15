@@ -92,6 +92,7 @@ class ProfileService
             'primary_goal', 'date_of_birth', 'sex', 'height_cm', 'weight_kg',
             'activity_level', 'dietary_pattern', 'dietary_preferences',
             'allergies', 'avoided_foods',
+            'custom_calorie_target', 'custom_protein_g', 'custom_carbs_g', 'custom_fat_g',
         ];
 
         $clean = [];

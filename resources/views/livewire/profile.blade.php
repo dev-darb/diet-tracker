@@ -34,6 +34,12 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
     public ?string $weight_kg = null;
     public string $activity_level = '';
 
+    // Manual targets (Foody Score spec §4): empty = derived from the profile.
+    public ?string $custom_calorie_target = null;
+    public ?string $custom_protein_g = null;
+    public ?string $custom_carbs_g = null;
+    public ?string $custom_fat_g = null;
+
     public array $preferenceOptions = [
         'High protein', 'More vegetables', 'Less sugar', 'Less processed food',
         'High fibre', 'Low salt', 'Gluten-free', 'Dairy-free', 'Halal', 'Kosher',
@@ -62,6 +68,10 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
             $this->height_cm = $profile->height_cm !== null ? (string) $profile->height_cm : null;
             $this->weight_kg = $profile->weight_kg !== null ? (string) $profile->weight_kg : null;
             $this->activity_level = $profile->activity_level?->value ?? '';
+            $this->custom_calorie_target = $profile->custom_calorie_target !== null ? (string) $profile->custom_calorie_target : null;
+            $this->custom_protein_g = $profile->custom_protein_g !== null ? (string) $profile->custom_protein_g : null;
+            $this->custom_carbs_g = $profile->custom_carbs_g !== null ? (string) $profile->custom_carbs_g : null;
+            $this->custom_fat_g = $profile->custom_fat_g !== null ? (string) $profile->custom_fat_g : null;
         }
     }
 
@@ -105,6 +115,10 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
             'height_cm' => ['nullable', 'integer', 'min:50', 'max:260'],
             'weight_kg' => ['nullable', 'numeric', 'min:20', 'max:400'],
             'activity_level' => ['nullable', Rule::enum(ActivityLevel::class)],
+            'custom_calorie_target' => ['nullable', 'integer', 'min:800', 'max:6000'],
+            'custom_protein_g' => ['nullable', 'numeric', 'min:10', 'max:400'],
+            'custom_carbs_g' => ['nullable', 'numeric', 'min:10', 'max:900'],
+            'custom_fat_g' => ['nullable', 'numeric', 'min:10', 'max:300'],
         ], [], ['primary_goal' => 'goal']);
 
         $avoided = collect(preg_split('/[\n,]+/', $this->avoided_foods))
@@ -121,6 +135,10 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
             'height_cm' => $this->height_cm !== null && $this->height_cm !== '' ? (int) $this->height_cm : null,
             'weight_kg' => $this->weight_kg !== null && $this->weight_kg !== '' ? (float) $this->weight_kg : null,
             'activity_level' => $this->activity_level ?: null,
+            'custom_calorie_target' => $this->custom_calorie_target !== null && $this->custom_calorie_target !== '' ? (int) $this->custom_calorie_target : null,
+            'custom_protein_g' => $this->custom_protein_g !== null && $this->custom_protein_g !== '' ? (float) $this->custom_protein_g : null,
+            'custom_carbs_g' => $this->custom_carbs_g !== null && $this->custom_carbs_g !== '' ? (float) $this->custom_carbs_g : null,
+            'custom_fat_g' => $this->custom_fat_g !== null && $this->custom_fat_g !== '' ? (float) $this->custom_fat_g : null,
         ]);
 
         $this->dispatch('saved', section: 'profile');
@@ -128,11 +146,21 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
 
     public function with(): array
     {
+        // Live targets, receipts included — the placeholders show what Foody
+        // derives so an override is always a choice against a visible default.
+        $targets = app(\App\Services\NutritionTargetsService::class)->targetsFor(Auth::user());
+
         return [
             'goals' => PrimaryGoal::options(),
             'patterns' => DietaryPattern::options(),
             'sexes' => Sex::options(),
             'activityLevels' => ActivityLevel::options(),
+            'derived' => [
+                'calories' => (int) ($targets['calories']['default'] ?? $targets['calories']['target']),
+                'protein' => (int) ($targets['protein']['default'] ?? $targets['protein']['target']),
+                'carbs' => (int) ($targets['carbs']['default'] ?? $targets['carbs']['target']),
+                'fat' => (int) ($targets['fat']['default'] ?? $targets['fat']['target']),
+            ],
         ];
     }
 }; ?>
@@ -271,6 +299,39 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                                     <option value="{{ $a['value'] }}">{{ $a['label'] }}</option>
                                 @endforeach
                             </select>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Manual targets (Foody Score spec §4): explicit targets become
+                     the scoring targets and are judged with tighter tolerance. --}}
+                <div class="rounded-xl bg-plate-well p-4">
+                    <p class="text-sm font-medium text-ink-dim">Your own targets</p>
+                    <p class="mt-0.5 text-xs text-ink-dim">Optional — leave blank to use the figures Foody works out for you. A target you set here is treated as deliberate and scored more precisely.</p>
+                    <div class="mt-3 grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-ink-dim">Calories (kcal)</label>
+                            <input type="number" inputmode="numeric" wire:model="custom_calorie_target" placeholder="{{ $derived['calories'] }}"
+                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            @error('custom_calorie_target') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="text-xs text-ink-dim">Protein (g)</label>
+                            <input type="number" inputmode="decimal" step="1" wire:model="custom_protein_g" placeholder="{{ $derived['protein'] }}"
+                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            @error('custom_protein_g') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="text-xs text-ink-dim">Carbs (g)</label>
+                            <input type="number" inputmode="decimal" step="1" wire:model="custom_carbs_g" placeholder="{{ $derived['carbs'] }}"
+                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            @error('custom_carbs_g') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="text-xs text-ink-dim">Fat (g)</label>
+                            <input type="number" inputmode="decimal" step="1" wire:model="custom_fat_g" placeholder="{{ $derived['fat'] }}"
+                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            @error('custom_fat_g') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                     </div>
                 </div>

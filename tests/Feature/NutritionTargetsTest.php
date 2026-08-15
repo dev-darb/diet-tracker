@@ -186,6 +186,37 @@ class NutritionTargetsTest extends TestCase
 
     // --- integration: the analytics layer serves personalised targets --------
 
+    public function test_manual_targets_override_derived_figures_with_a_receipt(): void
+    {
+        $user = $this->userWithProfile([
+            'primary_goal' => PrimaryGoal::GainMuscle,
+            'sex' => Sex::Male,
+            'date_of_birth' => now()->subYears(30)->toDateString(),
+            'height_cm' => 180,
+            'weight_kg' => 82,
+            'activity_level' => ActivityLevel::Moderate,
+            'custom_calorie_target' => 2800,
+            'custom_protein_g' => 160.0,
+        ]);
+
+        $targets = $this->service->targetsFor($user);
+
+        // The explicit figures win, marked explicit, with the derived default
+        // preserved alongside (Foody Score spec §4).
+        $this->assertSame(2800.0, $targets['calories']['target']);
+        $this->assertTrue($targets['calories']['explicit']);
+        $this->assertSame(3050.0, $targets['calories']['default']);
+        $this->assertSame('Your own target, set in Profile', $targets['calories']['basis']);
+
+        $this->assertSame(160.0, $targets['protein']['target']);
+        $this->assertSame(150.0, $targets['protein']['default']);
+
+        // Carbs/fat derive from the OVERRIDDEN calorie target (the user's own
+        // energy budget), not the discarded derived one: 2800 * 0.50 / 4 = 350.
+        $this->assertSame(350.0, $targets['carbs']['target']);
+        $this->assertArrayNotHasKey('explicit', $targets['carbs']);
+    }
+
     public function test_summaries_expose_targets_and_personalised_protein_indicator(): void
     {
         $user = $this->userWithProfile([

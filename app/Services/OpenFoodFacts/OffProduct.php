@@ -26,6 +26,7 @@ final class OffProduct
         public readonly ?string $nutritionDataPer,
         public readonly ?string $ingredientsText,
         public readonly array $allergens,
+        public readonly array $categories,
         private readonly array $nutriments,
     ) {}
 
@@ -43,8 +44,22 @@ final class OffProduct
             nutritionDataPer: self::string($product['nutrition_data_per'] ?? null),
             ingredientsText: self::string($product['ingredients_text'] ?? null),
             allergens: self::allergens($product['allergens_tags'] ?? []),
+            categories: self::categories($product['categories_tags'] ?? []),
             nutriments: is_array($product['nutriments'] ?? null) ? $product['nutriments'] : [],
         );
+    }
+
+    /**
+     * The most specific OFF category, in plain words ("rolled oats"), or null
+     * when OFF states none. OFF orders `categories_tags` general → specific;
+     * the last tag is the product's own shelf, which is what fruit-&-veg and
+     * plant-diversity classification key on.
+     */
+    public function category(): ?string
+    {
+        return $this->categories === []
+            ? null
+            : $this->categories[array_key_last($this->categories)];
     }
 
     /**
@@ -135,6 +150,32 @@ final class OffProduct
             $parts = explode(':', $tag);
 
             return self::string(end($parts));
+        }, $tags)));
+    }
+
+    /**
+     * Clean OFF category tags into plain lowercase words, dropping the
+     * language prefix and hyphens: "en:plant-based-foods" → "plant based foods".
+     *
+     * @param  mixed  $tags
+     * @return array<int, string>
+     */
+    private static function categories(mixed $tags): array
+    {
+        if (! is_array($tags)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(static function ($tag): ?string {
+            $tag = self::string($tag);
+
+            if ($tag === null) {
+                return null;
+            }
+
+            $parts = explode(':', $tag);
+
+            return self::string(str_replace('-', ' ', strtolower((string) end($parts))));
         }, $tags)));
     }
 

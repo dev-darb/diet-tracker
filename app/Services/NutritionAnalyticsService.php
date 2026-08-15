@@ -29,9 +29,12 @@ use Illuminate\Support\Collection;
  *
  * ## Reference targets (brief §9.5)
  * Indicators map a value to a qualitative band (Good / OK / Low / Slightly high)
- * against GENERAL, NON-MEDICAL adult guidance — see {@see REFERENCE_TARGETS}. We
- * deliberately do NOT compute a single numeric "health score" (§9.5: it implies
- * false precision). All targets are documented constants, not magic numbers.
+ * against the per-user targets from {@see NutritionTargetsService} — personalised
+ * where the profile allows, cited general guidance otherwise, each carrying its
+ * receipt. The app's single numeric score is the FOODY SCORE, computed solely by
+ * the versioned deterministic engine (`App\Services\FoodyScore\ScoreEngine`) with
+ * explicit confidence states — these indicators stay qualitative and are never a
+ * second score.
  */
 class NutritionAnalyticsService
 {
@@ -40,7 +43,7 @@ class NutritionAnalyticsService
     /** Window length for the "This week" horizon (brief §9.2 — Today + 7-day Week for MVP). */
     public const WEEK_DAYS = 7;
 
-    /** Qualitative indicator bands (brief §9.5). Never a numeric score. */
+    /** Qualitative indicator bands (brief §9.5) — the Foody Score is the only number. */
     public const BAND_GOOD = 'Good';
 
     public const BAND_OK = 'OK';
@@ -50,32 +53,6 @@ class NutritionAnalyticsService
     public const BAND_SLIGHTLY_HIGH = 'Slightly high';
 
     public const BAND_UNKNOWN = 'Unknown';
-
-    /**
-     * General adult daily reference targets (brief §9.5 — component indicators).
-     *
-     * These are GENERAL, NON-MEDICAL guidance figures for a typical adult, used
-     * only to colour a qualitative band. They are NOT personalised medical advice
-     * (brief §9.10, BUILD_PLAN R4).
-     *
-     *  - protein 50 g/day   — EU/UK reference intake (RI) for protein.
-     *  - fibre 30 g/day     — UK SACN / Eatwell recommendation (~30 g/day).
-     *  - saturated fat 20 g — UK Eatwell reference (RI ~20 g/day; "less than").
-     *  - salt 6 g/day       — UK NHS maximum for adults.
-     *  - fruit & veg 5/day  — UK "5-a-day" portions.
-     *
-     * `direction`: `higher` = more is better (band Good/OK/Low); `lower` = a cap,
-     * more is worse (band Good/OK/Slightly high).
-     *
-     * @var array<string, array{target: float, unit: string, direction: string, label: string}>
-     */
-    public const REFERENCE_TARGETS = [
-        'protein' => ['target' => 50.0, 'unit' => 'g', 'direction' => 'higher', 'label' => 'Protein'],
-        'fibre' => ['target' => 30.0, 'unit' => 'g', 'direction' => 'higher', 'label' => 'Fibre'],
-        'fruit_veg' => ['target' => 5.0, 'unit' => 'portions', 'direction' => 'higher', 'label' => 'Fruit & veg'],
-        'saturated_fat' => ['target' => 20.0, 'unit' => 'g', 'direction' => 'lower', 'label' => 'Saturated fat'],
-        'salt' => ['target' => 6.0, 'unit' => 'g', 'direction' => 'lower', 'label' => 'Salt'],
-    ];
 
     /** Higher-is-better: a value at ≥60% of target is "OK"; below is "Low". */
     public const OK_FLOOR_FRACTION = 0.6;

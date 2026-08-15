@@ -7,7 +7,9 @@ use App\AI\Contracts\EatingOutEstimator;
 use App\AI\Contracts\MealPhotoInterpreter;
 use App\AI\Contracts\ProductIdentifier;
 use App\AI\Contracts\RecipeSuggester;
+use App\AI\Contracts\ScoreInsightWriter;
 use App\AI\Local\RuleBasedDietInsightGenerator;
+use App\AI\Local\RuleBasedScoreInsightWriter;
 use App\AI\Local\UnavailableEatingOutEstimator;
 use App\AI\Local\UnavailableMealPhotoInterpreter;
 use App\AI\Local\UnavailableRecipeSuggester;
@@ -16,6 +18,7 @@ use App\AI\OpenRouter\PrismEatingOutEstimator;
 use App\AI\OpenRouter\PrismMealPhotoInterpreter;
 use App\AI\OpenRouter\PrismProductIdentifier;
 use App\AI\OpenRouter\PrismRecipeSuggester;
+use App\AI\OpenRouter\PrismScoreInsightWriter;
 use App\Services\AiJobLogger;
 use App\Services\NutritionTargetsService;
 use Illuminate\Support\ServiceProvider;
@@ -74,6 +77,23 @@ class AiServiceProvider extends ServiceProvider
             return filled($key)
                 ? $app->make(PrismDietInsightGenerator::class)
                 : $app->make(RuleBasedDietInsightGenerator::class);
+        });
+
+        // Foody Score daily insight wording (spec §14). Same grace rule: with
+        // no gateway key the deterministic templates ship as-is — the score
+        // pipeline never depends on a model being reachable.
+        $this->app->bind(ScoreInsightWriter::class, function ($app): ScoreInsightWriter {
+            $config = $app['config']->get('ai.score_insight_writer');
+            $key = $app['config']->get('prism.providers.'.$config['provider'].'.api_key');
+
+            return filled($key)
+                ? new PrismScoreInsightWriter(
+                    logger: $app->make(AiJobLogger::class),
+                    seedWriter: $app->make(RuleBasedScoreInsightWriter::class),
+                    provider: $config['provider'],
+                    model: $config['model'],
+                )
+                : $app->make(RuleBasedScoreInsightWriter::class);
         });
 
         // Eating-out estimation (capture flow, BUILD_PLAN §1b tier 3). Same
