@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-15T03:30:00Z",
+  "generatedAt": "2026-08-15T04:30:00Z",
   "title": "Design System: Jabba",
   "extensions": {
     "colorMeta": {
@@ -312,9 +312,9 @@
         "purpose": "Small state changes, toasts, splits, slot-ins."
       },
       {
-        "name": "motion-nav",
-        "value": "320ms",
-        "purpose": "Plate travel between screens — native cadence (push/cover/uncover)."
+        "name": "value-settle",
+        "value": "color glow good -> currentColor, 700ms ease-arrive",
+        "purpose": "The landing: a readout whose value just changed glows and settles — proof the action counted. Keyed to the value, recency-gated so page loads render calm."
       },
       {
         "name": "motion-wipe",
@@ -335,11 +335,6 @@
         "name": "ease-exit",
         "value": "cubic-bezier(0.7, 0, 0.84, 0)",
         "purpose": "Exits leave faster than entrances."
-      },
-      {
-        "name": "plate-travel",
-        "value": "two-plate choreography: outgoing <main> cloned into a fixed .plate-ghost clip layer across the body swap; push = incoming full-width slide + outgoing 32% parallax with dim; cover = tool rises over receding desk (scale .97); uncover = tool slides off downward over the brightening desk; 320ms ease-travel",
-        "purpose": "Navigation choreography — old and new plates travel together like a native OS stack, chassis bolted still. Reduced motion: no ghost, 120ms opacity-only."
       },
       {
         "name": "wipe-busy / wipe-in",
@@ -544,13 +539,18 @@
       },
       {
         "name": "The Crisp Motion Rule",
-        "body": "All motion draws from four durations (100/160/320/420ms) and three curves (travel, arrive, exit) — never springy, bouncy, or decoratively looping. Every authored move degrades under prefers-reduced-motion to opacity-only or nothing, without losing state feedback.",
+        "body": "All motion draws from three durations (100/160/420ms) and three curves (travel, arrive, exit) — never springy, bouncy, or decoratively looping. Every authored move degrades under prefers-reduced-motion to opacity-only or nothing, without losing state feedback.",
         "section": "components"
       },
       {
-        "name": "The Bolted Chassis Rule",
+        "name": "The Instant Navigation Rule",
         "section": "layout",
-        "body": "The chassis (top bar, control strip) never moves; the plate stack (<main>) travels as a PAIR — the outgoing plate is cloned into a fixed .plate-ghost clip layer across the body swap so old and new move together like a native OS stack. push-fwd/push-back between sibling tabs by key order (incoming full-width, outgoing 32% parallax + dim); cover: a tool rises over the visibly receding desk; uncover: the tool slides off downward over the brightening desk. Fade is reserved for non-spatial relationships — never the default."
+        "body": "Page-to-page navigation carries no transition animation: a fetch-bound body swap cannot honestly imitate native paging, and a transition that races the network shows its seams. The chassis is identical across pages, so a swap reads as plate content changing under fixed hardware. The motion budget is spent inside the page."
+      },
+      {
+        "name": "The Landed Action Rule",
+        "section": "layout",
+        "body": "Every encouraged action answers twice: the press (key physics) and the landing — visible proof the data moved. A changed readout glows good and settles (value-settle), a chip stamps in, a row seats into its stack, a genuine win fires the reward stamp. The landing celebrates the data changing, never the screen changing."
       },
       {
         "name": "The Wipe Rule",

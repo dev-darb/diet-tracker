@@ -305,8 +305,10 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
         {{-- THE RESULTS STACK — captures settle here while the shutter stays live. --}}
         @if ($sessionAdds > 0)
+            {{-- The session counter re-stamps each time it climbs (keyed on the
+                 count) — the loop's running score, landing like a press. --}}
             <div class="flex items-center gap-2 px-1">
-                <span class="chip border-good/40 text-good">+{{ $sessionAdds }} {{ $sessionAdds === 1 ? 'ITEM' : 'ITEMS' }}</span>
+                <span class="chip stamp-in border-good/40 text-good" wire:key="session-adds-{{ $sessionAdds }}">+{{ $sessionAdds }} {{ $sessionAdds === 1 ? 'ITEM' : 'ITEMS' }}</span>
                 <span class="data-sm text-ink-faint">THIS SESSION</span>
             </div>
         @endif
@@ -362,9 +364,9 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                                 @endif
                             </p>
                             <div class="mt-2 flex flex-wrap items-center gap-2">
-                                <span class="chip border-good/40 text-good">IN PANTRY</span>
+                                <span class="chip border-good/40 text-good {{ $justSettled ? 'stamp-in' : '' }}">IN PANTRY</span>
                                 @if ($capture->consumption_event_id)
-                                    <span class="chip border-good/40 text-good">LOGGED TO TODAY</span>
+                                    <span class="chip border-good/40 text-good {{ $capture->updated_at->gt(now()->subSeconds(8)) ? 'stamp-in' : '' }}">LOGGED TO TODAY</span>
                                 @else
                                     <button type="button" wire:click="eatNowCapture({{ $capture->id }})" wire:loading.attr="disabled"
                                             class="key keycap-sm hit px-3 py-1.5 text-ink-dim">I'm eating it now</button>
