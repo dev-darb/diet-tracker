@@ -152,6 +152,21 @@ class ScanCaptureService
     }
 
     /**
+     * "…and I'm eating it now", tapped on an applied result card: log one unit
+     * of the just-stocked item to today. One tap, undoable via undo().
+     */
+    public function eatNow(ScanCapture $capture): void
+    {
+        if (! $capture->status->applied() || $capture->consumption_event_id !== null || $capture->pantryItem === null) {
+            return;
+        }
+
+        $event = $this->consumption->consumePantryItem($capture->user, $capture->pantryItem, 1.0);
+
+        $capture->update(['eat_now' => true, 'consumption_event_id' => $event->id]);
+    }
+
+    /**
      * Reverse an applied capture: the consumption event is deleted (its ledger
      * correction restores stock), then the stocked unit is removed.
      */

@@ -110,6 +110,12 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
             @endif
         </section>
 
+        {{-- CAPTURE — logging is one tap from the front panel: SCAN owns the
+             nav's centre key; every other meal goes through Log. --}}
+        <x-app.console-key :href="route('eat.log')">
+            <span class="flex items-center justify-center gap-2"><x-app.icon name="pan" class="size-4" />Log a meal</span>
+        </x-app.console-key>
+
         {{-- ASSESS — component indicators (brief §9.5): qualitative bands. --}}
         @if ($today['has_data'])
             <section aria-label="How today looks">
