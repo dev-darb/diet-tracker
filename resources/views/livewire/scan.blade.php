@@ -313,7 +313,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
         {{-- Client-side: frames still being handed off --}}
         <template x-for="job in sending" :key="job.key">
-            <div class="module flex items-center gap-3 px-4 py-3">
+            <div class="module slot-in flex items-center gap-3 px-4 py-3">
                 <img :src="job.thumb" alt="" class="size-10 shrink-0 rounded object-cover">
                 <div class="min-w-0 flex-1">
                     <p class="data-sm text-ink" x-text="job.failed ? 'HAND-OFF FAILED' : 'HANDING OFF…'"></p>
@@ -326,8 +326,12 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
         @foreach ($captures as $capture)
             @php($product = $capture->matchedProduct)
-            <div class="module px-4 py-3" wire:key="capture-{{ $capture->id }}">
-                <div class="flex items-start gap-3">
+            {{-- In flight, the scanline wipes the card (work is happening);
+                 the moment it settles, the result wipes in once — but only a
+                 FRESH settle earns the wipe, so a reload renders the stack calm. --}}
+            @php($justSettled = ! $capture->status->inFlight() && $capture->updated_at->gt(now()->subSeconds(8)))
+            <div class="module slot-in px-4 py-3 {{ $capture->status->inFlight() ? 'wipe-busy' : '' }}" wire:key="capture-{{ $capture->id }}">
+                <div class="flex items-start gap-3 {{ $justSettled ? 'wipe-in' : '' }}" wire:key="capture-{{ $capture->id }}-{{ $capture->status->value }}">
                     {{-- Evidence: the frame or the digits --}}
                     @if ($capture->image_path)
                         {{-- Deliberately a relative URL: the public-disk symlink serves

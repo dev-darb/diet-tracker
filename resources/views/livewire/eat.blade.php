@@ -225,9 +225,12 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                     </div>
                                 </div>
 
-                                {{-- Inspect components — pure disclosure, so pure client state. --}}
+                                {{-- Inspect components — pure disclosure, so pure client state.
+                                     SPLIT: the row parts to reveal the breakdown. --}}
                                 @if ($event->items->isNotEmpty())
-                                    <div x-show="inspect" x-cloak class="border-t border-seam bg-plate-well px-5 py-3">
+                                    <div class="split" :class="inspect && 'split-open'">
+                                    <div>
+                                    <div class="border-t border-seam bg-plate-well px-5 py-3">
                                         @foreach ($event->items as $component)
                                             <div class="flex items-center justify-between gap-3 py-1 text-xs">
                                                 <span class="voice-micro min-w-0 truncate text-ink-dim">{{ $component->canonicalProduct?->name ?? 'Item' }}
@@ -240,6 +243,8 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                                 </span>
                                             </div>
                                         @endforeach
+                                    </div>
+                                    </div>
                                     </div>
                                 @endif
 

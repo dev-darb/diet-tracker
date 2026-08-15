@@ -192,8 +192,12 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
         @if ($view === 'stock')
 
         {{-- Manual add (pre-Scan path) — opens instantly, stays open for the
-             next item so a shop unloads in one run. --}}
-        <div x-show="addOpen" x-cloak>
+             next item so a shop unloads in one run. SPLIT: the desk parts to
+             reveal the form; inert while closed so nothing hidden is tabbable.
+             The closed -mt-3 hands its stack gap back to the space-y flow. --}}
+        <div class="split" :class="addOpen ? 'split-open' : '-mt-3'" :inert="!addOpen">
+        <div>
+        <div class="pt-px">
             <x-app.module label="Add to pantry">
 
                 @if ($selectedProduct)
@@ -246,6 +250,8 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                     Add to pantry
                 </x-app.console-key>
             </x-app.module>
+        </div>
+        </div>
         </div>
 
         {{-- Pantry list: dense data rows, quantity as a readout. --}}

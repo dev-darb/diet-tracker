@@ -1,5 +1,58 @@
 import { detectBarcode } from './barcode';
 
+/**
+ * Plate-travel direction module (motion system, see app.css MOTION block).
+ *
+ * Before Livewire's wire:navigate swaps the body, this names the move's
+ * spatial meaning on <html data-motion="…">; the incoming <main> then arrives
+ * with the matching animation. The attribute survives the body swap (it lives
+ * on the documentElement), fires the CSS the moment the new plates mount, and
+ * is cleared once the travel is over — so ordinary morphs never animate.
+ *
+ *   push-fwd / push-back  between sibling tabs, by control-strip key order
+ *   cover                 descending into a focused tool or detail plate
+ *   uncover               surfacing back to the desk
+ *   (none)                unrelated moves stay instant
+ */
+(() => {
+    const TAB_ORDER = { home: 0, pantry: 1, scan: null, eat: 2, health: 3 };
+
+    const key = (path) => (path.replace(/^\/+|\/+$/g, '') || 'home').toLowerCase();
+    const isTab = (k) => Object.hasOwn(TAB_ORDER, k) && TAB_ORDER[k] !== null;
+
+    const classify = (from, to) => {
+        if (from === to) return null;
+        if (isTab(from) && isTab(to)) {
+            return TAB_ORDER[to] > TAB_ORDER[from] ? 'push-fwd' : 'push-back';
+        }
+        if (isTab(from)) return 'cover';      // desk → tool/detail (scan, log, item…)
+        if (isTab(to)) return 'uncover';      // tool/detail → desk
+        return 'cover';                       // deeper into a tool keeps covering
+    };
+
+    let clearTimer = null;
+    const set = (motion) => {
+        if (!motion) return;
+        document.documentElement.dataset.motion = motion;
+        clearTimeout(clearTimer);
+        clearTimer = setTimeout(() => delete document.documentElement.dataset.motion, 3000);
+    };
+
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest('a[wire\\:navigate]');
+        if (!link) return;
+        set(classify(key(location.pathname), key(new URL(link.href, location.origin).pathname)));
+    });
+
+    // The browser back button surfaces the previous plate from beneath.
+    window.addEventListener('popstate', () => set('uncover'));
+
+    document.addEventListener('livewire:navigated', () => {
+        clearTimeout(clearTimer);
+        clearTimer = setTimeout(() => delete document.documentElement.dataset.motion, 400);
+    });
+})();
+
 // Exposed for the Scan flow's inline Alpine handler (resources/views/livewire/scan.blade.php).
 // It reads the captured image on-device and, when a barcode is found, feeds it
 // to the Livewire component so resolution takes the keyless barcode -> Open Food
