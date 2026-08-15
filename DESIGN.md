@@ -282,7 +282,8 @@ The reusable layer lives in two tiers: CSS classes in `resources/css/app.css` (`
 - **Capture well:** a viewfinder, not a form — min-height well with seam-strong SVG corner brackets, hover strengthens the seam.
 
 ### Navigation
-- **Control strip:** fixed bottom, 5-key grid (8px gaps, 12px padding, safe-area-inset bottom) on a seam-topped solid chassis plate — the top status bar is the only blurred bar. Four flat keys (h-14, silkscreen captions; active = ink caption + `aria-current`), and the raised orange SCAN key: taller (h-[4.25rem]), pulled up 12px above the row, stroke-icon + keycap-sm mono caption in black.
+- **Control strip** (redesigned Aug 2026, founder feedback): a raised machined plate (`bg-plate`, 1px `seam-strong` top edge — a material edge, not a hairline afterthought), not a row of outlined boxes. Four engraved stations: glyph (size-5, from the icon bank: house/basket/fork/pulse) over a mono micro-caption (9px, 0.08em tracking); active = ink + a 2px orange indicator tick seated under the plate edge; inactive = ink-faint. Station press is deliberately physical: scale 0.92 + brightness 1.35, 80ms.
+- **The SCAN key:** an orange rounded-square (60px, rounded-2xl) punched **through** the plate edge on a 4px chassis ring, floating clear of the seam — never touching it. Icon-only (scan brackets), machined ledge (0 3px 0 #a33200); pressing drops it fully onto the ledge; on the Scan screen it reads latched down (2px seated, dimmed 8%).
 - **Icons** throughout are inline stroked SVGs (1.6–3.2 stroke, round caps), currentColor — no icon fonts, no filled glyph sets.
 
 ### The Reward Stamp (signature)

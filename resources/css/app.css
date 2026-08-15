@@ -234,6 +234,58 @@
         inset: -6px;
     }
 
+    /* Control-strip stations: engraved on the plate, no boxes at rest.
+       Press = a real sink (scale + brightness), stronger than ordinary keys. */
+    .station-caption {
+        font-family: var(--font-mono);
+        font-size: 0.5625rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        line-height: 1;
+    }
+    .station {
+        -webkit-tap-highlight-color: transparent;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        .station {
+            transition: color var(--motion-micro) ease-out, transform 80ms ease-out, filter 80ms ease-out;
+        }
+    }
+    .station:active {
+        transform: scale(0.92);
+        filter: brightness(1.35);
+    }
+
+    /* The SCAN key: punched through the plate edge on a chassis ring, seated
+       on a machined ledge. Owns its transform outright (positioning + travel
+       live here, not in utilities). Pressing drops it onto the ledge. */
+    .scan-key {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, calc(-50% - 0.875rem));
+        background: var(--color-action);
+        color: #000;
+        border: 4px solid var(--color-chassis);
+        box-shadow: 0 3px 0 0 #a33200;
+        -webkit-tap-highlight-color: transparent;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        .scan-key {
+            transition: transform 80ms ease-out, box-shadow 80ms ease-out, filter 80ms ease-out;
+        }
+    }
+    .scan-key:active {
+        transform: translate(-50%, calc(-50% - 0.875rem + 3px));
+        box-shadow: 0 0 0 0 #a33200;
+    }
+    /* On the scan screen itself the key reads as latched down. */
+    .scan-key-lit {
+        transform: translate(-50%, calc(-50% - 0.875rem + 2px));
+        box-shadow: 0 1px 0 0 #a33200;
+        filter: brightness(0.92);
+    }
+
     /* A physical key on the control strip / a pressable console control. */
     .key {
         border: 1px solid var(--color-seam);

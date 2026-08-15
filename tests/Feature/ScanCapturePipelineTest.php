@@ -159,6 +159,27 @@ class ScanCapturePipelineTest extends TestCase
         $this->assertSame(1.0, (float) $capture->pantryItem->current_quantity);
     }
 
+    public function test_a_mistaken_capture_can_be_dismissed_but_applied_ones_cannot(): void
+    {
+        $this->localProduct();
+
+        // An in-flight (or settled, unapplied) capture dismisses cleanly…
+        $stale = ScanCapture::create(['user_id' => $this->user->id, 'barcode' => '999', 'status' => ScanCaptureStatus::Identifying]);
+        $this->service()->discard($stale);
+        $this->assertSame(ScanCaptureStatus::Dismissed, $stale->fresh()->status);
+
+        // …and a dismissed capture is dead to the pipeline: a late job no-ops.
+        $this->service()->process($stale->fresh(), app(ProductIdentifier::class));
+        $this->assertSame(ScanCaptureStatus::Dismissed, $stale->fresh()->status);
+        $this->assertDatabaseCount('pantry_items', 0);
+
+        // An applied capture refuses dismissal — Undo is the only way out,
+        // so a dismiss can never strand pantry/intake writes.
+        $applied = $this->service()->queue($this->user, null, '2885053319044');
+        $this->service()->discard($applied->refresh());
+        $this->assertSame(ScanCaptureStatus::AutoAdded, $applied->fresh()->status);
+    }
+
     public function test_rejecting_a_suggestion_records_the_correction(): void
     {
         $this->localProduct();

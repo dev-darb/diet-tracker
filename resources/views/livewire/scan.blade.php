@@ -52,6 +52,12 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
         $captures->eatNow($this->owned($id));
     }
 
+    /** × on a card — a mis-fire or noise leaves the stack (never applied ones). */
+    public function dismissCapture(ScanCaptureService $captures, int $id): void
+    {
+        $captures->discard($this->owned($id));
+    }
+
     private function owned(int $id): ScanCapture
     {
         return ScanCapture::where('user_id', Auth::id())->findOrFail($id);
@@ -63,6 +69,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
         // means a refresh or interruption never loses settled background work.
         $captures = ScanCapture::with('matchedProduct')
             ->where('user_id', Auth::id())
+            ->where('status', '!=', \App\Enums\ScanCaptureStatus::Dismissed)
             ->where('created_at', '>=', now()->subHours(12))
             ->latest()
             ->limit(12)
@@ -83,6 +90,9 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             torchFlash: false,
             shutterArmed: true,
             sending: [],                // client-side captures still uploading
+            thumbs: {},                 // captureId -> local object-URL preview: the
+                                        // phone already holds the frame it just shot,
+                                        // so previews never depend on server storage
             seenCodes: {},              // live-read barcodes, deduped for 20s
             statusLine: '',
             fb: { preview: null, reading: false, sending: false, error: null },
@@ -183,7 +193,12 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         body: form,
                     });
                     if (!res.ok) { throw new Error('HTTP ' + res.status); }
-                    if (job) { this.sending = this.sending.filter((j) => j.key !== job.key); }
+                    const created = await res.json();
+                    if (job) {
+                        // The local frame becomes the server card's preview.
+                        if (created?.id && job.thumb) { this.thumbs[created.id] = job.thumb; }
+                        this.sending = this.sending.filter((j) => j.key !== job.key);
+                    }
                     this.$wire.$refresh();
                 } catch (_) {
                     if (job) { job.failed = true; } else { this.statusLine = 'CAPTURE FAILED — CHECK CONNECTION'; }
@@ -227,6 +242,8 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         body: form,
                     });
                     if (!res.ok) { throw new Error('HTTP ' + res.status); }
+                    const created = await res.json();
+                    if (created?.id && this.fb.preview) { this.thumbs[created.id] = this.fb.preview; }
                     this.fb.preview = null;
                     this.$wire.$refresh();
                 } catch (_) {
@@ -334,18 +351,18 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             @php($justSettled = ! $capture->status->inFlight() && $capture->updated_at->gt(now()->subSeconds(8)))
             <div class="module slot-in px-4 py-3 {{ $capture->status->inFlight() ? 'wipe-busy' : '' }}" wire:key="capture-{{ $capture->id }}">
                 <div class="flex items-start gap-3 {{ $justSettled ? 'wipe-in' : '' }}" wire:key="capture-{{ $capture->id }}-{{ $capture->status->value }}">
-                    {{-- Evidence: the frame or the digits --}}
-                    @if ($capture->image_path)
-                        {{-- Deliberately a relative URL: the public-disk symlink serves
-                             /storage/* on whatever host the app answers on, so an
-                             APP_URL drift can never break thumbnails. Revisit at M8/S3. --}}
-                        <img src="/storage/{{ $capture->image_path }}" alt=""
-                             class="size-10 shrink-0 rounded object-cover" onerror="this.style.display='none'">
-                    @else
+                    {{-- Evidence: the frame THIS phone just shot, held locally —
+                         serverless disk can't be trusted to serve previews back
+                         (S3 lands in M8). Older/other-device captures show the
+                         capture kind's glyph instead of a broken image. --}}
+                    <template x-if="thumbs[{{ $capture->id }}]">
+                        <img :src="thumbs[{{ $capture->id }}]" alt="" class="size-10 shrink-0 rounded object-cover">
+                    </template>
+                    <template x-if="!thumbs[{{ $capture->id }}]">
                         <div class="flex size-10 shrink-0 items-center justify-center rounded bg-plate-well">
-                            <x-app.icon name="barcode" class="size-5 text-ink-faint" />
+                            <x-app.icon :name="$capture->image_path ? 'camera' : 'barcode'" class="size-5 text-ink-faint" />
                         </div>
-                    @endif
+                    </template>
 
                     <div class="min-w-0 flex-1">
                         @if ($capture->status->inFlight())
@@ -407,6 +424,17 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             <p class="voice-micro mt-0.5 text-ink-dim">Corrections make matching sharper.</p>
                         @endif
                     </div>
+
+                    {{-- A mis-fire leaves the stack with one tap. Applied cards
+                         keep Undo (a dismiss must never strand a write); the
+                         suggestion band keeps "Not this" (the informed reject). --}}
+                    @if (! $capture->status->applied() && $capture->status !== \App\Enums\ScanCaptureStatus::Suggested)
+                        <button type="button" wire:click="dismissCapture({{ $capture->id }})" wire:loading.attr="disabled"
+                                aria-label="Remove this capture from the stack"
+                                class="hit -mr-1 -mt-0.5 flex size-8 shrink-0 items-center justify-center text-ink-faint transition hover:text-ink">
+                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    @endif
                 </div>
             </div>
         @endforeach

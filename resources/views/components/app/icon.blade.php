@@ -10,6 +10,7 @@
       - Log-a-meal context keys (pan / storefront / barcode)
       - Indicator rows (egg / wheat / apple / droplet / shaker / grid)
       - Eat history rows (context: basket / pan / storefront)
+      - Bottom control strip stations (house / basket / fork / pulse)
     Adding an icon to one member of a list means the whole list carries them.
 --}}
 <svg {{ $attributes->merge(['class' => 'size-4 shrink-0']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -30,6 +31,23 @@
         @case('basket') {{-- pantry --}}
             <path d="M4.5 9.5h15l-1.6 9.1a1.7 1.7 0 0 1-1.68 1.4H7.78a1.7 1.7 0 0 1-1.67-1.4Z" />
             <path d="m8.5 9.5 3.5-5.5 3.5 5.5" />
+            @break
+
+        {{-- Control-strip stations --}}
+        @case('house') {{-- home --}}
+            <path d="m4.25 11 7.75-6.75L19.75 11" />
+            <path d="M6.5 9.25V19.5h11V9.25" />
+            @break
+        @case('fork') {{-- eat --}}
+            <path d="M8.75 4v5a3.25 3.25 0 0 0 6.5 0V4" />
+            <path d="M12 4v16" />
+            @break
+        @case('pulse') {{-- health --}}
+            <path d="M3.75 12.5h3.6l2.15-5.25 4.6 10.5 2.15-5.25h4" />
+            @break
+        @case('camera') {{-- photo capture evidence --}}
+            <path d="M4.75 7.75h2.5l1.5-2h6.5l1.5 2h2.5V18.5H4.75Z" />
+            <circle cx="12" cy="13" r="3.25" />
             @break
 
         {{-- Nutrients / indicators (food-group glyphs) --}}
