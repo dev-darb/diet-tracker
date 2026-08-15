@@ -10,28 +10,26 @@ use Livewire\Volt\Component;
  * <livewire:insight-card /> on Home and Health.
  *
  * THIN by design (brief §4.1): it holds no analytics or AI logic. It asks
- * InsightService for the cached-or-generated weekly insight, and delegates the
- * three actions — "Why this matters", "Show me what I could eat" (surfacing the
- * referenced pantry items) and "Dismiss" — straight back to the service. The
- * insight itself (including whether AI or the deterministic fallback produced it)
- * is decided entirely in the service layer.
+ * InsightService for the cached-or-generated weekly insight, and delegates
+ * dismissal (and its undo) straight back to the service.
+ *
+ * NEVER blocks the page ("the interface should never make the user wait for
+ * the AI", founder, Aug 2026): the host page renders instantly and the insight
+ * loads via wire:init — the first visit of a week generates in that follow-up
+ * request while the rest of the screen is already usable. Disclosure toggles
+ * are pure client state; only dismiss/undo touch the server.
  */
 new class extends Component
 {
-    /** "Why this matters" expanded. */
-    public bool $why = false;
+    /** Set by wire:init — with() makes no service call until then. */
+    public bool $loaded = false;
 
-    /** "Show me what I could eat" expanded. */
-    public bool $eat = false;
+    /** Set after a dismiss so the strip can offer Undo (mis-taps shouldn't cost a week). */
+    public ?int $dismissedId = null;
 
-    public function toggleWhy(): void
+    public function load(): void
     {
-        $this->why = ! $this->why;
-    }
-
-    public function toggleEat(): void
-    {
-        $this->eat = ! $this->eat;
+        $this->loaded = true;
     }
 
     /** Dismiss persists — the insight isn't shown again for this period (§9.6). */
@@ -41,10 +39,19 @@ new class extends Component
 
         if ($insight !== null) {
             $insights->dismiss($insight);
+            $this->dismissedId = $insight->id;
+        }
+    }
+
+    public function undoDismiss(InsightService $insights): void
+    {
+        $insight = AiInsight::find($this->dismissedId);
+
+        if ($insight !== null && $insight->user_id === Auth::id()) {
+            $insights->undismiss($insight);
         }
 
-        $this->why = false;
-        $this->eat = false;
+        $this->dismissedId = null;
     }
 
     /**
@@ -67,22 +74,33 @@ new class extends Component
     public function with(InsightService $insights): array
     {
         /** @var AiInsight|null $insight */
-        $insight = $insights->currentInsight(Auth::user());
+        $insight = $this->loaded ? $insights->currentInsight(Auth::user()) : null;
 
         return [
             'insight' => $insight,
             'why_text' => $insight !== null ? $this->whyMatters($insight->focus_key) : null,
-            'pantry_items' => ($insight !== null && $this->eat)
+            'pantry_items' => $insight !== null
                 ? $insights->referencedPantryItems($insight)
                 : collect(),
         ];
     }
 }; ?>
 
-<div>
+<div wire:init="load">
+    {{-- While the week's insight is read (or first generated), the page around
+         this card is already live — this is the only thing still thinking. --}}
+    <div wire:loading.delay wire:target="load">
+        <div class="module flex items-center gap-3 px-5 py-4">
+            <span class="size-2 shrink-0 animate-pulse rounded-full bg-info" aria-hidden="true"></span>
+            <span class="silkscreen">Focus</span>
+            <span class="voice-caption text-ink-dim">Reading your week…</span>
+        </div>
+    </div>
+
+    <div wire:loading.remove wire:target="load">
     @if ($insight)
 
-        <div class="module px-5 pb-4 pt-4">
+        <div class="module px-5 pb-4 pt-4" x-data="{ why: false, eat: false }">
             <div class="flex items-center justify-between">
                 <h2 class="silkscreen">Focus</h2>
                 <span class="size-2 rounded-full bg-info" aria-hidden="true"></span>
@@ -91,35 +109,33 @@ new class extends Component
             <h3 class="voice-item mt-3 text-ink">{{ $insight->title }}</h3>
             <p class="voice-body mt-1.5 text-ink-dim">{{ $insight->body }}</p>
 
-            {{-- Actions (brief §9.6). --}}
+            {{-- Actions (brief §9.6). Disclosure is client-side — instant. --}}
             <div class="mt-4 flex flex-wrap items-center gap-2">
-                <button type="button" wire:click="toggleWhy"
+                <button type="button" x-on:click="why = !why"
                         class="key keycap-sm hit px-3.5 py-2 text-ink-dim">
-                    {{ $why ? 'Hide' : 'Why this matters' }}
+                    <span x-text="why ? 'Hide' : 'Why this matters'">Why this matters</span>
                 </button>
-                @if (! empty($insight->pantry_item_ids))
-                    <button type="button" wire:click="toggleEat"
+                @if ($pantry_items->isNotEmpty())
+                    <button type="button" x-on:click="eat = !eat"
                             class="key keycap-sm hit px-3.5 py-2 text-ink-dim">
-                        {{ $eat ? 'Hide items' : 'What could I eat' }}
+                        <span x-text="eat ? 'Hide items' : 'What could I eat'">What could I eat</span>
                     </button>
                 @endif
-                <button type="button" wire:click="dismiss"
+                <button type="button" wire:click="dismiss" wire:loading.attr="disabled"
                         class="keycap-sm hit px-3.5 py-2 text-ink-faint transition hover:text-ink-dim">
                     Dismiss for this week
                 </button>
             </div>
 
-            @if ($why)
-                <p class="voice-caption mt-3 border-l border-info/60 bg-plate-well px-3 py-2.5 text-ink-dim">
-                    {{ $why_text }}
-                </p>
-            @endif
+            <p x-show="why" x-cloak class="voice-caption mt-3 border-l border-info/60 bg-plate-well px-3 py-2.5 text-ink-dim">
+                {{ $why_text }}
+            </p>
 
-            @if ($eat && $pantry_items->isNotEmpty())
-                <ul class="mt-3 divide-y divide-seam border-t border-seam">
+            @if ($pantry_items->isNotEmpty())
+                <ul x-show="eat" x-cloak class="mt-3 divide-y divide-seam border-t border-seam">
                     @foreach ($pantry_items as $item)
                         <li class="flex items-center justify-between gap-3 py-2.5">
-                            <a href="{{ route('pantry.item', $item) }}"
+                            <a href="{{ route('pantry.item', $item) }}" wire:navigate
                                class="voice-caption min-w-0 truncate text-ink transition hover:text-info">
                                 {{ trim(($item->canonicalProduct->brand ? $item->canonicalProduct->brand.' ' : '').$item->canonicalProduct->name) }}
                             </a>
@@ -132,5 +148,15 @@ new class extends Component
             @endif
 
         </div>
+    @elseif ($dismissedId !== null)
+        {{-- The undo strip: dismissal is an automatic action, not a commitment. --}}
+        <div class="module flex items-center justify-between gap-3 px-5 py-3">
+            <span class="voice-caption text-ink-dim">Focus dismissed for this week.</span>
+            <button type="button" wire:click="undoDismiss" wire:loading.attr="disabled"
+                    class="keycap-sm hit shrink-0 text-ink transition hover:text-action">
+                Undo
+            </button>
+        </div>
     @endif
+    </div>
 </div>

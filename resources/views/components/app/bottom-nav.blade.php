@@ -24,14 +24,14 @@
     <div class="mx-auto max-w-md border-t border-seam bg-chassis">
         <div class="grid grid-cols-5 gap-2 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3">
             @foreach ([0, 1] as $i)
-                <a href="{{ $keys[$i]['href'] }}" @if($keys[$i]['active']) aria-current="page" @endif
+                <a href="{{ $keys[$i]['href'] }}" wire:navigate @if($keys[$i]['active']) aria-current="page" @endif
                    class="key flex h-14 items-center justify-center">
                     <span class="silkscreen {{ $keys[$i]['active'] ? '!text-ink' : '' }}">{{ $keys[$i]['label'] }}</span>
                 </a>
             @endforeach
 
             {{-- SCAN — the machine's primary control. --}}
-            <a href="{{ route('scan') }}" aria-label="Scan a product" @if($scanActive) aria-current="page" @endif
+            <a href="{{ route('scan') }}" wire:navigate aria-label="Scan a product" @if($scanActive) aria-current="page" @endif
                class="key key-action -mt-3 flex h-[4.25rem] flex-col items-center justify-center gap-1">
                 <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
                     <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
@@ -41,7 +41,7 @@
             </a>
 
             @foreach ([2, 3] as $i)
-                <a href="{{ $keys[$i]['href'] }}" @if($keys[$i]['active']) aria-current="page" @endif
+                <a href="{{ $keys[$i]['href'] }}" wire:navigate @if($keys[$i]['active']) aria-current="page" @endif
                    class="key flex h-14 items-center justify-center">
                     <span class="silkscreen {{ $keys[$i]['active'] ? '!text-ink' : '' }}">{{ $keys[$i]['label'] }}</span>
                 </a>

@@ -39,7 +39,7 @@ Laravel Cloud auto-injects `DB_*` and `REDIS_*` from the resources you provision
 | `APP_URL` | `https://foody.gg` | The custom domain (Environment -> Domains); the *.laravel.cloud URL keeps working. |
 | `SESSION_DRIVER` | `redis` | |
 | `CACHE_STORE` | `redis` | |
-| `QUEUE_CONNECTION` | `redis` | No worker needed yet (M0–2 have no queued jobs); a worker gets added when M3/M7 land. |
+| `QUEUE_CONNECTION` | `redis` | **A worker is now required** — the pipelined scanner and background AI run as queued jobs (see Part B2). Without a worker the app still works: jobs fall back to running inside the request (slower, never broken). |
 | `DB_CONNECTION` | `pgsql` | `DB_*` host/user/pass come from the provisioned Postgres automatically. |
 | `FILESYSTEM_DISK` | `public` | **Caveat:** uploaded Scan photos go to local disk and may not survive a redeploy. Fine for early alpha; we switch to S3-compatible storage in hardening (brief §21 Q43). The barcode path stores no image. |
 | `OFF_BASE_URL` | `https://world.openfoodfacts.org` | Default; keyless. |
@@ -48,6 +48,28 @@ Laravel Cloud auto-injects `DB_*` and `REDIS_*` from the resources you provision
 | `AI_GATEWAY` | `openrouter` | Selects the AI gateway all capabilities use: `openrouter` (default) or `vercel` (Part D). |
 | `OPENROUTER_API_KEY` | *(optional, later)* | Live photo identification when `AI_GATEWAY=openrouter` (Part D). |
 | `AI_GATEWAY_API_KEY` | *(optional, later)* | Live photo identification when `AI_GATEWAY=vercel` (Vercel AI Gateway, Part D). |
+
+---
+
+## Part B2 — the queue worker (one-time, ~2 minutes)
+
+The scanner now analyses photos **in the background** ("the interface should
+never make the user wait for the AI"): every shutter press queues a
+`ProcessScanCapture` job and the app polls for the result. That needs one
+worker process:
+
+1. In your Laravel Cloud app, open **Environment → Workers** (Compute → add a
+   worker on older UIs).
+2. Add a worker with the command:
+   `php artisan queue:work --tries=2 --timeout=200 --max-jobs=250`
+3. One worker at the smallest size is plenty for the alpha; it drains the
+   `redis` queue that `QUEUE_CONNECTION=redis` points at.
+4. Deploy. Verify under **Console**: `php artisan queue:monitor redis` (or just
+   scan something — results should land while the shutter stays live).
+
+If the worker is ever down, nothing breaks: capture rows settle when it comes
+back, and a session with `QUEUE_CONNECTION=sync` (e.g. local dev without a
+worker) runs the same jobs inline.
 | `AI_PRODUCT_IDENTIFIER_MODEL` | `openai/gpt-4o-mini` | Optional; swap to benchmark models (brief §14). Same `creator/model` format on both gateways. |
 
 **Mail note:** with `MAIL_MAILER=log`, "forgot password" links are written to logs, not delivered. For real reset emails, add a mail provider (Resend/Postmark/Mailgun) and set `MAIL_*`. Not required to test the core loop.

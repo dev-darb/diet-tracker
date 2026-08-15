@@ -3,7 +3,10 @@
 use App\AI\Contracts\RecipeSuggester;
 use App\Enums\QuantityUnit;
 use App\Models\CanonicalProduct;
+use App\Models\PantryItem;
+use App\Services\ConsumptionService;
 use App\Services\PantryService;
+use App\Services\PortionSuggestionService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
@@ -20,9 +23,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
     /** chef | stock — the chef is the pantry's default face when configured. */
     public string $view = 'stock';
 
-    // Manual-add form
-    public bool $showAdd = false;
-
+    // Manual-add form (visibility is client state; only the data lives here)
     public string $productSearch = '';
 
     public ?int $selectedProductId = null;
@@ -44,15 +45,6 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
     public function showStock(): void
     {
         $this->view = 'stock';
-    }
-
-    public function toggleAdd(): void
-    {
-        $this->showAdd = ! $this->showAdd;
-        $this->reset(['productSearch', 'selectedProductId', 'addQuantity', 'addUnit']);
-        $this->addQuantity = '1';
-        $this->addUnit = QuantityUnit::Unit->value;
-        $this->resetValidation();
     }
 
     public function selectProduct(int $productId): void
@@ -83,8 +75,50 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
             QuantityUnit::from($data['addUnit']),
         );
 
-        $this->toggleAdd();
+        // Stay open for the next item — unloading a shop is a run, not a one-off.
+        $this->reset(['productSearch', 'selectedProductId', 'addQuantity', 'addUnit']);
+        $this->addQuantity = '1';
+        $this->addUnit = QuantityUnit::Unit->value;
+        $this->resetValidation();
         $this->dispatch('pantry-updated');
+    }
+
+    /** The just-logged event, so the toast's Undo can reach it. */
+    public ?int $lastConsumptionId = null;
+
+    /**
+     * Row-level "eat": logging what you just ate should not need a page. The
+     * amount is the item's top natural portion, re-derived server-side
+     * (PortionSuggestionService) — the client sends only the item id.
+     */
+    public function eatOne(PortionSuggestionService $portions, ConsumptionService $consumption, int $itemId): void
+    {
+        $item = PantryItem::with('canonicalProduct')->findOrFail($itemId);
+
+        abort_unless($item->user_id === Auth::id(), 403);
+
+        $choice = $portions->suggestionsFor($item, Auth::user())[0] ?? null;
+
+        if ($choice === null || $choice['quantity'] <= 0 || $choice['quantity'] > (float) $item->current_quantity + 1e-9) {
+            return;
+        }
+
+        $event = $consumption->consumePantryItem(Auth::user(), $item, $choice['quantity'], portionLabel: $choice['record']);
+        $this->lastConsumptionId = $event->id;
+        $this->dispatch('consumption-logged');
+    }
+
+    /** Reverse the row-level eat — the ledger restores the stock. */
+    public function undoEat(ConsumptionService $consumption): void
+    {
+        $event = Auth::user()->consumptionEvents()->find($this->lastConsumptionId);
+
+        if ($event !== null) {
+            $consumption->deleteConsumption($event);
+        }
+
+        $this->lastConsumptionId = null;
+        $this->dispatch('consumption-undone');
     }
 
     public function with(): array
@@ -98,7 +132,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
 
         $matches = [];
         $term = trim($this->productSearch);
-        if ($this->showAdd && $this->selectedProductId === null && $term !== '') {
+        if ($this->selectedProductId === null && $term !== '') {
             $like = '%'.$term.'%';
             $matches = CanonicalProduct::query()
                 ->where(fn ($q) => $q->where('brand', 'like', $like)->orWhere('name', 'like', $like)->orWhere('gtin', 'like', $like))
@@ -116,7 +150,10 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
     }
 }; ?>
 
-    <div class="space-y-3">
+    <div class="space-y-3" x-data="{ addOpen: false, added: false, toast: null, toastT: null }"
+         x-on:pantry-updated.window="added = true; setTimeout(() => added = false, 2000)"
+         x-on:consumption-logged.window="toast = 'logged'; clearTimeout(toastT); toastT = setTimeout(() => toast = null, 5000)"
+         x-on:consumption-undone.window="toast = 'undone'; clearTimeout(toastT); toastT = setTimeout(() => toast = null, 2000)">
         <div class="flex items-center justify-between px-1">
             <div>
                 <h1 class="voice-title text-ink">Pantry</h1>
@@ -125,9 +162,10 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                 </p>
             </div>
             @if ($view === 'stock')
-                <button type="button" wire:click="toggleAdd"
-                        class="key keycap-sm {{ $showAdd ? 'text-ink-dim' : 'key-action' }} px-3.5 py-2.5">
-                    {{ $showAdd ? 'Close' : 'Add item' }}
+                <button type="button" x-on:click="addOpen = !addOpen"
+                        :class="addOpen ? 'text-ink-dim' : 'key-action'"
+                        class="key keycap-sm px-3.5 py-2.5">
+                    <span x-text="addOpen ? 'Close' : 'Add item'">Add item</span>
                 </button>
             @endif
         </div>
@@ -153,8 +191,13 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
 
         @if ($view === 'stock')
 
-        {{-- Manual add (pre-Scan path) --}}
-        @if ($showAdd)
+        {{-- Manual add (pre-Scan path) — opens instantly, stays open for the
+             next item so a shop unloads in one run. SPLIT: the desk parts to
+             reveal the form; inert while closed so nothing hidden is tabbable.
+             The closed -mt-3 hands its stack gap back to the space-y flow. --}}
+        <div class="split" :class="addOpen ? 'split-open' : '-mt-3'" :inert="!addOpen">
+        <div>
+        <div class="pt-px">
             <x-app.module label="Add to pantry">
 
                 @if ($selectedProduct)
@@ -207,7 +250,9 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                     Add to pantry
                 </x-app.console-key>
             </x-app.module>
-        @endif
+        </div>
+        </div>
+        </div>
 
         {{-- Pantry list: dense data rows, quantity as a readout. --}}
         @if ($items->isEmpty())
@@ -223,9 +268,9 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                 </div>
                 <ul class="mt-2 divide-y divide-seam">
                     @foreach ($items as $item)
-                        <li>
-                            <a href="{{ route('pantry.item', $item) }}"
-                               class="flex min-h-[44px] items-center justify-between gap-4 px-5 py-3 transition hover:bg-plate-raised">
+                        <li class="flex min-h-[44px] items-center gap-2 pr-3">
+                            <a href="{{ route('pantry.item', $item) }}" wire:navigate
+                               class="flex min-w-0 flex-1 items-center justify-between gap-4 px-5 py-3 transition hover:bg-plate-raised">
                                 <span class="min-w-0">
                                     <span class="voice-caption block truncate text-ink">{{ $item->canonicalProduct->brand }} — {{ $item->canonicalProduct->name }}</span>
                                     @if ($item->canonicalProduct->variant)
@@ -237,10 +282,35 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                                     <span class="data-sm text-ink-faint uppercase">{{ $item->quantity_unit->shortLabelFor((float) $item->current_quantity) }}</span>
                                 </span>
                             </a>
+                            {{-- One tap logs the natural portion; the toast's Undo takes it back.
+                                 Custom amounts live on the item page. --}}
+                            <button type="button" wire:click="eatOne({{ $item->id }})" wire:loading.attr="disabled"
+                                    aria-label="Eat one portion of {{ $item->canonicalProduct->name }}"
+                                    class="key keycap-sm hit shrink-0 px-3 py-2 text-ink-dim">
+                                Eat
+                            </button>
                         </li>
                     @endforeach
                 </ul>
             </section>
         @endif
         @endif
+
+        <x-app.stamp-toast show="added">Added to stock</x-app.stamp-toast>
+
+        {{-- Row-level eat: logged automatically, with the way back in hand. --}}
+        <div x-show="toast === 'logged'" x-cloak role="status" class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
+            <div class="stamp-in flex items-center justify-between gap-3 rounded-md bg-good px-4 py-3 text-black">
+                <span class="flex items-center gap-2.5">
+                    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg>
+                    <span class="keycap">Logged to today</span>
+                </span>
+                <button type="button"
+                        x-on:click="toast = null; clearTimeout(toastT); $wire.undoEat()"
+                        class="keycap hit shrink-0 underline decoration-2 underline-offset-4">
+                    Undo
+                </button>
+            </div>
+        </div>
+        <x-app.stamp-toast show="toast === 'undone'" tone="neutral">Removed — stock restored</x-app.stamp-toast>
     </div>

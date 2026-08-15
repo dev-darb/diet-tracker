@@ -1,672 +1,435 @@
 <?php
 
-use App\AI\Contracts\ProductIdentifier;
-use App\AI\DataObjects\IdentifiedProduct;
-use App\AI\DataObjects\ProductImage;
-use App\Enums\QuantityUnit;
-use App\Models\CanonicalProduct;
-use App\Models\ProductResolutionJob;
-use App\Services\PantryNutritionService;
-use App\Services\PantryService;
-use App\Services\ProductResolver;
+use App\Models\ScanCapture;
+use App\Services\ScanCaptureService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
-use Livewire\WithFileUploads;
 
 /**
- * Scan flow (BUILD_PLAN J2.5; brief §7.2–§7.7, §16.2). One packaged product at a
- * time: capture/upload -> on-device barcode fast path -> resolve (with progress)
- * -> "Is this right?" confirm/correct -> quantity -> add to pantry.
+ * Scan — the pipelined scanner (product principle 7: the interface never makes
+ * the user wait for the AI).
  *
- * THIN by design (brief §4.1): this component only orchestrates steps and calls
- * services. It never does nutrient arithmetic (PantryNutritionService), product
- * resolution (ProductResolver), or ledger writes (PantryService), and it never
- * touches an AI SDK type — visual identification goes through the ProductIdentifier
- * contract, so the model/gateway stays swappable.
+ * The camera is the app's own (getUserMedia viewfinder; the OS file input is
+ * the graceful fallback). Every shutter press / live barcode read POSTs to
+ * ScanCaptureController and the shutter RE-ARMS INSTANTLY — identification and
+ * resolution run in a queued job against the durable scan_captures row, and
+ * the results stack below the viewfinder fills in as each capture settles.
+ * Refresh, navigate away, come back: the rows are still here.
  *
- * Grace paths:
- *  - No barcode + no AI key -> a friendly "photo identification needs AI
- *    configuration" state (never a 500). The barcode + manual paths keep working.
- *  - Unknown / needs-research result -> a friendly manual-add fallback (the async
- *    research workflow is Milestone 3, deliberately not built here).
+ * The provenance gate lives in ScanCaptureService: identity-grade matches
+ * (barcode/exact at 1.0, fuzzy ≥ 0.85) auto-add one unit with UNDO on the
+ * card; the 0.60–0.85 suggestion band keeps its blocking confirm — that is
+ * the one place a question genuinely protects the data.
+ *
+ * THIN (brief §4.1): this component renders capture rows and forwards the four
+ * card actions to the service. It never touches AI types, resolution logic, or
+ * ledger arithmetic.
  */
 new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Component
 {
-    use WithFileUploads;
-
-    /** capture | confirm | quantity | done | unknown | corrected | ai_unavailable | error */
-    public string $step = 'capture';
-
-    /** Human-readable detail shown on the `error` step to aid alpha debugging. */
-    public string $errorDetail = '';
-
-    // Capture
-    public $photo = null;
-
-    /** Barcode read on-device by JS (BarcodeDetector / ZXing); '' when none found. */
-    public string $detectedBarcode = '';
-
-    // Resolution outcome
-    public ?string $imagePath = null;
-
-    public ?int $resolutionJobId = null;
-
-    public ?int $matchedProductId = null;
-
-    public bool $isSuggestion = false;
-
-    /** @var array<string, mixed> the fields we resolved from (barcode or AI). */
-    public array $detected = [];
-
-    // Quantity
-    public int $quantity = 1;
-
-    public string $unit = 'unit';
-
-    // Success
-    public string $addedProductName = '';
-
-    /**
-     * Capture -> identify -> resolve. Barcode (read on-device) takes the keyless
-     * Open Food Facts fast path; otherwise the photo goes to AI identification.
-     */
-    public function analyze(ProductIdentifier $identifier, ProductResolver $resolver): void
+    /** "Yes, add it" on a suggestion-band card. */
+    public function confirmCapture(ScanCaptureService $captures, int $id): void
     {
-        $this->resetValidation();
-
-        $barcode = trim($this->detectedBarcode) ?: null;
-
-        // The barcode is read on-device, so a barcode scan needs NO uploaded image
-        // (the stored photo is only an audit artefact) — this keeps the keyless
-        // fast path working even when the browser file upload is unavailable. The
-        // photo -> AI path, by contrast, genuinely needs the image.
-        if ($barcode === null) {
-            // Downscaled to JPEG on-device before upload, so this stays small; the
-            // ceiling is generous only for the rare original-file fallback.
-            $this->validate(['photo' => ['required', 'image', 'max:12288']]);
-        } elseif ($this->photo !== null) {
-            $this->validate(['photo' => ['image', 'max:12288']]);
-        }
-
-        // Store the capture for the audit trail when we actually have one (best
-        // effort — a storage hiccup must never sink a valid barcode scan).
-        if ($this->photo !== null) {
-            try {
-                $this->imagePath = $this->photo->store('scans', 'public');
-            } catch (Throwable $e) {
-                report($e);
-                $this->imagePath = null;
-            }
-        }
-
-        $meta = [];
-
-        if ($barcode !== null) {
-            // Fast path: deterministic barcode -> OFF, no AI cost (idea #1, §7.15).
-            $detected = IdentifiedProduct::fromArray(['barcode' => $barcode, 'confidence' => 1.0]);
-        } else {
-            // Photo path needs the stored image; if storage failed, degrade gracefully.
-            if ($this->imagePath === null) {
-                $this->step = 'ai_unavailable';
-
-                return;
-            }
-
-            // Photo path: multimodal AI identification (needs a provider key).
-            try {
-                $detected = $identifier->identify(ProductImage::fromStoragePath($this->imagePath, 'public'));
-            } catch (Throwable $e) {
-                // KEY-ABSENT GRACE: no OPENROUTER_API_KEY -> friendly message, not a 500.
-                report($e);
-                $this->step = 'ai_unavailable';
-
-                return;
-            }
-
-            $config = config('ai.product_identifier');
-            $meta = ['model_provider' => $config['provider'] ?? null, 'model_name' => $config['model'] ?? null];
-        }
-
-        try {
-            $result = $resolver->resolve($detected, Auth::user(), $meta);
-
-            // Keep the captured image on the audit row (brief §12).
-            $result->resolutionJob->update(['uploaded_image_path' => $this->imagePath]);
-        } catch (Throwable $e) {
-            // A real product-data / import failure must not blank the screen —
-            // report it and show an actionable error instead of a 500.
-            report($e);
-            $this->errorDetail = $e->getMessage();
-            $this->step = 'error';
-
-            return;
-        }
-
-        $this->resolutionJobId = $result->resolutionJob->id;
-        $this->detected = $detected->toArray();
-
-        if ($result->canonicalProduct !== null) {
-            // A match OR a low-confidence suggestion — either way, ask the user.
-            $this->matchedProductId = $result->canonicalProduct->id;
-            $this->isSuggestion = $result->isSuggestion();
-            $this->step = 'confirm';
-
-            return;
-        }
-
-        // Needs research (Milestone 3): show the manual fallback for now.
-        $this->step = 'unknown';
+        $captures->confirm($this->owned($id));
     }
 
-    /** "Yes, add it" — proceed to quantity (brief §7.6/§7.7). */
-    public function yesAddIt(): void
+    /** "Not this" on a suggestion-band card — recorded as correction evidence. */
+    public function rejectCapture(ScanCaptureService $captures, int $id): void
     {
-        if ($this->matchedProductId === null) {
-            return;
-        }
-
-        $this->step = 'quantity';
+        $captures->reject($this->owned($id));
     }
 
-    /**
-     * "Wrong product" — record the rejection as evidence (corrections are
-     * valuable product intelligence, brief §7.6, §11) then offer retry/manual.
-     */
-    public function wrongProduct(): void
+    /** Undo an applied capture (reverses the meal and the stocked unit). */
+    public function undoCapture(ScanCaptureService $captures, int $id): void
     {
-        if ($this->resolutionJobId !== null) {
-            $job = ProductResolutionJob::find($this->resolutionJobId);
-
-            if ($job !== null) {
-                $job->user_correction = [
-                    'rejected_product_id' => $this->matchedProductId,
-                    'was_suggestion' => $this->isSuggestion,
-                    'detected_fields' => $this->detected,
-                ];
-                $job->corrected_at = now();
-                $job->save();
-            }
-        }
-
-        $this->step = 'corrected';
+        $captures->undo($this->owned($id));
     }
 
-    public function decrement(): void
+    /** "…and I'm eating it now" on an applied capture. */
+    public function eatNowCapture(ScanCaptureService $captures, int $id): void
     {
-        $this->quantity = max(1, $this->quantity - 1);
+        $captures->eatNow($this->owned($id));
     }
 
-    public function increment(): void
+    private function owned(int $id): ScanCapture
     {
-        $this->quantity++;
+        return ScanCapture::where('user_id', Auth::id())->findOrFail($id);
     }
 
-    /** Add the confirmed product to the pantry via the ledger service (brief §7.7). */
-    public function addToPantry(PantryService $service): void
+    public function with(): array
     {
-        $data = $this->validate([
-            'quantity' => ['required', 'integer', 'gt:0'],
-            'unit' => ['required', Rule::enum(QuantityUnit::class)],
-        ]);
-
-        $product = CanonicalProduct::findOrFail($this->matchedProductId);
-
-        $service->purchase(
-            Auth::user(),
-            $product,
-            (float) $data['quantity'],
-            QuantityUnit::from($data['unit']),
-        );
-
-        $this->addedProductName = trim($product->brand.' — '.$product->name, ' —');
-        $this->step = 'done';
-    }
-
-    /** Reset to a fresh capture ("Scan another"). */
-    public function scanAnother(): void
-    {
-        $this->reset([
-            'photo', 'detectedBarcode', 'imagePath', 'resolutionJobId',
-            'matchedProductId', 'isSuggestion', 'detected', 'quantity', 'unit', 'addedProductName', 'errorDetail',
-        ]);
-        $this->quantity = 1;
-        $this->unit = QuantityUnit::Unit->value;
-        $this->step = 'capture';
-        $this->resetValidation();
-    }
-
-    /** Go back to capture from a match we want to re-take. */
-    public function retry(): void
-    {
-        $this->scanAnother();
-    }
-
-    public function with(PantryNutritionService $nutrition): array
-    {
-        $product = $this->matchedProductId !== null ? CanonicalProduct::find($this->matchedProductId) : null;
-
-        // Never let a nutrition-summary edge case blank the confirm screen — the
-        // product identity is what matters here; macros degrade to "not available".
-        try {
-            $summary = $product !== null ? $nutrition->productSummary($product) : null;
-        } catch (Throwable $e) {
-            report($e);
-            $summary = null;
-        }
+        // The working session: recent captures, newest first. A 12-hour window
+        // means a refresh or interruption never loses settled background work.
+        $captures = ScanCapture::with('matchedProduct')
+            ->where('user_id', Auth::id())
+            ->where('created_at', '>=', now()->subHours(12))
+            ->latest()
+            ->limit(12)
+            ->get();
 
         return [
-            'product' => $product,
-            'nutrition' => $summary !== null ? $summary['values']->rounded(1) : null,
-            'nutritionBasis' => $summary['basis_label'] ?? null,
-            'unitOptions' => QuantityUnit::options(),
-            // Reward-strip counter on the done step (design brief: reward the loop).
-            'pantryCount' => $this->step === 'done'
-                ? Auth::user()->pantryItems()->where('current_quantity', '>', 0)->count()
-                : null,
+            'captures' => $captures,
+            'hasInFlight' => $captures->contains(fn (ScanCapture $c) => $c->status->inFlight()),
+            'sessionAdds' => $captures->filter(fn (ScanCapture $c) => $c->status->applied())->count(),
         ];
     }
 }; ?>
 
-    <div class="space-y-3">
+    <div class="space-y-3" @if ($hasInFlight) wire:poll.2s @endif
+         x-data="{
+            mode: 'booting',            // booting | camera | fallback
+            stream: null,
+            torchFlash: false,
+            shutterArmed: true,
+            sending: [],                // client-side captures still uploading
+            seenCodes: {},              // live-read barcodes, deduped for 20s
+            statusLine: '',
+            fb: { preview: null, reading: false, sending: false, error: null },
+
+            async init() {
+                // The camera dies with the page: wire:navigate swaps the body,
+                // Alpine calls destroy(), and the lamp goes off.
+                document.addEventListener('livewire:navigating', () => this.releaseCamera(), { once: true });
+
+                if (!navigator.mediaDevices?.getUserMedia) { this.mode = 'fallback'; return; }
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment', width: { ideal: 1600 } }, audio: false,
+                    });
+                    this.$refs.video.srcObject = this.stream;
+                    this.mode = 'camera';
+                    this.armLiveBarcodeReader();
+                } catch (_) {
+                    this.mode = 'fallback'; // denied / unavailable — the file input path
+                }
+            },
+
+            destroy() { this.releaseCamera(); },
+            releaseCamera() {
+                if (this.liveReader) { clearInterval(this.liveReader); this.liveReader = null; }
+                if (this.stream) { this.stream.getTracks().forEach((t) => t.stop()); this.stream = null; }
+            },
+
+            // Live barcode reading straight off the video — no shutter needed.
+            armLiveBarcodeReader() {
+                if (!('BarcodeDetector' in window)) { return; }
+                let detector;
+                try { detector = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf'] }); }
+                catch (_) { return; }
+                this.liveReader = setInterval(async () => {
+                    if (this.mode !== 'camera' || !this.$refs.video?.videoWidth) { return; }
+                    try {
+                        const codes = await detector.detect(this.$refs.video);
+                        const raw = codes?.[0]?.rawValue?.replace(/[^0-9A-Za-z]/g, '');
+                        if (!raw || raw.length < 6) { return; }
+                        const now = Date.now();
+                        if (this.seenCodes[raw] && now - this.seenCodes[raw] < 20000) { return; }
+                        this.seenCodes[raw] = now;
+                        this.flash();
+                        this.statusLine = 'BARCODE ' + raw + ' — CAPTURED';
+                        this.post({ barcode: raw });
+                    } catch (_) {}
+                }, 700);
+            },
+
+            // The shutter: grab the frame, hand it off, re-arm immediately.
+            async shutter() {
+                if (this.mode !== 'camera' || !this.shutterArmed) { return; }
+                const video = this.$refs.video;
+                if (!video?.videoWidth) { return; }
+                this.shutterArmed = false;
+                setTimeout(() => { this.shutterArmed = true; }, 350); // debounce, not a wait
+                this.flash();
+
+                const scale = Math.min(1, 1400 / Math.max(video.videoWidth, video.videoHeight));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(video.videoWidth * scale);
+                canvas.height = Math.round(video.videoHeight * scale);
+                canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                canvas.toBlob(async (blob) => {
+                    if (!blob) { return; }
+                    const job = { key: Date.now() + Math.random(), thumb: URL.createObjectURL(blob), failed: false };
+                    this.sending.push(job);
+
+                    // Still frames can carry a barcode the live reader missed
+                    // (or the browser has no live reader at all) — a quick
+                    // bounded read keeps the keyless fast path on every device.
+                    let barcode = null;
+                    if (window.detectBarcode) {
+                        try {
+                            barcode = await Promise.race([
+                                window.detectBarcode(blob),
+                                new Promise((r) => setTimeout(() => r(null), 2500)),
+                            ]);
+                        } catch (_) {}
+                    }
+
+                    await this.post({ photo: blob, barcode }, job);
+                }, 'image/jpeg', 0.8);
+            },
+
+            // One capture = one independent POST. The Livewire component only
+            // ever polls results, so any number can be in flight at once.
+            async post(payload, job = null) {
+                const form = new FormData();
+                if (payload.photo) { form.append('photo', payload.photo, 'scan.jpg'); }
+                if (payload.barcode) { form.append('barcode', payload.barcode); }
+                try {
+                    const res = await fetch('{{ route('scan.captures.store') }}', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                        body: form,
+                    });
+                    if (!res.ok) { throw new Error('HTTP ' + res.status); }
+                    if (job) { this.sending = this.sending.filter((j) => j.key !== job.key); }
+                    this.$wire.$refresh();
+                } catch (_) {
+                    if (job) { job.failed = true; } else { this.statusLine = 'CAPTURE FAILED — CHECK CONNECTION'; }
+                }
+            },
+
+            flash() {
+                this.torchFlash = true;
+                setTimeout(() => { this.torchFlash = false; }, 120);
+            },
+
+            // Fallback path: OS camera file input → same drop-box.
+            async handleFile(event) {
+                const file = event.target.files[0];
+                event.target.value = '';
+                if (!file) { return; }
+                this.fb.error = null;
+                this.fb.preview = URL.createObjectURL(file);
+
+                this.fb.reading = true;
+                let barcode = null;
+                if (window.detectBarcode) {
+                    try {
+                        barcode = await Promise.race([
+                            window.detectBarcode(file),
+                            new Promise((r) => setTimeout(() => r(null), 4000)),
+                        ]);
+                    } catch (_) {}
+                }
+                this.fb.reading = false;
+
+                this.fb.sending = true;
+                const upload = window.downscaleImage ? await window.downscaleImage(file) : file;
+                const form = new FormData();
+                form.append('photo', upload, 'scan.jpg');
+                if (barcode) { form.append('barcode', barcode); }
+                try {
+                    const res = await fetch('{{ route('scan.captures.store') }}', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                        body: form,
+                    });
+                    if (!res.ok) { throw new Error('HTTP ' + res.status); }
+                    this.fb.preview = null;
+                    this.$wire.$refresh();
+                } catch (_) {
+                    this.fb.error = 'Could not hand the photo off — check the connection and try again.';
+                }
+                this.fb.sending = false;
+            },
+         }">
+
         <h1 class="sr-only">Scan</h1>
-        <style>[x-cloak]{display:none!important}</style>
 
-        {{-- Progress while resolving (brief §7.2, §15). --}}
-        <div wire:loading wire:target="analyze" class="module px-6 py-14 text-center">
-            <div class="led-sweep mx-auto flex w-fit gap-1.5" aria-hidden="true">
-                @for ($i = 0; $i < 10; $i++)
-                    <span class="led led-on"></span>
-                @endfor
+        {{-- THE VIEWFINDER — the app's own camera in a recessed bay. ----------}}
+        <div class="module px-5 pb-0 pt-4">
+            <div class="flex items-baseline justify-between">
+                <span class="silkscreen">Scan</span>
+                <span class="data-sm text-ink-faint" x-show="mode === 'camera'" x-cloak>LIVE</span>
             </div>
-            <p class="silkscreen mt-5">Identifying</p>
-            <p class="mt-2 text-sm text-ink-dim">Checking the barcode and product database…</p>
+
+            <div class="well relative mt-3 min-h-56 overflow-hidden">
+                {{-- Own camera --}}
+                <video x-ref="video" x-show="mode === 'camera'" autoplay playsinline muted
+                       class="block h-64 w-full object-cover"></video>
+
+                {{-- Shutter flash --}}
+                <div x-show="torchFlash" class="pointer-events-none absolute inset-0 z-10 bg-phosphor/60" aria-hidden="true"></div>
+
+                {{-- Viewfinder corner brackets --}}
+                <svg class="pointer-events-none absolute inset-2 z-10 text-phosphor/70" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M0 8V0h4M96 0h4v8M100 92v8h-4M4 100H0v-8" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"/>
+                </svg>
+
+                {{-- Booting --}}
+                <div x-show="mode === 'booting'" class="flex min-h-56 flex-col items-center justify-center px-6 text-center">
+                    <p class="silkscreen">Starting camera…</p>
+                </div>
+
+                {{-- Fallback: the OS camera as a capture well --}}
+                <label x-show="mode === 'fallback'" x-cloak class="flex min-h-56 cursor-pointer flex-col items-center justify-center px-6 py-10 text-center">
+                    <template x-if="fb.preview">
+                        <img :src="fb.preview" alt="Captured product" class="mb-4 max-h-40 rounded object-contain">
+                    </template>
+                    <template x-if="!fb.preview">
+                        <svg class="mb-4 size-9 text-ink-faint" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+                            <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
+                            <path d="M6.5 12h0.01M9.5 12h0.01M12.5 12h0.01M15.5 12h0.01M18 12h-0.01" stroke-width="2" />
+                        </svg>
+                    </template>
+                    <p class="voice-caption font-medium text-ink" x-text="fb.sending ? 'Handing off…' : (fb.reading ? 'Reading barcode…' : 'Take a photo')"></p>
+                    <p class="voice-caption mt-1 text-ink-dim">One packaged product at a time — show the front of the pack.</p>
+                    <input type="file" accept="image/*" capture="environment" class="sr-only" x-on:change="handleFile($event)">
+                </label>
+            </div>
+
+            {{-- The shutter: press, and press again — analysis never holds it. --}}
+            <div x-show="mode === 'camera'" x-cloak class="-mx-5 mt-4 border-t border-seam px-5 py-4">
+                <button type="button" x-on:click="shutter()"
+                        class="key key-action keycap mx-auto flex h-16 w-full max-w-xs items-center justify-center">
+                    Capture
+                </button>
+                <p class="voice-micro mt-2.5 text-center text-ink-dim">
+                    Keep going — each shot analyses in the background. Barcodes read themselves.
+                </p>
+            </div>
+
+            <p class="data-sm -mx-5 border-t border-seam px-5 py-3 text-ink-faint uppercase" x-show="mode !== 'fallback'">
+                Live barcode reader · Open Food Facts DB
+            </p>
+            <p class="data-sm -mx-5 border-t border-seam px-5 py-3 text-ink-faint uppercase" x-show="mode === 'fallback'" x-cloak>
+                On-device barcode reader · Open Food Facts DB
+            </p>
         </div>
 
-        <div wire:loading.remove wire:target="analyze" class="space-y-3">
+        {{-- Live status line (barcode reads, capture errors) --}}
+        <p x-show="statusLine" x-cloak x-text="statusLine" class="data px-1 text-xs text-ink-dim" role="status"></p>
+        <p x-show="fb.error" x-cloak x-text="fb.error" class="border-l border-high bg-plate-well px-3 py-2 text-xs leading-relaxed text-ink-dim"></p>
 
-            {{-- STEP 1 — Capture --------------------------------------------------}}
-            @if ($step === 'capture')
-                <div class="space-y-3"
-                     x-data="{
-                        preview: null,
-                        reading: false,
-                        barcodeFound: false,
-                        barcode: '',
-                        uploading: false,
-                        uploaded: false,
-                        progress: 0,
-                        uploadError: null,
-                        async handle(event) {
-                            const file = event.target.files[0];
-                            this.preview = null;
-                            this.reading = false;
-                            this.barcodeFound = false;
-                            this.barcode = '';
-                            this.uploading = false;
-                            this.uploaded = false;
-                            this.progress = 0;
-                            this.uploadError = null;
-                            if (!file) { return; }
-                            this.preview = URL.createObjectURL(file);
-                            // Clear any barcode from a previous scan on the server.
-                            $wire.set('detectedBarcode', '');
+        {{-- THE RESULTS STACK — captures settle here while the shutter stays live. --}}
+        @if ($sessionAdds > 0)
+            <div class="flex items-center gap-2 px-1">
+                <span class="chip border-good/40 text-good">+{{ $sessionAdds }} {{ $sessionAdds === 1 ? 'ITEM' : 'ITEMS' }}</span>
+                <span class="data-sm text-ink-faint">THIS SESSION</span>
+            </div>
+        @endif
 
-                            // 1) Read a barcode on-device. If found, the keyless Open Food Facts
-                            //    lookup needs NO file upload — so this path works even when the
-                            //    browser upload is unavailable. Persist it to the server now so a
-                            //    plain wire:click on the button can resolve it.
-                            if (window.detectBarcode) {
-                                this.reading = true;
-                                let code = null;
-                                try {
-                                    code = await Promise.race([
-                                        window.detectBarcode(file),
-                                        new Promise((r) => setTimeout(() => r(null), 8000)),
-                                    ]);
-                                } catch (_) {}
-                                this.reading = false;
-                                if (code) { this.barcode = code; this.barcodeFound = true; $wire.set('detectedBarcode', code); return; }
-                            }
-
-                            // 2) No barcode → the photo itself must be uploaded for AI identification.
-                            this.uploading = true;
-                            try {
-                                const upload = window.downscaleImage ? await window.downscaleImage(file) : file;
-                                let done = false;
-                                const watchdog = setTimeout(() => {
-                                    if (done) return;
-                                    this.uploading = false;
-                                    this.uploadError = 'Photo upload timed out. Try the barcode instead — it needs no upload — or add the product from the Pantry tab.';
-                                }, 20000);
-                                $wire.upload('photo', upload,
-                                    () => { done = true; clearTimeout(watchdog); this.uploading = false; this.uploaded = true; },
-                                    (message) => { done = true; clearTimeout(watchdog); this.uploading = false; this.uploadError = 'Photo upload was rejected' + (message ? ' (' + message + ')' : '') + '. Try the barcode instead, or add the product from the Pantry tab.'; },
-                                    (e) => { this.progress = (e && e.detail) ? e.detail.progress : this.progress; }
-                                );
-                            } catch (err) {
-                                this.uploading = false;
-                                this.uploadError = 'Photo upload error: ' + (err && err.message ? err.message : err);
-                            }
-                        }
-                     }">
-
-                    {{-- The capture well: a viewfinder, not a form. --}}
-                    <div class="module px-5 pb-0 pt-4">
-                    <label class="block cursor-pointer">
-                        <span class="silkscreen">Scan</span>
-                        <div class="well relative mt-3 flex min-h-56 flex-col items-center justify-center overflow-hidden px-6 py-10 text-center transition hover:border-seam-strong">
-                            {{-- Viewfinder corner brackets --}}
-                            <svg class="pointer-events-none absolute inset-2 text-seam-strong" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                                <path d="M0 8V0h4M96 0h4v8M100 92v8h-4M4 100H0v-8" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" transform="scale(1,1)"/>
-                            </svg>
-                            <template x-if="preview">
-                                <img :src="preview" alt="Selected product" class="mb-4 max-h-44 rounded object-contain">
-                            </template>
-                            <template x-if="!preview">
-                                <svg class="mb-4 size-9 text-ink-faint" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
-                                    <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
-                                    <path d="M6.5 12h0.01M9.5 12h0.01M12.5 12h0.01M15.5 12h0.01M18 12h-0.01" stroke-width="2" />
-                                </svg>
-                            </template>
-                            <p class="voice-caption font-medium text-ink" x-text="preview ? 'Photo ready' : 'Take or upload a photo'"></p>
-                            <p class="voice-caption mt-1 text-ink-dim">One packaged product at a time — show the front of the pack.</p>
-                        </div>
-                        <input type="file" accept="image/*" class="sr-only"
-                               x-on:change="handle($event)">
-                    </label>
-
-                    {{-- Panel printing: the process and the machinery, silkscreened
-                         onto the face (TE hardware prints its diagrams). --}}
-                    <div class="-mx-5 mt-4 grid grid-cols-3 divide-x divide-seam border-t border-seam" aria-hidden="true">
-                        <div class="px-4 py-3">
-                            <p class="silkscreen">01</p>
-                            <p class="voice-micro mt-0.5 text-ink-dim">Scan the pack</p>
-                        </div>
-                        <div class="px-4 py-3">
-                            <p class="silkscreen">02</p>
-                            <p class="voice-micro mt-0.5 text-ink-dim">Confirm the match</p>
-                        </div>
-                        <div class="px-4 py-3">
-                            <p class="silkscreen">03</p>
-                            <p class="voice-micro mt-0.5 text-ink-dim">Stocked &amp; counted</p>
-                        </div>
-                    </div>
-                    <p class="data-sm -mx-5 border-t border-seam px-5 py-3 text-ink-faint uppercase">
-                        On-device barcode reader · Open Food Facts DB
-                    </p>
-                    </div>
-
-                    @error('photo') <p class="px-1 text-xs text-high">{{ $message }}</p> @enderror
-
-                    {{-- On-device barcode read (needs no upload). --}}
-                    <p x-show="reading" x-cloak class="data px-1 text-xs text-ink-dim">READING BARCODE…</p>
-
-                    <div x-show="barcodeFound" x-cloak class="module flex items-center gap-3 px-4 py-3">
-                        <span class="size-2 shrink-0 rounded-full bg-good" aria-hidden="true"></span>
-                        <p class="data-sm min-w-0 truncate text-ink">BARCODE <span x-text="barcode"></span> <span class="text-ink-faint">· ON-DEVICE</span></p>
-                    </div>
-
-                    {{-- Photo upload — only the AI photo path needs this. --}}
-                    <div x-show="uploading" x-cloak class="module space-y-2 px-4 py-3">
-                        <div class="data-sm flex items-center justify-between text-ink-dim">
-                            <span>UPLOADING PHOTO</span>
-                            <span x-text="progress + '%'"></span>
-                        </div>
-                        <div class="meter"><span class="!bg-action" :style="`width: ${progress}%`"></span></div>
-                    </div>
-
-                    <p x-show="uploadError" x-cloak class="border-l border-high bg-plate-well px-3 py-2 text-xs leading-relaxed text-ink-dim" x-text="uploadError"></p>
-
-                    <x-app.console-key primary x-show="barcodeFound || uploaded" x-cloak wire:click="analyze" wire:loading.attr="disabled">
-                        Identify product
-                    </x-app.console-key>
-
-                    <p class="px-1 text-center text-xs text-ink-faint">
-                        Prefer to type it in? <a href="{{ route('pantry') }}" class="text-ink-dim underline decoration-seam-strong underline-offset-4 transition hover:text-ink">Add to pantry manually</a>
-                    </p>
+        {{-- Client-side: frames still being handed off --}}
+        <template x-for="job in sending" :key="job.key">
+            <div class="module slot-in flex items-center gap-3 px-4 py-3">
+                <img :src="job.thumb" alt="" class="size-10 shrink-0 rounded object-cover">
+                <div class="min-w-0 flex-1">
+                    <p class="data-sm text-ink" x-text="job.failed ? 'HAND-OFF FAILED' : 'HANDING OFF…'"></p>
+                    <p class="voice-micro mt-0.5 text-ink-dim" x-text="job.failed ? 'Check the connection, then scan it again.' : 'The shutter is already free.'"></p>
                 </div>
-            @endif
+                <button type="button" x-show="job.failed" x-on:click="sending = sending.filter((j) => j.key !== job.key)"
+                        class="keycap-sm hit shrink-0 text-ink-faint">Dismiss</button>
+            </div>
+        </template>
 
-            {{-- STEP 2 — Confirm "Is this right?" (brief §7.6) --------------------}}
-            @if ($step === 'confirm' && $product)
-                <div class="space-y-3">
-                    <x-app.module label="Match — Is this right?">
+        @foreach ($captures as $capture)
+            @php($product = $capture->matchedProduct)
+            {{-- In flight, the scanline wipes the card (work is happening);
+                 the moment it settles, the result wipes in once — but only a
+                 FRESH settle earns the wipe, so a reload renders the stack calm. --}}
+            @php($justSettled = ! $capture->status->inFlight() && $capture->updated_at->gt(now()->subSeconds(8)))
+            <div class="module slot-in px-4 py-3 {{ $capture->status->inFlight() ? 'wipe-busy' : '' }}" wire:key="capture-{{ $capture->id }}">
+                <div class="flex items-start gap-3 {{ $justSettled ? 'wipe-in' : '' }}" wire:key="capture-{{ $capture->id }}-{{ $capture->status->value }}">
+                    {{-- Evidence: the frame or the digits --}}
+                    @if ($capture->image_path)
+                        {{-- Deliberately a relative URL: the public-disk symlink serves
+                             /storage/* on whatever host the app answers on, so an
+                             APP_URL drift can never break thumbnails. Revisit at M8/S3. --}}
+                        <img src="/storage/{{ $capture->image_path }}" alt=""
+                             class="size-10 shrink-0 rounded object-cover" onerror="this.style.display='none'">
+                    @else
+                        <div class="flex size-10 shrink-0 items-center justify-center rounded bg-plate-well">
+                            <x-app.icon name="barcode" class="size-5 text-ink-faint" />
+                        </div>
+                    @endif
 
-                        <p class="voice-item mt-4 text-ink">{{ $product->brand }} <span class="text-ink-dim">{{ $product->name }}</span></p>
-                        @if ($product->variant)
-                            <p class="mt-0.5 text-sm text-ink-dim">{{ $product->variant }}</p>
-                        @endif
-
-                        {{-- Provenance is first-class (brief §2.2). --}}
-                        <p class="data-sm mt-3 text-ink-faint uppercase">
-                            @if ($detectedBarcode !== '') Barcode {{ $detectedBarcode }} · @endif
-                            @if ($product->pack_size_value) {{ rtrim(rtrim(number_format((float) $product->pack_size_value, 3, '.', ''), '0'), '.') }}{{ $product->pack_size_unit }} · @endif
-                            {{ $isSuggestion ? 'Best guess' : 'Database match' }}
-                        </p>
-
-                        @if ($isSuggestion)
-                            <p class="mt-3 border-l border-low bg-plate-well px-3 py-2 text-xs leading-relaxed text-ink-dim">
-                                Best guess, not a certain match — please check it before adding.
-                            </p>
-                        @endif
-
-                        {{-- Key macros (computed by the nutrition service, never inline maths) --}}
-                        <div class="mt-4 grid grid-cols-2 divide-x divide-seam border-t border-seam pt-1">
-                            <div class="py-2.5 pr-4">
-                                <h3 class="silkscreen">Calories</h3>
-                                <p class="data-lg mt-1 text-ink">
-                                    @if ($nutrition?->calories !== null)
-                                        {{ rtrim(rtrim(number_format($nutrition->calories, 1, '.', ''), '0'), '.') }}<span class="text-xs text-ink-dim"> KCAL</span>
-                                    @else
-                                        ----
-                                    @endif
-                                </p>
+                    <div class="min-w-0 flex-1">
+                        @if ($capture->status->inFlight())
+                            <div class="led-sweep flex w-fit gap-1" aria-hidden="true">
+                                @for ($i = 0; $i < 6; $i++) <span class="led led-on"></span> @endfor
                             </div>
-                            <div class="py-2.5 pl-4">
-                                <h3 class="silkscreen">Protein</h3>
-                                <p class="data-lg mt-1 text-ink">
-                                    @if ($nutrition?->protein !== null)
-                                        {{ rtrim(rtrim(number_format($nutrition->protein, 1, '.', ''), '0'), '.') }}<span class="text-xs text-ink-dim">G</span>
-                                    @else
-                                        ----
-                                    @endif
-                                </p>
-                            </div>
-                        </div>
-                        @if ($nutritionBasis)
-                            <p class="data-sm mt-1 text-ink-faint"><span class="uppercase">{{ $nutritionBasis }}</span></p>
-                        @elseif (! $nutrition)
-                            <p class="voice-micro mt-1 text-ink-faint">Nutrition isn't available for this product yet.</p>
-                        @endif
-                    </x-app.module>
+                            <p class="data-sm mt-1.5 text-ink">IDENTIFYING{{ $capture->barcode ? ' · '.$capture->barcode : '' }}</p>
+                            <p class="voice-micro mt-0.5 text-ink-dim">Keep scanning — this settles on its own.</p>
 
-                    <div class="space-y-2">
-                        <x-app.console-key primary wire:click="yesAddIt" wire:loading.attr="disabled">
-                            Yes, add it
-                        </x-app.console-key>
-                        <x-app.console-key wire:click="wrongProduct">
-                            Wrong product
-                        </x-app.console-key>
-                    </div>
-                </div>
-            @endif
-
-            {{-- STEP 3 — Quantity (brief §7.7) -----------------------------------}}
-            @if ($step === 'quantity' && $product)
-                <div class="space-y-3">
-                    <x-app.module label="Quantity — how many did you buy?">
-                        <p class="mt-2 text-sm text-ink-dim">{{ $product->brand }} — {{ $product->name }}</p>
-
-                        <div class="mt-5 flex items-center justify-center gap-4">
-                            <button type="button" wire:click="decrement" aria-label="Decrease"
-                                    class="key flex size-12 items-center justify-center text-lg text-ink">−</button>
-                            <span class="data-xl w-24 border-b border-seam pb-1 text-center text-ink">{{ $quantity }}</span>
-                            <button type="button" wire:click="increment" aria-label="Increase"
-                                    class="key flex size-12 items-center justify-center text-lg text-ink">+</button>
-                        </div>
-
-                        <div class="mt-5">
-                            <label class="silkscreen" for="scan-unit">Unit</label>
-                            <select id="scan-unit" wire:model="unit"
-                                    class="input-well data mt-1.5">
-                                @foreach ($unitOptions as $option)
-                                    <option value="{{ $option['value'] }}">{{ $option['label'] }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        @error('quantity') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
-                        @error('unit') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
-                    </x-app.module>
-
-                    <x-app.console-key primary wire:click="addToPantry" wire:loading.attr="disabled">
-                        Add to pantry
-                    </x-app.console-key>
-                </div>
-            @endif
-
-            {{-- Something failed while resolving — actionable, never a blank page --}}
-            @if ($step === 'error')
-                <div class="space-y-3">
-                    <x-app.placeholder glyph="ERR" tone="high" status="Resolve failed"
-                        title="Something went wrong adding that product"
-                        subtitle="It's been logged. Try again, or add the product to your pantry manually.">
-                        @if ($errorDetail !== '')
-                            <p class="data-sm mx-auto mt-4 max-w-xs break-words border-l border-high bg-plate-well px-3 py-2 text-left text-ink-dim">
-                                DETAIL (share with support): {{ $errorDetail }}
+                        @elseif ($capture->status->applied())
+                            <p class="voice-caption truncate text-ink">{{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
+                            <p class="data-sm mt-0.5 text-ink-faint uppercase">
+                                @if ($capture->provenance === 'matched_barcode') Barcode{{ $capture->barcode ? ' '.$capture->barcode : '' }}
+                                @elseif ($capture->provenance === 'matched_exact') Database match
+                                @else Matched by name · {{ (int) round(((float) $capture->confidence) * 100) }}%
+                                @endif
                             </p>
-                        @endif
-                    </x-app.placeholder>
+                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                                <span class="chip border-good/40 text-good">IN PANTRY</span>
+                                @if ($capture->consumption_event_id)
+                                    <span class="chip border-good/40 text-good">LOGGED TO TODAY</span>
+                                @else
+                                    <button type="button" wire:click="eatNowCapture({{ $capture->id }})" wire:loading.attr="disabled"
+                                            class="key keycap-sm hit px-3 py-1.5 text-ink-dim">I'm eating it now</button>
+                                @endif
+                                <button type="button" wire:click="undoCapture({{ $capture->id }})" wire:loading.attr="disabled"
+                                        class="keycap-sm hit px-2 py-1.5 text-ink-faint transition hover:text-ink">Undo</button>
+                            </div>
 
-                    <div class="space-y-2">
-                        <x-app.console-key primary wire:click="scanAnother">
-                            Try another scan
-                        </x-app.console-key>
-                        <x-app.console-key :href="route('pantry')">
-                            Add manually
-                        </x-app.console-key>
-                    </div>
-                </div>
-            @endif
+                        @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Suggested)
+                            <p class="voice-caption truncate text-ink">{{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
+                            <p class="data-sm mt-0.5 text-low uppercase">Best guess · {{ (int) round(((float) $capture->confidence) * 100) }}% — is this right?</p>
+                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                                <button type="button" wire:click="confirmCapture({{ $capture->id }})" wire:loading.attr="disabled"
+                                        class="key key-action keycap-sm px-3.5 py-2">Yes, add it</button>
+                                <button type="button" wire:click="rejectCapture({{ $capture->id }})" wire:loading.attr="disabled"
+                                        class="key keycap-sm px-3.5 py-2 text-ink-dim">Not this</button>
+                            </div>
 
-            {{-- STEP 4 — Done: the machine stamps the win (design brief). --------}}
-            @if ($step === 'done')
-                <div class="space-y-3">
-                    <div class="stamp-in rounded-md bg-good px-6 pb-4 pt-7 text-black">
-                        <div class="flex items-center gap-5">
-                            <svg class="size-20 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M4 12.5l5.5 5.5L20 6.5" />
-                            </svg>
-                            <p class="voice-display text-[2.6rem]">Added to<br>pantry</p>
-                        </div>
-                        <div class="led-sweep mt-6 flex justify-between" aria-hidden="true">
-                            @for ($i = 0; $i < 16; $i++)
-                                <span class="led led-good"></span>
-                            @endfor
-                        </div>
-                    </div>
+                        @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Unknown)
+                            <p class="data-sm text-ink">?--- COULDN'T IDENTIFY THIS YET</p>
+                            <p class="voice-micro mt-0.5 text-ink-dim">
+                                The photo is kept. <a href="{{ route('pantry') }}" wire:navigate class="text-ink-dim underline decoration-seam-strong underline-offset-2 transition hover:text-ink">Add it manually</a> — a manual add teaches the database.
+                            </p>
 
-                    <x-app.module label="Item" padding="px-5 pb-4 pt-4">
-                        <p class="voice-item mt-2 text-ink">{{ $addedProductName }}</p>
-                        @php($fmtStamp = fn ($v) => rtrim(rtrim(number_format((float) $v, 1, '.', ''), '0'), '.'))
-                        @php($stamp = $nutrition === null ? null : collect([
-                            $nutrition->calories !== null ? $fmtStamp($nutrition->calories).' KCAL' : null,
-                            $nutrition->protein !== null ? $fmtStamp($nutrition->protein).'P' : null,
-                            $nutrition->carbs !== null ? $fmtStamp($nutrition->carbs).'C' : null,
-                            $nutrition->fat !== null ? $fmtStamp($nutrition->fat).'F' : null,
-                        ])->filter()->implode(' · '))
-                        <p class="data-sm mt-2 text-ink-dim">
-                            @if ($stamp)
-                                {{ $stamp }}@if ($nutritionBasis) <span class="text-ink-faint uppercase">· {{ $nutritionBasis }}</span> @endif
-                            @else
-                                <span class="text-ink-faint">NUTRITION ----</span>
-                            @endif
-                        </p>
-                        {{-- Provenance is first-class (brief §2.2): only facts we hold. --}}
-                        <p class="data-sm mt-1.5 border-t border-seam pt-2 text-ink-faint uppercase">
-                            {{ $detectedBarcode !== '' ? 'Barcode '.$detectedBarcode.' · ' : '' }}{{ $isSuggestion ? 'Best guess — confirmed by you' : 'Match — confirmed by you' }}
-                        </p>
-                    </x-app.module>
+                        @elseif ($capture->status === \App\Enums\ScanCaptureStatus::AiUnavailable)
+                            <p class="data-sm text-low">AI-- PHOTO ID ISN'T SWITCHED ON YET</p>
+                            <p class="voice-micro mt-0.5 text-ink-dim">Barcodes still work — they need no AI. Photos will identify once the gateway key is set.</p>
 
-                    {{-- Reward strip: the counters that just moved. --}}
-                    <div class="flex gap-2" aria-label="Progress update">
-                        <span class="chip border-action !py-2 !pl-2.5 text-action">
-                            <span class="mr-1 inline-block size-2 rounded-[2px] bg-action align-baseline" aria-hidden="true"></span>
-                            +1 ITEM
-                        </span>
-                        @if ($pantryCount !== null)
-                            <span class="chip inline-flex items-center gap-1.5 border-seam-strong !py-2 text-ink-dim">
-                                <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" /></svg>
-                                PANTRY {{ $pantryCount }} {{ $pantryCount === 1 ? 'ITEM' : 'ITEMS' }}
-                            </span>
+                        @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Failed)
+                            <p class="data-sm text-high">ERR IDENTIFICATION FAILED</p>
+                            <p class="voice-micro mt-0.5 break-words text-ink-dim">{{ $capture->error ?: 'Something went wrong — scan it again.' }}</p>
+
+                        @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Undone)
+                            <p class="data-sm text-ink-faint">UNDONE · {{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
+
+                        @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Rejected)
+                            <p class="data-sm text-ink-faint">NOT THIS — NOTED · {{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
+                            <p class="voice-micro mt-0.5 text-ink-dim">Corrections make matching sharper.</p>
                         @endif
                     </div>
+                </div>
+            </div>
+        @endforeach
 
-                    <div class="space-y-2 pt-1">
-                        <x-app.console-key primary wire:click="scanAnother">
-                            Scan next
-                        </x-app.console-key>
-                        <x-app.console-key :href="route('pantry')">
-                            Done
-                        </x-app.console-key>
+        @if ($captures->isEmpty())
+            {{-- Honest blank: what this bay does, before it has done anything. --}}
+            <div class="module px-5 py-4">
+                <div class="grid grid-cols-3 divide-x divide-seam" aria-hidden="true">
+                    <div class="pr-4">
+                        <p class="silkscreen">01</p>
+                        <p class="voice-micro mt-0.5 text-ink-dim">Scan the pack</p>
+                    </div>
+                    <div class="px-4">
+                        <p class="silkscreen">02</p>
+                        <p class="voice-micro mt-0.5 text-ink-dim">It identifies itself</p>
+                    </div>
+                    <div class="pl-4">
+                        <p class="silkscreen">03</p>
+                        <p class="voice-micro mt-0.5 text-ink-dim">Stocked &amp; counted</p>
                     </div>
                 </div>
-            @endif
+            </div>
+        @endif
 
-            {{-- Unknown / needs-research fallback (research is Milestone 3) ------}}
-            @if ($step === 'unknown')
-                <div class="space-y-3">
-                    <x-app.placeholder glyph="?---" status="No confident match"
-                        title="We couldn't confidently identify this yet"
-                        subtitle="Scanning the barcode usually works best. You can also add this product to your pantry manually." />
-
-                    <div class="space-y-2">
-                        <x-app.console-key primary :href="route('pantry')">
-                            Add manually
-                        </x-app.console-key>
-                        <x-app.console-key wire:click="scanAnother">
-                            Try another photo
-                        </x-app.console-key>
-                    </div>
-                </div>
-            @endif
-
-            {{-- Photo identification needs AI configuration (key-absent grace) ---}}
-            @if ($step === 'ai_unavailable')
-                <div class="space-y-3">
-                    <x-app.placeholder glyph="AI--" tone="low" status="Not configured"
-                        title="Photo identification isn't switched on yet"
-                        subtitle="Barcode scanning still works without it — scan the barcode, or add the product manually." />
-
-                    <div class="space-y-2">
-                        <x-app.console-key primary wire:click="scanAnother">
-                            Scan the barcode
-                        </x-app.console-key>
-                        <x-app.console-key :href="route('pantry')">
-                            Add manually
-                        </x-app.console-key>
-                    </div>
-                </div>
-            @endif
-
-            {{-- Wrong product recorded — retry or manual (brief §7.6) -----------}}
-            @if ($step === 'corrected')
-                <div class="space-y-3">
-                    <x-app.placeholder glyph="LOGD" tone="info" status="Correction recorded"
-                        title="Thanks — we've noted that"
-                        subtitle="Your correction helps improve product matching. Try another photo, or add the product manually." />
-
-                    <div class="space-y-2">
-                        <x-app.console-key primary wire:click="scanAnother">
-                            Try another photo
-                        </x-app.console-key>
-                        <x-app.console-key :href="route('pantry')">
-                            Add manually
-                        </x-app.console-key>
-                    </div>
-                </div>
-            @endif
-
-        </div>
+        <p class="px-1 text-center text-xs text-ink-faint">
+            Prefer to type it in? <a href="{{ route('pantry') }}" wire:navigate class="text-ink-dim underline decoration-seam-strong underline-offset-4 transition hover:text-ink">Add to pantry manually</a>
+        </p>
     </div>

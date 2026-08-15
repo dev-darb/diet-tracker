@@ -82,6 +82,21 @@
     --color-accent: var(--color-action);
     --color-accent-content: var(--color-action);
     --color-accent-foreground: #000000;
+
+    /* ------------------------------------------------------------------
+       Motion tokens — the whole app keeps four durations and three curves.
+       Thesis: the chassis is bolted down; the plates travel. Slide-projector
+       spatial mechanics (push/cover/uncover/wipe/split/fade), machined into
+       restrained console motion. Nothing bounces; nothing overshoots.
+    ------------------------------------------------------------------ */
+    --motion-micro: 100ms;  /* key presses, chips, immediate feedback */
+    --motion-state: 160ms;  /* small state changes, toasts, splits */
+    --motion-nav: 220ms;    /* plate travel between screens */
+    --motion-wipe: 420ms;   /* analysis wipes — the duration IS the message */
+
+    --ease-travel: cubic-bezier(0.2, 0, 0, 1);      /* decisive mechanical travel */
+    --ease-arrive: cubic-bezier(0.16, 1, 0.3, 1);   /* confident arrival, no overshoot */
+    --ease-exit: cubic-bezier(0.7, 0, 0.84, 0);     /* exits leave faster than entrances */
 }
 
 @layer theme {
@@ -228,7 +243,7 @@
     }
     @media (prefers-reduced-motion: no-preference) {
         .key {
-            transition: filter 120ms ease-out, transform 60ms ease-out;
+            transition: filter var(--motion-micro) ease-out, transform 60ms ease-out;
         }
     }
     .key:active {
@@ -325,6 +340,112 @@
     }
 }
 
+/* ---------------------------------------------------------------------------
+   MOTION — the plate-travel system.
+
+   The chassis (top bar, control strip) is bolted down and never moves. The
+   plate stack (<main>) travels. Each navigation names its spatial meaning via
+   html[data-motion], set by the direction module in app.js before Livewire
+   swaps the body; the incoming plates then arrive with the matching move:
+
+     push-fwd / push-back  sibling tabs, direction from the control strip's
+                           physical key order (Home → Pantry → Eat → Health)
+     cover                 descending into a focused tool (Scan, Log, detail):
+                           the tool plate slides up over the desk
+     uncover               surfacing back out: the desk settles up from beneath
+     (no attribute)        unrelated moves stay instant — fade is reserved,
+                           never the default
+
+   WIPE is the language of background analysis (wipe-busy scanline while a
+   capture is in flight; wipe-in reveals the settled result). SPLIT is the
+   .split disclosure primitive — a surface parting to reveal controls.
+   All motion is transform / opacity / clip-path; plates never animate layout.
+--------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+    html[data-motion='push-fwd'] main { animation: plate-push-fwd var(--motion-nav) var(--ease-travel) both; }
+    html[data-motion='push-back'] main { animation: plate-push-back var(--motion-nav) var(--ease-travel) both; }
+    html[data-motion='cover'] main { animation: plate-cover 260ms var(--ease-arrive) both; }
+    html[data-motion='uncover'] main { animation: plate-uncover var(--motion-nav) var(--ease-arrive) both; }
+}
+@media (prefers-reduced-motion: reduce) {
+    /* The state change stays legible; the travel goes away. */
+    html[data-motion] main { animation: plate-fade 120ms ease-out both; }
+}
+@keyframes plate-push-fwd { from { transform: translateX(3.5rem); opacity: 0.35; } }
+@keyframes plate-push-back { from { transform: translateX(-3.5rem); opacity: 0.35; } }
+@keyframes plate-cover { from { transform: translateY(2.75rem); opacity: 0.25; } }
+@keyframes plate-uncover { from { transform: scale(0.98); opacity: 0.45; } }
+@keyframes plate-fade { from { opacity: 0.6; } }
+
+/* SPLIT — a surface parts to reveal another (disclosures, inline forms).
+   Grid-row collapse keeps the reveal bounded and interruption-safe. */
+.split {
+    display: grid;
+    grid-template-rows: 0fr;
+}
+.split > * {
+    overflow: hidden;
+    min-height: 0;
+}
+.split-open {
+    grid-template-rows: 1fr;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .split {
+        transition: grid-template-rows var(--motion-state) var(--ease-travel);
+    }
+}
+
+/* WIPE (busy) — a phosphor scanline tracks across anything analysing in the
+   background: movement that means "work is happening", not decoration. */
+.wipe-busy {
+    position: relative;
+    overflow: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .wipe-busy::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        width: 45%;
+        background: linear-gradient(
+            100deg,
+            transparent,
+            color-mix(in srgb, var(--color-phosphor) 6%, transparent) 45%,
+            color-mix(in srgb, var(--color-phosphor) 13%, transparent) 52%,
+            transparent 62%
+        );
+        transform: translateX(-110%);
+        animation: wipe-busy 1.3s var(--ease-travel) infinite;
+        pointer-events: none;
+    }
+}
+@keyframes wipe-busy {
+    to { transform: translateX(340%); }
+}
+
+/* WIPE (in) — a settled result is revealed left to right, the way the
+   machine printed it. Fires once, when a capture's status lands. */
+@media (prefers-reduced-motion: no-preference) {
+    .wipe-in {
+        animation: wipe-in var(--motion-wipe) var(--ease-travel) both;
+    }
+}
+@keyframes wipe-in {
+    from { clip-path: inset(0 100% 0 0); }
+    to { clip-path: inset(0 0 0 0); }
+}
+
+/* SLOT-IN — a new plate seats into a stack: minimal drop + fade. */
+@media (prefers-reduced-motion: no-preference) {
+    .slot-in {
+        animation: slot-in var(--motion-state) var(--ease-arrive) both;
+    }
+}
+@keyframes slot-in {
+    from { opacity: 0; transform: translateY(-0.375rem); }
+}
+
 /* The one authored motion moment: success sweeps light their LED cells left
    to right, counters snap in. Crisp and exponential, never springy. */
 @keyframes led-sweep {
@@ -355,7 +476,7 @@
     to { opacity: 1; transform: scale(1); }
 }
 .stamp-in {
-    animation: stamp-in 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: stamp-in var(--motion-state) var(--ease-arrive) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -57,51 +57,61 @@ class InsightCardUiTest extends TestCase
         }
     }
 
-    public function test_home_renders_the_focus_card_with_data(): void
+    public function test_home_render_never_generates_the_insight(): void
     {
         $this->seedFibreGap();
 
+        // The page itself must not wait for (or trigger) generation — the
+        // insight arrives via the card's wire:init follow-up request.
         $this->actingAs($this->user)->get('/home')
             ->assertOk()
+            ->assertDontSee('Mornflake Oats');
+
+        $this->assertSame(0, \App\Models\AiInsight::count());
+    }
+
+    public function test_the_card_loads_via_init_and_exposes_the_actions(): void
+    {
+        $this->seedFibreGap();
+
+        Volt::actingAs($this->user)->test('insight-card')
+            ->assertSet('loaded', false)
+            ->call('load')
+            ->assertSet('loaded', true)
             ->assertSee('Focus')
-            ->assertSee('Mornflake Oats')
             ->assertSee('Why this matters')
+            ->assertSee('What could I eat')
+            // Disclosure is client-side now: both bodies ship in the DOM.
+            ->assertSee('Fibre supports digestion')
+            ->assertSee('Mornflake Oats')
             ->assertSee('Dismiss');
     }
 
-    public function test_the_card_component_exposes_the_actions(): void
+    public function test_dismiss_hides_the_card_and_undo_brings_it_back(): void
     {
         $this->seedFibreGap();
 
-        Volt::actingAs($this->user)->test('insight-card')
-            ->assertSee('Focus')
-            ->assertSee('What could I eat')
-            ->assertSet('why', false)
-            ->call('toggleWhy')
-            ->assertSet('why', true)
-            ->assertSee('Fibre supports digestion')
-            ->call('toggleEat')
-            ->assertSet('eat', true)
-            ->assertSee('Mornflake Oats');
-    }
-
-    public function test_dismiss_hides_the_card(): void
-    {
-        $this->seedFibreGap();
-
-        Volt::actingAs($this->user)->test('insight-card')
-            ->assertSee('Focus')
+        $component = Volt::actingAs($this->user)->test('insight-card')
+            ->call('load')
+            ->assertSee('Dismiss for this week')
             ->call('dismiss')
-            ->assertDontSee('Focus');
+            ->assertDontSee('Dismiss for this week')
+            ->assertSee('Undo');
 
         // Persisted: the page no longer shows it either.
         $this->assertNull(app(InsightService::class)->currentInsight($this->user));
+
+        // A mis-tap costs nothing: undo restores the same insight.
+        $component->call('undoDismiss')
+            ->assertSee('Dismiss for this week');
+
+        $this->assertNotNull(app(InsightService::class)->currentInsight($this->user));
     }
 
     public function test_card_is_absent_without_data(): void
     {
-        $this->actingAs($this->user)->get('/home')
-            ->assertOk()
-            ->assertDontSee('Focus');
+        Volt::actingAs($this->user)->test('insight-card')
+            ->call('load')
+            ->assertDontSee('Dismiss for this week');
     }
 }

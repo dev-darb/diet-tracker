@@ -106,6 +106,12 @@ class InsightService
         $insight->forceFill(['dismissed_at' => now()])->save();
     }
 
+    /** Reverse a dismiss — a mis-tap should never silence a week of guidance. */
+    public function undismiss(AiInsight $insight): void
+    {
+        $insight->forceFill(['dismissed_at' => null])->save();
+    }
+
     /**
      * The real pantry items an insight references, for "Show me what I could eat"
      * (brief §9.6). Deterministic: only the stored ids the user still holds.

@@ -95,14 +95,36 @@ class ConsumptionUiTest extends TestCase
         $event = app(ConsumptionService::class)->consumePantryItem($this->user, $item, 2, QuantityUnit::Unit);
         $this->assertSame(2.0, (float) $item->fresh()->current_quantity);
 
-        Volt::actingAs($this->user)->test('eat')
+        // Delete is a two-beat undoable action: marking hides the entry but
+        // touches nothing; only the commit (undo window closing) deletes.
+        $component = Volt::actingAs($this->user)->test('eat')
             ->call('deleteEntry', $event->id)
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            ->assertDontSee($event->name ?: 'Consumption');
+
+        $this->assertSame(2.0, (float) $item->fresh()->current_quantity);
+        $this->assertSame(1, ConsumptionEvent::count());
+
+        $component->call('commitDelete');
 
         $item->refresh();
         $this->assertSame(4.0, (float) $item->current_quantity);
         $this->assertSame(0, ConsumptionEvent::count());
         $this->assertTrue($this->pantry->reconcile($item));
+    }
+
+    public function test_eat_screen_delete_can_be_undone(): void
+    {
+        $item = $this->stockedItem();
+        $event = app(ConsumptionService::class)->consumePantryItem($this->user, $item, 2, QuantityUnit::Unit);
+
+        Volt::actingAs($this->user)->test('eat')
+            ->call('deleteEntry', $event->id)
+            ->call('cancelDelete')
+            ->call('commitDelete'); // a stale commit after undo must be a no-op
+
+        $this->assertSame(1, ConsumptionEvent::count());
+        $this->assertSame(2.0, (float) $item->fresh()->current_quantity);
     }
 
     public function test_a_user_cannot_edit_another_users_consumption(): void

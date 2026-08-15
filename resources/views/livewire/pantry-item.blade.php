@@ -79,9 +79,30 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         $this->redirectRoute('pantry');
     }
 
+    /** The just-logged event, so the toast's Undo can reach it. */
+    public ?int $lastConsumptionId = null;
+
+    /**
+     * Undo the consumption the toast is showing: the event is deleted and the
+     * ledger's compensating correction restores the stock automatically.
+     */
+    public function undoConsume(ConsumptionService $service): void
+    {
+        $event = Auth::user()->consumptionEvents()->find($this->lastConsumptionId);
+
+        if ($event !== null) {
+            $service->deleteConsumption($event);
+        }
+
+        $this->lastConsumptionId = null;
+        $this->refreshItem();
+        $this->dispatch('consumption-undone');
+    }
+
     private function applyConsume(ConsumptionService $service, float $amount, ?string $portionLabel = null): void
     {
-        $service->consumePantryItem(Auth::user(), $this->pantryItem, $amount, portionLabel: $portionLabel);
+        $event = $service->consumePantryItem(Auth::user(), $this->pantryItem, $amount, portionLabel: $portionLabel);
+        $this->lastConsumptionId = $event->id;
         $this->refreshItem();
         $this->consumeAmount = '1';
         $this->dispatch('consumption-logged');
@@ -110,11 +131,12 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
     }
 }; ?>
 
-    <div class="space-y-5" x-data="{ toast: null }"
-         x-on:consumption-logged.window="toast = 'logged'; setTimeout(() => toast = null, 2000)"
-         x-on:item-changed.window="toast = 'saved'; setTimeout(() => toast = null, 2000)">
+    <div class="space-y-5" x-data="{ toast: null, toastT: null }"
+         x-on:consumption-logged.window="toast = 'logged'; clearTimeout(toastT); toastT = setTimeout(() => toast = null, 5000)"
+         x-on:consumption-undone.window="toast = 'undone'; clearTimeout(toastT); toastT = setTimeout(() => toast = null, 2000)"
+         x-on:item-changed.window="toast = 'saved'; clearTimeout(toastT); toastT = setTimeout(() => toast = null, 2000)">
 
-        <a href="{{ route('pantry') }}" class="keycap-sm inline-flex items-center gap-1.5 px-1 text-ink-dim transition hover:text-ink">
+        <a href="{{ route('pantry') }}" wire:navigate class="keycap-sm inline-flex items-center gap-1.5 px-1 text-ink-dim transition hover:text-ink">
             <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
             Pantry
         </a>
@@ -233,7 +255,21 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
             </div>
         </x-app.module>
 
-        {{-- The logged win gets the green stamp; a stock correction is a quiet save. --}}
-        <x-app.stamp-toast show="toast === 'logged'">Logged to today</x-app.stamp-toast>
+        {{-- The logged win gets the green stamp — logging is automatic, so the
+             stamp carries the way back. A stock correction is a quiet save. --}}
+        <div x-show="toast === 'logged'" x-cloak role="status" class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
+            <div class="stamp-in flex items-center justify-between gap-3 rounded-md bg-good px-4 py-3 text-black">
+                <span class="flex items-center gap-2.5">
+                    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5.5 5.5L20 6.5" /></svg>
+                    <span class="keycap">Logged to today</span>
+                </span>
+                <button type="button"
+                        x-on:click="toast = null; clearTimeout(toastT); $wire.undoConsume()"
+                        class="keycap hit shrink-0 underline decoration-2 underline-offset-4">
+                    Undo
+                </button>
+            </div>
+        </div>
+        <x-app.stamp-toast show="toast === 'undone'" tone="neutral">Removed — stock restored</x-app.stamp-toast>
         <x-app.stamp-toast show="toast === 'saved'" tone="neutral">Stock corrected</x-app.stamp-toast>
     </div>

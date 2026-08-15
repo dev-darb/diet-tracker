@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ScanCaptureController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -22,8 +23,11 @@ Route::middleware(['auth'])->group(function () {
         Volt::route('pantry', 'pantry')->name('pantry');
         Volt::route('pantry/{pantryItem}', 'pantry-item')->name('pantry.item');
 
-        // Scan — capture -> on-device barcode -> resolve -> confirm -> quantity -> pantry (J2.5).
+        // Scan — the pipelined scanner: captures queue instantly, identify +
+        // resolve run in the background, results stack under the viewfinder
+        // (product principle 7: never wait for the AI).
         Volt::route('scan', 'scan')->name('scan');
+        Route::post('scan/captures', [ScanCaptureController::class, 'store'])->name('scan.captures.store');
 
         // Eat — recent consumption history: consume, edit/delete, inspect (J4.2).
         Volt::route('eat', 'eat')->name('eat');

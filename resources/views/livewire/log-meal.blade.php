@@ -415,7 +415,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
 
     <div class="space-y-5">
 
-        <a href="{{ route('eat') }}" class="keycap-sm inline-flex items-center gap-1.5 px-1 text-ink-dim transition hover:text-ink">
+        <a href="{{ route('eat') }}" wire:navigate class="keycap-sm inline-flex items-center gap-1.5 px-1 text-ink-dim transition hover:text-ink">
             <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
             Eat
         </a>
@@ -661,7 +661,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         {{-- STEP — done -------------------------------------------------------}}
         @if ($step === 'done')
             <x-app.module label="Logged">
-                <p class="voice-display mt-4 text-[2.2rem]">On the<br>record</p>
+                <p class="voice-display mt-4 text-[2.6rem]">On the<br>record</p>
                 <p class="voice-caption mt-2 text-ink-dim">{{ $loggedName }}</p>
 
                 <div class="mt-5 space-y-2">

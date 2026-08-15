@@ -44,7 +44,6 @@ class PantryUiTest extends TestCase
         $product = CanonicalProduct::factory()->create();
 
         Volt::actingAs($this->user)->test('pantry')
-            ->call('toggleAdd')
             ->call('selectProduct', $product->id)
             ->set('addQuantity', '2')
             ->set('addUnit', QuantityUnit::Unit->value)
@@ -59,7 +58,6 @@ class PantryUiTest extends TestCase
     public function test_manual_add_requires_a_selected_product(): void
     {
         Volt::actingAs($this->user)->test('pantry')
-            ->call('toggleAdd')
             ->set('addQuantity', '2')
             ->call('add')
             ->assertHasErrors(['selectedProductId']);
