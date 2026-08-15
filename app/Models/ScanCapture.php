@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CaptureKind;
 use App\Enums\ScanCaptureStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,8 +18,12 @@ class ScanCapture extends Model
         'user_id',
         'image_path',
         'barcode',
+        'kind',
         'eat_now',
         'status',
+        'stage',
+        'dish_name',
+        'meal_reading',
         'provenance',
         'confidence',
         'matched_product_id',
@@ -33,7 +38,9 @@ class ScanCapture extends Model
         return [
             'eat_now' => 'boolean',
             'status' => ScanCaptureStatus::class,
+            'kind' => CaptureKind::class,
             'confidence' => 'float',
+            'meal_reading' => 'array',
         ];
     }
 

@@ -27,6 +27,20 @@ enum ScanCaptureStatus: string
     /** Suggestion band (0.60–0.85): waiting for the user's confirm/reject. */
     case Suggested = 'suggested';
 
+    /**
+     * Triage saw a prepared meal: the capture routes to meal logging, not the
+     * pantry gate. Settled — the card offers the meal flow, prefilled from the
+     * interpreter's stored reading. `consumption_event_id` marks it logged.
+     */
+    case Meal = 'meal';
+
+    /**
+     * Triage was genuinely uncertain — the one case where asking beats
+     * guessing. The card asks "What am I looking at?" (Product · Ingredient ·
+     * Meal) and the answer requeues the capture with the kind forced.
+     */
+    case NeedsKind = 'needs_kind';
+
     /** No acceptable match; the photo is retained for retry / manual add. */
     case Unknown = 'unknown';
 

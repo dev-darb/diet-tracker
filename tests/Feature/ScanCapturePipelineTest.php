@@ -65,7 +65,7 @@ class ScanCapturePipelineTest extends TestCase
         {
             public function __construct(private readonly array $fields) {}
 
-            public function identify(ProductImage $image): IdentifiedProduct
+            public function identify(ProductImage $image, ?string $kindHint = null): IdentifiedProduct
             {
                 return IdentifiedProduct::fromArray($this->fields);
             }
@@ -126,7 +126,7 @@ class ScanCapturePipelineTest extends TestCase
         $this->localProduct();
         // Same brand/name wording, tiny drift -> similarity >= 0.85, no barcode.
         $this->identifierReturning([
-            'brand' => 'Mornflake', 'product_name' => 'Porridge Oat', 'confidence' => 0.9,
+            'kind' => 'packaged_product', 'brand' => 'Mornflake', 'product_name' => 'Porridge Oat', 'confidence' => 0.9,
         ]);
 
         $capture = $this->service()->queue($this->user, 'scans/fake.jpg', null);
@@ -143,7 +143,7 @@ class ScanCapturePipelineTest extends TestCase
     {
         $this->localProduct();
         $this->identifierReturning([
-            'brand' => 'Mornflake', 'product_name' => 'Oaty Porridge', 'confidence' => 0.7,
+            'kind' => 'packaged_product', 'brand' => 'Mornflake', 'product_name' => 'Oaty Porridge', 'confidence' => 0.7,
         ]);
 
         $capture = $this->service()->queue($this->user, 'scans/fake.jpg', null);
@@ -184,7 +184,7 @@ class ScanCapturePipelineTest extends TestCase
     {
         $this->localProduct();
         $this->identifierReturning([
-            'brand' => 'Mornflake', 'product_name' => 'Oaty Porridge', 'confidence' => 0.7,
+            'kind' => 'packaged_product', 'brand' => 'Mornflake', 'product_name' => 'Oaty Porridge', 'confidence' => 0.7,
         ]);
 
         $capture = $this->service()->queue($this->user, 'scans/fake.jpg', null);
@@ -216,7 +216,7 @@ class ScanCapturePipelineTest extends TestCase
     {
         $this->app->bind(ProductIdentifier::class, fn () => new class implements ProductIdentifier
         {
-            public function identify(ProductImage $image): IdentifiedProduct
+            public function identify(ProductImage $image, ?string $kindHint = null): IdentifiedProduct
             {
                 throw new RuntimeException('OpenRouter API key is not configured.');
             }
@@ -240,6 +240,47 @@ class ScanCapturePipelineTest extends TestCase
 
         $this->assertSame(1.0, (float) PantryItem::findOrFail($capture->fresh()->pantry_item_id)->current_quantity);
         $this->assertSame(1, ScanCapture::count());
+    }
+
+    // --- Triage: uncertain classification asks instead of guessing ----------
+
+    public function test_uncertain_classification_asks_what_am_i_looking_at(): void
+    {
+        $this->identifierReturning(['kind' => 'unknown', 'confidence' => 0.3]);
+
+        $capture = $this->service()->queue($this->user, 'scans/fake.jpg', null);
+        $capture->refresh();
+
+        $this->assertSame(ScanCaptureStatus::NeedsKind, $capture->status);
+        $this->assertDatabaseCount('pantry_items', 0);
+    }
+
+    public function test_a_confident_kind_below_the_floor_still_asks(): void
+    {
+        // The model picked a kind but barely believes it — asking beats guessing.
+        $this->identifierReturning(['kind' => 'packaged_product', 'product_name' => 'Something', 'confidence' => 0.2]);
+
+        $capture = $this->service()->queue($this->user, 'scans/fake.jpg', null);
+
+        $this->assertSame(ScanCaptureStatus::NeedsKind, $capture->fresh()->status);
+    }
+
+    public function test_answering_ingredient_requeues_through_the_product_gate(): void
+    {
+        $this->localProduct();
+        $this->identifierReturning(['kind' => 'unknown', 'confidence' => 0.3]);
+
+        $capture = $this->service()->queue($this->user, 'scans/fake.jpg', null);
+        $this->assertSame(ScanCaptureStatus::NeedsKind, $capture->fresh()->status);
+
+        // The user answers: identification reruns with the claim as a hint —
+        // the fake now "sees" the product it was told to look for.
+        $this->identifierReturning(['kind' => 'ingredient_or_food', 'brand' => 'Mornflake', 'product_name' => 'Porridge Oat', 'confidence' => 0.9]);
+        $this->service()->setKind($capture->fresh(), \App\Enums\CaptureKind::IngredientOrFood);
+
+        $capture->refresh();
+        $this->assertSame(ScanCaptureStatus::AutoAdded, $capture->status);
+        $this->assertSame(\App\Enums\CaptureKind::IngredientOrFood, $capture->kind);
     }
 
     // --- Self-healing: the poll rescues captures the queue abandoned --------

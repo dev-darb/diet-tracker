@@ -28,6 +28,21 @@ use Livewire\Volt\Component;
  */
 new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Component
 {
+    /** Shopping session: throughput mode — capture → add → next, no per-item asks. */
+    public bool $shopping = false;
+
+    /** The shopping offer was answered (either way) — don't re-ask this session. */
+    public bool $shoppingOffered = false;
+
+    /** Set when a shopping session ends, for the one-line summary stamp. */
+    public ?int $shoppingSummary = null;
+
+    public function mount(): void
+    {
+        $this->shopping = (bool) session('scan.shopping', false);
+        $this->shoppingOffered = (bool) session('scan.shopping_offered', false);
+    }
+
     /**
      * The poll tick. Beyond re-reading the stack it RESCUES stranded work:
      * any capture the queue has abandoned (no worker, dead worker, lost job)
@@ -38,6 +53,36 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
     public function pulse(ScanCaptureService $captures, \App\AI\Contracts\ProductIdentifier $identifier): void
     {
         $captures->rescueStale(Auth::user(), $identifier);
+    }
+
+    /** "Adding groceries?" accepted — optimise for throughput until DONE. */
+    public function startShopping(): void
+    {
+        $this->shopping = true;
+        $this->shoppingOffered = true;
+        $this->shoppingSummary = null;
+        session(['scan.shopping' => true, 'scan.shopping_offered' => true]);
+    }
+
+    /** The offer declined — stay in the normal per-item rhythm, don't re-ask. */
+    public function declineShopping(): void
+    {
+        $this->shoppingOffered = true;
+        session(['scan.shopping_offered' => true]);
+    }
+
+    /** End the shopping session with a short summary of what landed. */
+    public function endShopping(int $count): void
+    {
+        $this->shopping = false;
+        $this->shoppingSummary = $count;
+        session(['scan.shopping' => false]);
+    }
+
+    /** The user answered "What am I looking at?" — requeue with the kind forced. */
+    public function setKindCapture(ScanCaptureService $captures, int $id, string $kind): void
+    {
+        $captures->setKind($this->owned($id), \App\Enums\CaptureKind::from($kind));
     }
 
     /** "Yes, add it" on a suggestion-band card. */
@@ -91,6 +136,10 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
             'captures' => $captures,
             'hasInFlight' => $captures->contains(fn (ScanCapture $c) => $c->status->inFlight()),
             'sessionAdds' => $captures->filter(fn (ScanCapture $c) => $c->status->applied())->count(),
+            // The early shopping signal: the first stored (not eaten-now)
+            // product of the session earns the one-time offer.
+            'shoppingPrompt' => ! $this->shopping && ! $this->shoppingOffered
+                && $captures->contains(fn (ScanCapture $c) => $c->status->applied() && ! $c->eat_now),
         ];
     }
 }; ?>
@@ -304,7 +353,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         </svg>
                     </template>
                     <p class="voice-caption font-medium text-ink" x-text="fb.sending ? 'Handing off…' : (fb.reading ? 'Reading barcode…' : 'Take a photo')"></p>
-                    <p class="voice-caption mt-1 text-ink-dim">One packaged product at a time — show the front of the pack.</p>
+                    <p class="voice-caption mt-1 text-ink-dim">One thing at a time — a pack, a barcode, an ingredient, or the plate.</p>
                     <input type="file" accept="image/*" capture="environment" class="sr-only" x-on:change="handleFile($event)">
                 </label>
             </div>
@@ -331,7 +380,37 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
         <p x-show="fb.error" x-cloak x-text="fb.error" class="border-l border-high bg-plate-well px-3 py-2 text-xs leading-relaxed text-ink-dim"></p>
 
         {{-- THE RESULTS STACK — captures settle here while the shutter stays live. --}}
-        @if ($sessionAdds > 0)
+        @if ($shopping)
+            {{-- Shopping session: the counter IS the interface — capture,
+                 identify, add, next. DONE closes the run with a summary. --}}
+            <div class="module flex items-center justify-between gap-3 px-4 py-2.5" wire:key="shopping-strip">
+                <div class="flex items-center gap-2">
+                    <span class="chip stamp-in border-good/40 text-good" wire:key="shopping-count-{{ $sessionAdds }}">STOCKING · {{ $sessionAdds }}</span>
+                    <span class="data-sm text-ink-faint">STRAIGHT TO PANTRY</span>
+                </div>
+                <button type="button" wire:click="endShopping({{ $sessionAdds }})" wire:loading.attr="disabled"
+                        class="keycap-sm hit shrink-0 px-3 py-1.5 text-ink-dim">Done</button>
+            </div>
+        @elseif ($shoppingSummary !== null)
+            <div class="module stamp-in flex items-center gap-2 px-4 py-2.5" wire:key="shopping-summary">
+                <span class="chip border-good/40 text-good">{{ $shoppingSummary }} {{ $shoppingSummary === 1 ? 'ITEM' : 'ITEMS' }} STOCKED</span>
+                <span class="data-sm text-ink-faint">SESSION CLOSED</span>
+            </div>
+        @elseif ($shoppingPrompt)
+            {{-- One early, clear shopping signal → one lightweight offer. --}}
+            <div class="module flex flex-wrap items-center justify-between gap-2 px-4 py-2.5" wire:key="shopping-offer">
+                <p class="voice-caption min-w-0 text-ink-dim">Adding groceries? Keep scanning — products go straight to Pantry.</p>
+                <div class="flex shrink-0 items-center gap-2">
+                    <button type="button" wire:click="startShopping" wire:loading.attr="disabled"
+                            class="key keycap-sm hit px-3 py-1.5 text-ink">Keep stocking</button>
+                    <button type="button" wire:click="declineShopping" wire:loading.attr="disabled"
+                            aria-label="No thanks"
+                            class="hit flex size-7 items-center justify-center text-ink-faint transition hover:text-ink">
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+            </div>
+        @elseif ($sessionAdds > 0)
             {{-- The session counter re-stamps each time it climbs (keyed on the
                  count) — the loop's running score, landing like a press. --}}
             <div class="flex items-center gap-2 px-1">
@@ -359,7 +438,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                  the moment it settles, the result wipes in once — but only a
                  FRESH settle earns the wipe, so a reload renders the stack calm. --}}
             @php($justSettled = ! $capture->status->inFlight() && $capture->updated_at->gt(now()->subSeconds(8)))
-            @php($needsUser = $capture->status === \App\Enums\ScanCaptureStatus::Suggested)
+            @php($needsUser = in_array($capture->status, [\App\Enums\ScanCaptureStatus::Suggested, \App\Enums\ScanCaptureStatus::NeedsKind], true))
             <div class="module slot-in px-4 py-3 {{ $capture->status->inFlight() ? 'wipe-busy' : '' }} {{ $needsUser ? '!border-low/60 !bg-plate-raised' : '' }}" wire:key="capture-{{ $capture->id }}">
                 <div class="flex items-start gap-3 {{ $justSettled ? 'wipe-in' : '' }}" wire:key="capture-{{ $capture->id }}-{{ $capture->status->value }}">
                     {{-- Evidence: the frame THIS phone just shot, held locally —
@@ -371,7 +450,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                     </template>
                     <template x-if="!thumbs[{{ $capture->id }}]">
                         <div class="flex size-10 shrink-0 items-center justify-center rounded bg-plate-well">
-                            <x-app.icon :name="$capture->image_path ? 'camera' : 'barcode'" class="size-5 text-ink-faint" />
+                            <x-app.icon :name="$capture->kind === \App\Enums\CaptureKind::PreparedMeal ? 'fork' : ($capture->image_path ? 'camera' : 'barcode')" class="size-5 text-ink-faint" />
                         </div>
                     </template>
 
@@ -380,19 +459,35 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             <div class="led-sweep flex w-fit gap-1" aria-hidden="true">
                                 @for ($i = 0; $i < 6; $i++) <span class="led led-on"></span> @endfor
                             </div>
-                            {{-- The work ticker: the 2s poll re-renders this line,
-                                 so it advances by itself — deadpan status theatre
-                                 while the real pipeline runs. Offset by capture id
-                                 so parallel cards don't chant in unison. --}}
-                            @php($tickerLines = [
-                                'reading the label', 'counting pixels', 'squinting at crumbs',
-                                'checking the shelves', 'weighing the evidence', 'comparing barcodes',
-                                'consulting the archive', 'measuring twice',
+                            {{-- Progress maps to the REAL pipeline stage; the
+                                 deadpan line is secondary theatre that advances
+                                 with the 2s poll, offset per capture so parallel
+                                 cards don't chant in unison. A capture the
+                                 backend hasn't touched recently says so honestly
+                                 instead of confidently progressing. --}}
+                            @php($stages = [
+                                'looking' => ['Looking…', ['focusing', 'adjusting the light', 'framing the shot']],
+                                'identifying' => ['Identifying…', ['counting pixels', 'squinting at crumbs', 'weighing the evidence', 'comparing notes']],
+                                'checking' => ['Checking details…', ['reading the fine print', 'consulting the archive', 'checking the shelves']],
+                                'finishing' => ['Finishing up…', ['making it official', 'stamping the record']],
                             ])
-                            <p class="data-sm mt-1.5 text-ink" aria-label="Identifying">
-                                {{ strtoupper($tickerLines[(int) (now()->timestamp / 2 + $capture->id) % count($tickerLines)]) }}{{ $capture->barcode ? ' · '.$capture->barcode : '' }}
+                            @php([$primaryLine, $pool] = $stages[$capture->stage ?? 'looking'] ?? $stages['looking'])
+                            @php($stalled = $capture->updated_at->lt(now()->subSeconds(12)))
+                            <p class="data-sm mt-1.5 text-ink" aria-label="{{ $primaryLine }}">
+                                {{ strtoupper($primaryLine) }}{{ $capture->barcode ? ' · '.$capture->barcode : '' }}
+                            </p>
+                            <p class="data-sm mt-0.5 text-ink-faint">
+                                {{ $stalled ? 'STILL WORKING — HANG ON…' : strtoupper($pool[(int) (now()->timestamp / 2 + $capture->id) % count($pool)]) }}
                             </p>
 
+
+                        @elseif ($capture->status->applied() && $shopping)
+                            {{-- Shopping session: one confirming line, no per-item
+                                 asks — the counter above carries the celebration. --}}
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="voice-caption min-w-0 truncate text-ink">{{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
+                                <span class="chip shrink-0 border-good/40 text-good {{ $justSettled ? 'stamp-in' : '' }}">IN PANTRY</span>
+                            </div>
 
                         @elseif ($capture->status->applied())
                             <p class="voice-caption truncate text-ink">{{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
@@ -412,6 +507,44 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                                 @endif
                                 <button type="button" wire:click="undoCapture({{ $capture->id }})" wire:loading.attr="disabled"
                                         class="keycap-sm hit px-2 py-1.5 text-ink-faint transition hover:text-ink">Undo</button>
+                            </div>
+
+                        @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Meal)
+                            {{-- Triage saw a plate: the pantry gate never touches
+                                 it — the meal flow opens prefilled from the stored
+                                 reading. Classification, not another decision:
+                                 high confidence routed here by itself. --}}
+                            @php($reading = $capture->meal_reading)
+                            <p class="voice-caption truncate text-ink">{{ $capture->dish_name ?? 'A meal' }}</p>
+                            <p class="data-sm mt-0.5 text-ink-faint uppercase">
+                                Meal
+                                @if (($matched = count($reading['pantry_item_ids'] ?? [])) > 0) · {{ $matched }} from your pantry @endif
+                                @if (($seen = count($reading['also_seen'] ?? [])) > 0) · {{ $seen }} more spotted @endif
+                            </p>
+                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                                @if ($capture->consumption_event_id)
+                                    <span class="chip border-good/40 text-good {{ $justSettled ? 'stamp-in' : '' }}">LOGGED TO TODAY</span>
+                                @else
+                                    <a href="{{ route('eat.log', ['capture' => $capture->id]) }}" wire:navigate
+                                       class="key key-action keycap-sm px-3.5 py-2">Log this meal</a>
+                                    <button type="button" wire:click="setKindCapture({{ $capture->id }}, 'packaged_product')" wire:loading.attr="disabled"
+                                            class="keycap-sm hit px-2 py-1.5 text-ink-faint transition hover:text-ink">Not a meal?</button>
+                                @endif
+                            </div>
+
+                        @elseif ($capture->status === \App\Enums\ScanCaptureStatus::NeedsKind)
+                            {{-- Triage was genuinely uncertain — the ONE case
+                                 where asking beats guessing (spec: infer when
+                                 reasonably confident; ask when guessing would
+                                 create worse UX or bad nutrition data). --}}
+                            <p class="data-sm text-low uppercase">What am I looking at?</p>
+                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                                <button type="button" wire:click="setKindCapture({{ $capture->id }}, 'packaged_product')" wire:loading.attr="disabled"
+                                        class="key keycap-sm px-3.5 py-2 text-ink-dim">Product</button>
+                                <button type="button" wire:click="setKindCapture({{ $capture->id }}, 'ingredient_or_food')" wire:loading.attr="disabled"
+                                        class="key keycap-sm px-3.5 py-2 text-ink-dim">Ingredient</button>
+                                <button type="button" wire:click="setKindCapture({{ $capture->id }}, 'prepared_meal')" wire:loading.attr="disabled"
+                                        class="key keycap-sm px-3.5 py-2 text-ink-dim">Meal</button>
                             </div>
 
                         @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Suggested)

@@ -1,18 +1,17 @@
 <?php
 
 use App\AI\Contracts\EatingOutEstimator;
-use App\AI\Contracts\MealPhotoInterpreter;
-use App\AI\DataObjects\ProductImage;
 use App\Enums\MealContext;
+use App\Enums\ScanCaptureStatus;
 use App\Models\ConsumptionEvent;
 use App\Models\PantryItem;
+use App\Models\ScanCapture;
 use App\Services\ConsumptionService;
 use App\Services\PortionSuggestionService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
-use Livewire\WithFileUploads;
 
 /**
  * Log a meal — the capture flow for the consumption ledger (BUILD_PLAN
@@ -35,18 +34,14 @@ use Livewire\WithFileUploads;
  */
 new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Component
 {
-    use WithFileUploads;
-
     /** context | home | out | done */
     public string $step = 'context';
 
-    // Meal photo (Phase B): uploaded downscaled by the browser, interpreted by
-    // MealPhotoInterpreter, and only ever used to PREFILL the confirm screens.
-    public $mealPhoto = null;
+    /** The scan capture this meal came from (?capture= bridge), if any. */
+    public ?int $captureId = null;
 
+    /** The scan reading's summary line, shown above the prefilled flow. */
     public ?string $photoNote = null;
-
-    public bool $photoFailed = false;
 
     // Home-cooked compose: [pantryItemId => ['choice' => int|'custom', 'custom' => string]]
     /** @var array<int, array{choice: int|string, custom: string}> */
@@ -138,7 +133,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
 
         $event = $service->logHomeCookedMeal(Auth::user(), $this->mealName, $lines);
 
-        $this->finish($event->name);
+        $this->finish($event->name, $event);
     }
 
     /**
@@ -178,87 +173,54 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
     }
 
     /**
-     * Interpret an uploaded plate photo (Phase B). Home-cooked: match against
-     * the user's pantry candidates and prefill the compose screen. Eating out:
-     * name the dish, then chain straight into estimation. Always a proposal —
-     * the user confirms; failure degrades silently to the manual flow.
+     * The SCAN → meal bridge (unified capture, Aug 2026). A capture the
+     * scanner triaged as a prepared meal arrives here via ?capture=; its
+     * stored interpreter reading (taken at capture time, while the photo was
+     * still readable) prefills both contexts — dish name, matched pantry
+     * components, the also-seen list. The user still chooses home-cooked vs
+     * eating out and confirms everything; nothing logs by itself.
      */
-    public function interpretPhoto(MealPhotoInterpreter $interpreter): void
+    public function mount(): void
     {
-        $this->photoNote = null;
-        $this->photoFailed = false;
+        $captureId = (int) request()->query('capture', 0);
 
-        if ($this->mealPhoto === null) {
+        if ($captureId <= 0) {
             return;
         }
 
-        $this->validate(['mealPhoto' => ['image', 'max:12288']]);
+        $capture = ScanCapture::query()
+            ->whereKey($captureId)
+            ->where('user_id', Auth::id())
+            ->where('status', ScanCaptureStatus::Meal)
+            ->whereNull('consumption_event_id')
+            ->first();
 
-        try {
-            $path = $this->mealPhoto->store('meal-photos', 'public');
-        } catch (Throwable $e) {
-            report($e);
-            $this->photoFailed = true;
-
+        if ($capture === null) {
             return;
         }
 
-        $candidates = [];
+        $this->captureId = $capture->id;
+        $reading = $capture->meal_reading ?? [];
+        $dish = $capture->dish_name ?? ($reading['dish_name'] ?? null);
 
-        if ($this->step === 'home') {
-            $candidates = PantryItem::with('canonicalProduct')
-                ->where('user_id', Auth::id())
-                ->where('current_quantity', '>', 0)
-                ->get()
-                ->map(fn (PantryItem $i) => [
-                    'id' => $i->id,
-                    'label' => trim($i->canonicalProduct->brand.' '.$i->canonicalProduct->name),
-                ])
-                ->values()
-                ->all();
-        }
+        $this->mealName = $dish ?? '';
+        $this->outName = $dish ?? '';
 
-        $reading = $interpreter->interpret(ProductImage::fromStoragePath($path, 'public'), $candidates);
-        $this->mealPhoto = null;
-
-        if ($reading === null || ! $reading->sawAnything()) {
-            $this->photoFailed = true;
-
-            return;
-        }
-
-        if ($this->step === 'home') {
-            foreach ($reading->pantryItemIds as $id) {
-                if (! isset($this->components[$id])) {
-                    $this->components[$id] = ['choice' => 0, 'custom' => ''];
-                }
+        foreach (($reading['pantry_item_ids'] ?? []) as $id) {
+            if ($this->ownedItem((int) $id) !== null) {
+                $this->components[(int) $id] = ['choice' => 0, 'custom' => ''];
             }
-
-            if (trim($this->mealName) === '' && $reading->dishName !== null) {
-                $this->mealName = $reading->dishName;
-            }
-
-            $parts = [];
-            $parts[] = $reading->dishName !== null ? 'Looks like '.$reading->dishName : 'Read the photo';
-            $parts[] = count($reading->pantryItemIds).' pantry match'.(count($reading->pantryItemIds) === 1 ? '' : 'es');
-
-            if ($reading->alsoSeen !== []) {
-                $parts[] = 'also saw: '.implode(', ', $reading->alsoSeen).' (not in your pantry)';
-            }
-
-            $this->photoNote = implode(' · ', $parts);
-
-            return;
         }
 
-        // Eating out: dish name -> straight into estimation.
-        if ($reading->dishName !== null) {
-            $this->outName = $reading->dishName;
-            $this->photoNote = 'Looks like '.$reading->dishName;
-            $this->estimateOut(app(EatingOutEstimator::class));
-        } else {
-            $this->photoFailed = true;
+        $parts = [$dish !== null ? 'From your scan: '.$dish : 'From your scan'];
+        if (($matched = count($this->components)) > 0) {
+            $parts[] = $matched.' pantry match'.($matched === 1 ? '' : 'es');
         }
+        if (($alsoSeen = (array) ($reading['also_seen'] ?? [])) !== []) {
+            $parts[] = 'also saw: '.implode(', ', $alsoSeen).' (not in your pantry)';
+        }
+
+        $this->photoNote = implode(' · ', $parts);
     }
 
     public function logOut(ConsumptionService $service): void
@@ -286,7 +248,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
             'salt' => $this->outSecondary['salt'] ?? null,
         ], venue: trim($this->outVenue) ?: null);
 
-        $this->finish($event->name);
+        $this->finish($event->name, $event);
     }
 
     /** One-tap re-log of an eating-out usual; home-cooked usuals prefill instead. */
@@ -336,12 +298,22 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
 
     public function startOver(): void
     {
-        $this->reset(['step', 'components', 'mealName', 'filter', 'outName', 'outVenue', 'outCalories', 'outProtein', 'outCarbs', 'outFat', 'outSecondary', 'estimateBasis', 'estimateConfidence', 'estimateFailed', 'mealPhoto', 'photoNote', 'photoFailed', 'loggedName']);
+        $this->reset(['step', 'components', 'mealName', 'filter', 'outName', 'outVenue', 'outCalories', 'outProtein', 'outCarbs', 'outFat', 'outSecondary', 'estimateBasis', 'estimateConfidence', 'estimateFailed', 'captureId', 'photoNote', 'loggedName']);
         $this->resetValidation();
     }
 
-    private function finish(string $name): void
+    private function finish(string $name, ?ConsumptionEvent $event = null): void
     {
+        // Close the loop with the originating scan capture, if any — its card
+        // on the scan stack flips to LOGGED TO TODAY.
+        if ($event !== null && $this->captureId !== null) {
+            ScanCapture::query()
+                ->whereKey($this->captureId)
+                ->where('user_id', Auth::id())
+                ->where('status', ScanCaptureStatus::Meal)
+                ->update(['consumption_event_id' => $event->id]);
+        }
+
         $this->loggedName = $name;
         $this->step = 'done';
     }
@@ -378,7 +350,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         return $item !== null && $item->user_id === Auth::id() ? $item : null;
     }
 
-    public function with(PortionSuggestionService $portions, EatingOutEstimator $estimator, MealPhotoInterpreter $photoInterpreter): array
+    public function with(PortionSuggestionService $portions, EatingOutEstimator $estimator): array
     {
         $pantryItems = PantryItem::with('canonicalProduct')
             ->where('user_id', Auth::id())
@@ -424,7 +396,6 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
             'usuals' => $usuals,
             'selected' => $selected,
             'estimatorAvailable' => $estimator->available(),
-            'photoAvailable' => $photoInterpreter->available(),
         ];
     }
 }; ?>
@@ -474,35 +445,17 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         {{-- STEP — home-cooked: compose from pantry ---------------------------}}
         @if ($step === 'home')
             <x-app.module label="Home-cooked — what went in?">
-                @if ($photoAvailable)
-                    {{-- Photo shortcut: the AI proposes components FROM YOUR PANTRY; you confirm. --}}
-                    <div class="mt-3" x-data="{ up: false, progress: 0, err: null }">
-                        <label class="key keycap-sm block w-full cursor-pointer px-4 py-3 text-center text-ink-dim">
-                            <span x-show="!up">Photo the plate</span>
-                            <span x-show="up" x-cloak>Uploading… <span x-text="progress + '%'"></span></span>
-                            <input type="file" accept="image/*" class="sr-only"
-                                   x-on:change="
-                                        const f = $event.target.files[0];
-                                        if (!f) return;
-                                        err = null; up = true; progress = 0;
-                                        (window.downscaleImage ? window.downscaleImage(f) : Promise.resolve(f)).then(file =&gt; {
-                                            $wire.upload('mealPhoto', file,
-                                                () =&gt; { up = false; $wire.interpretPhoto(); },
-                                                () =&gt; { up = false; err = 'Photo upload failed — add components below instead.'; },
-                                                (e) =&gt; { progress = (e &amp;&amp; e.detail) ? e.detail.progress : progress; }
-                                            );
-                                        });
-                                   ">
-                        </label>
-                        <p x-show="err" x-cloak class="mt-1 text-xs text-high" x-text="err"></p>
-                    </div>
-                    <div wire:loading wire:target="interpretPhoto" class="mt-2 text-xs text-ink-dim">Reading the photo…</div>
-                    @if ($photoNote !== null)
-                        <p class="mt-2 rounded bg-plate-well px-3 py-2 text-xs text-ink-dim">{{ $photoNote }}</p>
-                    @endif
-                    @if ($photoFailed)
-                        <p class="mt-2 rounded bg-plate-well px-3 py-2 text-xs text-ink-dim">Couldn't read that photo — add components below instead.</p>
-                    @endif
+                @if ($photoNote !== null)
+                    {{-- The scan's reading — dish, matched components, also-seen. --}}
+                    <p class="mt-3 rounded bg-plate-well px-3 py-2 text-xs text-ink-dim">{{ $photoNote }}</p>
+                @else
+                    {{-- The camera lives in ONE place: point the scanner at the
+                         plate and it lands here prefilled (unified capture). --}}
+                    <p class="mt-3 text-xs text-ink-dim">
+                        Got it in front of you?
+                        <a href="{{ route('scan') }}" wire:navigate class="text-ink-dim underline decoration-seam-strong underline-offset-2 transition hover:text-ink">Point the scanner at it</a>
+                        and it lands here prefilled.
+                    </p>
                 @endif
 
                 <div class="mt-3">
@@ -572,35 +525,9 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         @if ($step === 'out')
             <x-app.module label="Eating out">
 
-                @if ($photoAvailable)
-                    {{-- Photo shortcut: name the dish from the photo, then estimate it. --}}
-                    <div class="mt-3" x-data="{ up: false, progress: 0, err: null }">
-                        <label class="key keycap-sm block w-full cursor-pointer px-4 py-3 text-center text-ink-dim">
-                            <span x-show="!up">Photo the dish</span>
-                            <span x-show="up" x-cloak>Uploading… <span x-text="progress + '%'"></span></span>
-                            <input type="file" accept="image/*" class="sr-only"
-                                   x-on:change="
-                                        const f = $event.target.files[0];
-                                        if (!f) return;
-                                        err = null; up = true; progress = 0;
-                                        (window.downscaleImage ? window.downscaleImage(f) : Promise.resolve(f)).then(file =&gt; {
-                                            $wire.upload('mealPhoto', file,
-                                                () =&gt; { up = false; $wire.interpretPhoto(); },
-                                                () =&gt; { up = false; err = 'Photo upload failed — type the dish instead.'; },
-                                                (e) =&gt; { progress = (e &amp;&amp; e.detail) ? e.detail.progress : progress; }
-                                            );
-                                        });
-                                   ">
-                        </label>
-                        <p x-show="err" x-cloak class="mt-1 text-xs text-high" x-text="err"></p>
-                    </div>
-                    <div wire:loading wire:target="interpretPhoto" class="mt-2 text-xs text-ink-dim">Reading the photo…</div>
-                    @if ($photoNote !== null)
-                        <p class="mt-2 rounded bg-plate-well px-3 py-2 text-xs text-ink-dim">{{ $photoNote }}</p>
-                    @endif
-                    @if ($photoFailed)
-                        <p class="mt-2 rounded bg-plate-well px-3 py-2 text-xs text-ink-dim">Couldn't read that photo — type the dish instead.</p>
-                    @endif
+                @if ($photoNote !== null)
+                    {{-- The scan's reading of the dish. --}}
+                    <p class="mt-3 rounded bg-plate-well px-3 py-2 text-xs text-ink-dim">{{ $photoNote }}</p>
                 @endif
 
                 <div class="mt-3">

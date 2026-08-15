@@ -121,7 +121,8 @@ class ScanFlowTest extends TestCase
             ->assertSee('IDENTIFY THIS YET')
             ->assertSee('OFF FOR NOW')
             ->assertSee('IDENTIFICATION FAILED')
-            ->assertSee('+1 ITEM');
+            // The first stored product of a session earns the shopping offer.
+            ->assertSee('Adding groceries?');
     }
 
     public function test_confirming_a_suggestion_applies_it_from_the_card(): void
