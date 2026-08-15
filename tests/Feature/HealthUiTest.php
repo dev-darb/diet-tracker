@@ -56,7 +56,7 @@ class HealthUiTest extends TestCase
             ->assertSee('1,820')
             ->assertSee('Indicators')
             ->assertSee('Protein')
-            ->assertSee('not personalised medical');
+            ->assertSee('Streak');
     }
 
     public function test_home_shows_empty_snapshot_without_data(): void
@@ -92,8 +92,7 @@ class HealthUiTest extends TestCase
             ->assertSee('days')
             ->assertSee('VS LAST WK')
             ->assertSee('Weekly indicators')
-            ->assertSee('Trends')
-            ->assertSee('not personalised medical');
+                        ->assertDontSee('Standby');
 
         Carbon::setTestNow();
     }

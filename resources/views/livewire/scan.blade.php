@@ -303,9 +303,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         class="key key-action keycap mx-auto flex h-16 w-full max-w-xs items-center justify-center">
                     Capture
                 </button>
-                <p class="voice-micro mt-2.5 text-center text-ink-dim">
-                    Keep going — each shot analyses in the background. Barcodes read themselves.
-                </p>
+
             </div>
 
             <p class="data-sm -mx-5 border-t border-seam px-5 py-3 text-ink-faint uppercase" x-show="mode !== 'fallback'">
@@ -336,7 +334,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                 <img :src="job.thumb" alt="" class="size-10 shrink-0 rounded object-cover">
                 <div class="min-w-0 flex-1">
                     <p class="data-sm text-ink" x-text="job.failed ? 'HAND-OFF FAILED' : 'HANDING OFF…'"></p>
-                    <p class="voice-micro mt-0.5 text-ink-dim" x-text="job.failed ? 'Check the connection, then scan it again.' : 'The shutter is already free.'"></p>
+                    <p x-show="job.failed" x-cloak class="voice-micro mt-0.5 text-ink-dim">Check the connection, then scan it again.</p>
                 </div>
                 <button type="button" x-show="job.failed" x-on:click="sending = sending.filter((j) => j.key !== job.key)"
                         class="keycap-sm hit shrink-0 text-ink-faint">Dismiss</button>
@@ -349,7 +347,8 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                  the moment it settles, the result wipes in once — but only a
                  FRESH settle earns the wipe, so a reload renders the stack calm. --}}
             @php($justSettled = ! $capture->status->inFlight() && $capture->updated_at->gt(now()->subSeconds(8)))
-            <div class="module slot-in px-4 py-3 {{ $capture->status->inFlight() ? 'wipe-busy' : '' }}" wire:key="capture-{{ $capture->id }}">
+            @php($needsUser = $capture->status === \App\Enums\ScanCaptureStatus::Suggested)
+            <div class="module slot-in px-4 py-3 {{ $capture->status->inFlight() ? 'wipe-busy' : '' }} {{ $needsUser ? '!border-low/60 !bg-plate-raised' : '' }}" wire:key="capture-{{ $capture->id }}">
                 <div class="flex items-start gap-3 {{ $justSettled ? 'wipe-in' : '' }}" wire:key="capture-{{ $capture->id }}-{{ $capture->status->value }}">
                     {{-- Evidence: the frame THIS phone just shot, held locally —
                          serverless disk can't be trusted to serve previews back
@@ -370,7 +369,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                                 @for ($i = 0; $i < 6; $i++) <span class="led led-on"></span> @endfor
                             </div>
                             <p class="data-sm mt-1.5 text-ink">IDENTIFYING{{ $capture->barcode ? ' · '.$capture->barcode : '' }}</p>
-                            <p class="voice-micro mt-0.5 text-ink-dim">Keep scanning — this settles on its own.</p>
+
 
                         @elseif ($capture->status->applied())
                             <p class="voice-caption truncate text-ink">{{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
@@ -405,12 +404,12 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                         @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Unknown)
                             <p class="data-sm text-ink">?--- COULDN'T IDENTIFY THIS YET</p>
                             <p class="voice-micro mt-0.5 text-ink-dim">
-                                The photo is kept. <a href="{{ route('pantry') }}" wire:navigate class="text-ink-dim underline decoration-seam-strong underline-offset-2 transition hover:text-ink">Add it manually</a> — a manual add teaches the database.
+                                <a href="{{ route('pantry') }}" wire:navigate class="text-ink-dim underline decoration-seam-strong underline-offset-2 transition hover:text-ink">Add it manually</a>
                             </p>
 
                         @elseif ($capture->status === \App\Enums\ScanCaptureStatus::AiUnavailable)
-                            <p class="data-sm text-low">AI-- PHOTO ID ISN'T SWITCHED ON YET</p>
-                            <p class="voice-micro mt-0.5 text-ink-dim">Barcodes still work — they need no AI. Photos will identify once the gateway key is set.</p>
+                            <p class="data-sm text-low">AI-- PHOTO ID IS OFF FOR NOW</p>
+                            <p class="voice-micro mt-0.5 text-ink-dim">Barcodes still work.</p>
 
                         @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Failed)
                             <p class="data-sm text-high">ERR IDENTIFICATION FAILED</p>
@@ -421,7 +420,6 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
 
                         @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Rejected)
                             <p class="data-sm text-ink-faint">NOT THIS — NOTED · {{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
-                            <p class="voice-micro mt-0.5 text-ink-dim">Corrections make matching sharper.</p>
                         @endif
                     </div>
 

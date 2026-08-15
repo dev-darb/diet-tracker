@@ -11,7 +11,7 @@
     <body class="min-h-dvh bg-plate-well text-ink antialiased">
         <div class="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-plate px-6 py-10 shadow-sm ring-1 ring-seam">
             <div class="flex flex-1 flex-col justify-center">
-                <span class="flex size-12 items-center justify-center rounded-2xl bg-emerald-600 text-lg font-semibold text-white">P</span>
+                <span class="flex size-12 items-center justify-center rounded-2xl bg-emerald-600 text-lg font-semibold text-white">f</span>
                 <h1 class="mt-6 text-3xl font-semibold leading-tight tracking-tight text-ink">
                     Know what you buy, eat, and how it adds up.
                 </h1>

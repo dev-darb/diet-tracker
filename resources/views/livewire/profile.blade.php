@@ -142,7 +142,6 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
 
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-ink">Profile</h1>
-            <p class="mt-1 text-sm text-ink-dim">Manage your account and how we personalise your guidance.</p>
         </div>
 
         {{-- Account --}}
@@ -288,18 +287,13 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                 <span class="text-sm font-medium text-ink">Password</span>
                 <svg class="size-4 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
             </a>
-            <a href="{{ route('settings.appearance') }}" class="flex items-center justify-between px-5 py-4 transition hover:bg-plate-well">
-                <span class="text-sm font-medium text-ink">Appearance</span>
-                <svg class="size-4 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-            </a>
         </section>
 
         {{-- Privacy / data --}}
         <section class="rounded-2xl border border-seam bg-plate p-5 shadow-sm">
             <h2 class="text-sm font-semibold text-ink">Privacy &amp; data</h2>
             <p class="mt-2 text-xs leading-relaxed text-ink-dim">
-                Your dietary history is private to your account. This app provides general nutrition guidance only
-                and is not medical advice. You can permanently delete your account and all of its data at any time.
+                Private to your account. General guidance, not medical advice.
             </p>
         </section>
 

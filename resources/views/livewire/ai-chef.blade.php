@@ -114,9 +114,9 @@ new class extends Component
 <div wire:init="suggest">
     @if (! $chefAvailable)
         <x-app.placeholder
-            status="AI-- NOT CONFIGURED"
-            title="The chef isn't switched on yet"
-            subtitle="Meal suggestions need the AI gateway key. Your stock still works — switch to the Stock view above." />
+            status="AI-- OFF"
+            title="The chef is off for now"
+            subtitle="Your stock still works below." />
     @else
         {{-- Booting / thinking state: honest machine-at-work, not a fake list. --}}
         <div wire:loading.delay wire:target="suggest, freshIdeas">
@@ -201,7 +201,7 @@ new class extends Component
 
 
                 <x-app.console-key wire:click="freshIdeas" wire:loading.attr="disabled">Fresh ideas</x-app.console-key>
-                <p class="text-center text-xs text-ink-faint">Cooked one? Log it via Eat → Log a meal → Home-cooked and your stock updates itself.</p>
+                <p class="text-center text-xs text-ink-faint">Cooked one? Log it under Eat.</p>
             @endif
         </div>
     @endif

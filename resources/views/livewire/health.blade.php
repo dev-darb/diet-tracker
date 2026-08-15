@@ -33,14 +33,13 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
     <div class="space-y-5">
         <div class="px-1">
             <h1 class="voice-title text-ink">Health</h1>
-            <p class="voice-caption mt-0.5 text-ink-dim">Today and this week. Trends arrive as your history grows.</p>
         </div>
 
         @if (! $week['has_data'] && ! $today['has_data'])
             <x-app.placeholder
                 status="NO DATA"
                 title="No readings yet"
-                subtitle="After a few days of logging, daily and weekly figures, component indicators and lightweight trends light up here." />
+                subtitle="A few days of logging lights this up." />
         @else
             {{-- THIS WEEK — average intake + trends vs previous week (brief §9.4). --}}
             <section class="module px-5 pb-5 pt-4">
@@ -61,12 +60,15 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
 
                 <div class="mt-4 grid grid-cols-2 gap-x-6 border-t border-seam">
                     @php
+                        // goodWhen: which direction is progress for THIS metric.
+                        // Salt or sat fat climbing must never render green.
                         $metrics = [
-                            'protein' => ['label' => 'Protein', 'unit' => 'G/DAY'],
-                            'fibre' => ['label' => 'Fibre', 'unit' => 'G/DAY'],
-                            'saturated_fat' => ['label' => 'Sat fat', 'unit' => 'G/DAY'],
-                            'salt' => ['label' => 'Salt', 'unit' => 'G/DAY'],
+                            'protein' => ['label' => 'Protein', 'unit' => 'G/DAY', 'goodWhen' => 'up'],
+                            'fibre' => ['label' => 'Fibre', 'unit' => 'G/DAY', 'goodWhen' => 'up'],
+                            'saturated_fat' => ['label' => 'Sat fat', 'unit' => 'G/DAY', 'goodWhen' => 'down'],
+                            'salt' => ['label' => 'Salt', 'unit' => 'G/DAY', 'goodWhen' => 'down'],
                         ];
+                        $anyComparable = collect(array_keys($metrics))->contains(fn ($k) => $week['trends'][$k]['comparable']);
                     @endphp
                     @foreach ($metrics as $key => $meta)
                         @php($avg = $week['averages'][$key])
@@ -77,12 +79,10 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
                                 {{ $avg['value'] === null ? '----' : rtrim(rtrim(number_format((float) $avg['value'], 1), '0'), '.') }}<span class="data-micro text-ink-faint"> {{ $meta['unit'] }}</span>
                             </p>
                             @if ($trend['comparable'])
-                                <p class="data-sm mt-0.5 {{ $trend['direction'] === 'up' ? 'text-good' : ($trend['direction'] === 'down' ? 'text-low' : 'text-ink-faint') }}">
+                                <p class="data-sm mt-0.5 {{ $trend['direction'] === 'flat' ? 'text-ink-faint' : ($trend['direction'] === $meta['goodWhen'] ? 'text-good' : 'text-low') }}">
                                     {{ $trend['direction'] === 'up' ? '↑' : ($trend['direction'] === 'down' ? '↓' : '→') }}
                                     {{ number_format(abs((float) $trend['delta']) * 100, 0) }}% VS LAST WK
                                 </p>
-                            @else
-                                <p class="data-sm mt-0.5 text-ink-faint uppercase">No prior week</p>
                             @endif
                             @if ($avg['partial'])
                                 <p class="data-micro text-ink-faint uppercase">Partial — some values unknown</p>
@@ -90,6 +90,9 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
                         </div>
                     @endforeach
                 </div>
+                @unless ($anyComparable)
+                    <p class="data-sm border-t border-seam pt-3 text-ink-faint uppercase">No prior week to compare</p>
+                @endunless
                 {{-- Weekly counters share the faceplate: one measurement cluster. --}}
                 <div class="-mx-5 -mb-5 mt-4 grid grid-cols-3 divide-x divide-seam border-t border-seam" aria-label="Weekly counters">
                     <div class="px-4 py-3.5">
@@ -129,18 +132,8 @@ new #[Layout('components.layouts.app', ['title' => 'Health'])] class extends Com
             {{-- ASSESS — component indicators over the week (brief §9.5). --}}
             <x-app.indicators :indicators="$week['indicators']" label="Weekly indicators" />
 
-            {{-- GUIDE — prioritised, pantry-aware insight (brief §9.6). --}}
+            {{-- GUIDE — prioritised, pantry-aware insight (brief §9.6). The
+                 card's single home: Home stays a pure daily readout. --}}
             <livewire:insight-card />
-
-            {{-- Trends horizon: an unpowered bay, recessed, not a plate (§9.2). --}}
-            <section class="well !rounded-md px-5 py-3.5">
-                <div class="flex items-center justify-between">
-                    <h2 class="silkscreen">Trends</h2>
-                    <span class="data-sm text-ink-faint uppercase">Standby</span>
-                </div>
-                <p class="voice-micro mt-1.5 text-ink-faint">Longer-term trends switch on here once you've logged a few weeks.</p>
-            </section>
-
-            <x-app.health-disclaimer />
         @endif
     </div>
