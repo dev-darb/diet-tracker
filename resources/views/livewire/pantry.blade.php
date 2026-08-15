@@ -277,7 +277,14 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                                         <span class="data-sm mt-0.5 block truncate text-ink-dim">{{ $item->canonicalProduct->variant }}</span>
                                     @endif
                                 </span>
-                                <span class="data-md shrink-0 text-ink">
+                                {{-- The landing: when EAT just moved this number, it glows
+                                     good and settles — the proof the action counted. The
+                                     wire:key carries the value so only a real change re-mounts
+                                     (and re-fires) the readout; the recency gate keeps page
+                                     loads calm. --}}
+                                @php($justMoved = $item->updated_at->gt(now()->subSeconds(8)))
+                                <span class="data-md shrink-0 text-ink {{ $justMoved ? 'value-settle' : '' }}"
+                                      wire:key="qty-{{ $item->id }}-{{ $item->current_quantity }}">
                                     {{ rtrim(rtrim(number_format((float) $item->current_quantity, 3, '.', ''), '0'), '.') }}
                                     <span class="data-sm text-ink-faint uppercase">{{ $item->quantity_unit->shortLabelFor((float) $item->current_quantity) }}</span>
                                 </span>

@@ -149,7 +149,11 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
             @endif
 
             <p class="mt-5 flex items-baseline gap-2">
-                <span class="data-xl text-ink">{{ rtrim(rtrim(number_format((float) $pantryItem->current_quantity, 3, '.', ''), '0'), '.') }}</span>
+                {{-- The landing: a consume/correction just moved this reading —
+                     it glows good and settles (value-settle; keyed on value so
+                     only real changes re-fire; recency keeps page loads calm). --}}
+                <span class="data-xl text-ink {{ $pantryItem->updated_at->gt(now()->subSeconds(8)) ? 'value-settle' : '' }}"
+                      wire:key="item-qty-{{ $pantryItem->current_quantity }}">{{ rtrim(rtrim(number_format((float) $pantryItem->current_quantity, 3, '.', ''), '0'), '.') }}</span>
                 <span class="data-md text-ink-dim uppercase">{{ $pantryItem->quantity_unit->shortLabelFor((float) $pantryItem->current_quantity) }} remaining</span>
             </p>
 
