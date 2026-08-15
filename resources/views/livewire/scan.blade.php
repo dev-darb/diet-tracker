@@ -439,19 +439,35 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                  FRESH settle earns the wipe, so a reload renders the stack calm. --}}
             @php($justSettled = ! $capture->status->inFlight() && $capture->updated_at->gt(now()->subSeconds(8)))
             @php($needsUser = in_array($capture->status, [\App\Enums\ScanCaptureStatus::Suggested, \App\Enums\ScanCaptureStatus::NeedsKind], true))
-            <div class="module slot-in px-4 py-3 {{ $capture->status->inFlight() ? 'wipe-busy' : '' }} {{ $needsUser ? '!border-low/60 !bg-plate-raised' : '' }}" wire:key="capture-{{ $capture->id }}">
-                <div class="flex items-start gap-3 {{ $justSettled ? 'wipe-in' : '' }}" wire:key="capture-{{ $capture->id }}-{{ $capture->status->value }}">
-                    {{-- Evidence: the frame THIS phone just shot, held locally —
-                         serverless disk can't be trusted to serve previews back
-                         (S3 lands in M8). Older/other-device captures show the
-                         capture kind's glyph instead of a broken image. --}}
+            <div class="module slot-in overflow-hidden px-4 py-3 {{ $capture->status->inFlight() ? 'wipe-busy' : '' }} {{ $needsUser ? '!border-low/60 !bg-plate-raised' : '' }}" wire:key="capture-{{ $capture->id }}">
+                {{-- YOUR PHOTO IS THE EVIDENCE (research §7.4): the frame this
+                     phone just shot is the HERO of its result, not a 40px stub.
+                     Held locally — serverless disk can't be trusted to serve
+                     previews back (S3 lands in M8) — so the hero appears
+                     exactly where it was shot. Shopping mode stays compact:
+                     throughput beats ceremony there. --}}
+                @if (! $shopping)
                     <template x-if="thumbs[{{ $capture->id }}]">
+                        <img :src="thumbs[{{ $capture->id }}]" alt=""
+                             class="-mx-4 -mt-3 mb-3 block aspect-[5/3] w-[calc(100%+2rem)] max-w-none object-cover">
+                    </template>
+                @endif
+                <div class="flex items-start gap-3 {{ $justSettled ? 'wipe-in' : '' }}" wire:key="capture-{{ $capture->id }}-{{ $capture->status->value }}">
+                    {{-- Leading identity when the hero isn't showing: the
+                         product's own image where one exists, the kind's glyph
+                         only when no image can (Food Is the Hero Image). --}}
+                    <template x-if="{{ $shopping ? 'thumbs['.$capture->id.']' : 'false' }}">
                         <img :src="thumbs[{{ $capture->id }}]" alt="" class="size-10 shrink-0 rounded object-cover">
                     </template>
                     <template x-if="!thumbs[{{ $capture->id }}]">
-                        <div class="flex size-10 shrink-0 items-center justify-center rounded bg-plate-well">
-                            <x-app.icon :name="$capture->kind === \App\Enums\CaptureKind::PreparedMeal ? 'fork' : ($capture->image_path ? 'camera' : 'barcode')" class="size-5 text-ink-faint" />
-                        </div>
+                        @if ($product?->primary_image_path)
+                            <img src="{{ $product->primary_image_path }}" alt="" loading="lazy"
+                                 class="size-10 shrink-0 rounded bg-plate-well object-cover">
+                        @else
+                            <div class="flex size-10 shrink-0 items-center justify-center rounded bg-plate-well">
+                                <x-app.icon :name="$capture->kind === \App\Enums\CaptureKind::PreparedMeal ? 'fork' : ($capture->image_path ? 'camera' : 'barcode')" class="size-5 text-ink-faint" />
+                            </div>
+                        @endif
                     </template>
 
                     <div class="min-w-0 flex-1">
@@ -594,22 +610,10 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
         @endforeach
 
         @if ($captures->isEmpty())
-            {{-- Honest blank: what this bay does, before it has done anything. --}}
-            <div class="module px-5 py-4">
-                <div class="grid grid-cols-3 divide-x divide-seam" aria-hidden="true">
-                    <div class="pr-4">
-                        <p class="silkscreen">01</p>
-                        <p class="voice-micro mt-0.5 text-ink-dim">Scan the pack</p>
-                    </div>
-                    <div class="px-4">
-                        <p class="silkscreen">02</p>
-                        <p class="voice-micro mt-0.5 text-ink-dim">It identifies itself</p>
-                    </div>
-                    <div class="pl-4">
-                        <p class="silkscreen">03</p>
-                        <p class="voice-micro mt-0.5 text-ink-dim">Stocked &amp; counted</p>
-                    </div>
-                </div>
+            {{-- Honest blank: a recessed, unpowered bay with one spoken line —
+                 panel-printing (01/02/03 diagrams) is retired (research §9). --}}
+            <div class="well border border-seam px-5 py-5">
+                <p class="voice-caption text-center text-ink-dim">Point it at anything you'd eat — the pack, the barcode, or the plate.</p>
             </div>
         @endif
 

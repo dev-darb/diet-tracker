@@ -274,8 +274,20 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                     @foreach ($items as $item)
                         <li class="flex min-h-[44px] items-center gap-2 pr-3">
                             <a href="{{ route('pantry.item', $item) }}" wire:navigate
-                               class="flex min-w-0 flex-1 items-center justify-between gap-4 px-5 py-3 transition hover:bg-plate-raised">
-                                <span class="min-w-0">
+                               class="flex min-w-0 flex-1 items-center gap-3 px-5 py-2.5 transition hover:bg-plate-raised">
+                                {{-- Leading identity (One Row Molecule): the food's
+                                     own image where one exists; a quiet mono
+                                     monogram where none can. Ingredients should
+                                     look like food, not like icons. --}}
+                                @if ($item->canonicalProduct->primary_image_path)
+                                    <img src="{{ $item->canonicalProduct->primary_image_path }}" alt="" loading="lazy"
+                                         class="size-9 shrink-0 rounded bg-plate-well object-cover">
+                                @else
+                                    <span class="flex size-9 shrink-0 items-center justify-center rounded bg-plate-well">
+                                        <span class="data-sm text-ink-faint">{{ mb_strtoupper(mb_substr($item->canonicalProduct->name, 0, 1)) }}</span>
+                                    </span>
+                                @endif
+                                <span class="min-w-0 flex-1">
                                     <span class="voice-caption block truncate text-ink">{{ $item->canonicalProduct->brand }} — {{ $item->canonicalProduct->name }}</span>
                                     @if ($item->canonicalProduct->variant)
                                         <span class="data-sm mt-0.5 block truncate text-ink-dim">{{ $item->canonicalProduct->variant }}</span>
@@ -287,10 +299,21 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                                      (and re-fires) the readout; the recency gate keeps page
                                      loads calm. --}}
                                 @php($justMoved = $item->updated_at->gt(now()->subSeconds(8)))
-                                <span class="data-md shrink-0 text-ink {{ $justMoved ? 'value-settle' : '' }}"
-                                      wire:key="qty-{{ $item->id }}-{{ $item->current_quantity }}">
-                                    {{ rtrim(rtrim(number_format((float) $item->current_quantity, 3, '.', ''), '0'), '.') }}
-                                    <span class="data-sm text-ink-faint uppercase">{{ $item->quantity_unit->shortLabelFor((float) $item->current_quantity) }}</span>
+                                @php($daysLeft = $item->expiry_date !== null ? (int) now()->startOfDay()->diffInDays($item->expiry_date->startOfDay(), false) : null)
+                                <span class="flex shrink-0 flex-col items-end">
+                                    <span class="data-md text-ink {{ $justMoved ? 'value-settle' : '' }}"
+                                          wire:key="qty-{{ $item->id }}-{{ $item->current_quantity }}">
+                                        {{ rtrim(rtrim(number_format((float) $item->current_quantity, 3, '.', ''), '0'), '.') }}
+                                        <span class="data-sm text-ink-faint uppercase">{{ $item->quantity_unit->shortLabelFor((float) $item->current_quantity) }}</span>
+                                    </span>
+                                    {{-- Time is a signal (research §7.10): expiry is a
+                                         data value on the row — amber only when
+                                         imminent, never an alarm. --}}
+                                    @if ($daysLeft !== null && $daysLeft <= 7)
+                                        <span class="data-micro mt-0.5 uppercase {{ $daysLeft <= 1 ? 'text-low' : 'text-ink-faint' }}">
+                                            {{ $daysLeft < 0 ? 'Past best' : ($daysLeft === 0 ? 'Use today' : $daysLeft.'d left') }}
+                                        </span>
+                                    @endif
                                 </span>
                             </a>
                             {{-- One tap logs the natural portion; the toast's Undo takes it back.
