@@ -103,7 +103,10 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
             'today' => $today,
             'trace' => array_map(fn (array $day) => [
                 ...$day,
-                'score' => $history->get($day['date'])?->score,
+                // Today shows its live record; past days their frozen rows.
+                'score' => $day['date'] === $record->score_date->toDateString()
+                    ? $record->score
+                    : $history->get($day['date'])?->score,
             ], $week['daily']),
             'daysLogged' => $week['meal_regularity']['days_logged'],
             'lastLoggedAt' => $user->consumptionEvents()
