@@ -43,7 +43,20 @@ class HealthUiTest extends TestCase
         ]);
     }
 
-    public function test_home_shows_today_snapshot_and_indicators_with_data(): void
+    public function test_home_score_reads_as_building_with_thin_history(): void
+    {
+        // One logged day is not enough history for a confident number — the
+        // headline says so instead of judging (spec §13).
+        $this->logDay($this->user, now()->toDateString(), ['calories' => 900]);
+
+        $this->actingAs($this->user)->get('/home')
+            ->assertOk()
+            ->assertSee('Foody Score')
+            ->assertSee('Building')
+            ->assertSee('firm read');
+    }
+
+    public function test_home_shows_score_headline_and_today_snapshot_with_data(): void
     {
         $product = CanonicalProduct::factory()->create(['category' => 'fresh vegetables']);
         $this->logDay($this->user, now()->toDateString(), [
@@ -52,11 +65,12 @@ class HealthUiTest extends TestCase
 
         $this->actingAs($this->user)->get('/home')
             ->assertOk()
+            ->assertSee('Foody Score')
             ->assertSee('Today')
             ->assertSee('1,820')
-            ->assertSee('Indicators')
             ->assertSee('Protein')
-            ->assertSee('Streak');
+            ->assertSee('Fibre')
+            ->assertSee('Last 7 days');
     }
 
     public function test_home_shows_empty_snapshot_without_data(): void
