@@ -2,6 +2,7 @@
 
 use App\Models\FoodyScore;
 use App\Services\FoodyScore\FoodyScoreService;
+use App\Services\FoodyScore\SharePayloadService;
 use App\Services\NutritionAnalyticsService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -74,7 +75,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
         };
     }
 
-    public function with(NutritionAnalyticsService $analytics, FoodyScoreService $scores): array
+    public function with(NutritionAnalyticsService $analytics, FoodyScoreService $scores, SharePayloadService $share): array
     {
         $user = Auth::user();
         $week = $analytics->weeklySummary($user);
@@ -98,6 +99,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
             'record' => $record,
             'readLine' => $this->read($record, $today['has_data']),
             'stateLabel' => $this->stateLabel($record),
+            'share' => $share->daily($user, $record),
             'today' => $today,
             'trace' => array_map(fn (array $day) => [
                 ...$day,
@@ -118,7 +120,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
              presentation: firm glows, an early read sits quieter, building
              stays faint — the number never pretends to more certainty than
              the evidence holds (spec §13, §15). --}}
-        <section class="module px-5 pb-5 pt-4">
+        <section class="module px-5 pb-5 pt-4" x-data="{ shareOpen: false }">
             <div class="flex items-center justify-between">
                 <h2 class="silkscreen">Foody Score</h2>
                 <span class="data-sm uppercase {{ $record->display_state === 'firm' ? 'text-ink-dim' : 'text-ink-faint' }}">{{ $stateLabel }}</span>
@@ -138,6 +140,56 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
             <p class="voice-body mt-3 border-t border-seam pt-3 text-center text-ink-dim">
                 {{ $readLine }}
             </p>
+
+            {{-- Milestones minted today (spec §17): personal records only —
+                 never a comparison with anyone else. Share is a keycap, not
+                 a nag. --}}
+            @if ($share['milestones'] !== [] || $record->display_state === 'firm')
+                <div class="mt-3 flex items-center justify-between gap-3 border-t border-seam pt-3">
+                    <div class="min-w-0">
+                        @foreach ($share['milestones'] as $milestone)
+                            <p class="stamp-in data-sm truncate text-phosphor uppercase" wire:key="milestone-{{ $milestone['kind'] }}">
+                                ★ {{ $milestone['label'] }}
+                            </p>
+                        @endforeach
+                    </div>
+                    <button type="button" x-on:click="shareOpen = true"
+                            class="key keycap-sm hit shrink-0 px-3.5 py-2 text-ink-dim">
+                        Share
+                    </button>
+                </div>
+            @endif
+
+            {{-- The share card (spec §18): visually distinctive, recognisably
+                 Foody, and entirely self-referential — your day, no ranking. --}}
+            <div x-show="shareOpen" x-cloak x-on:keydown.escape.window="shareOpen = false"
+                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+                 role="dialog" aria-modal="true" aria-label="Share your Foody Score">
+                <div class="w-full max-w-xs" x-on:click.outside="shareOpen = false">
+                    <div class="rounded-2xl border border-seam-strong bg-chassis p-6 text-center shadow-2xl">
+                        <p class="silkscreen text-ink-faint">Foody Score</p>
+                        <p class="mt-4 font-seg text-7xl leading-none text-phosphor">{{ $record->score }}</p>
+                        <p class="data-sm mt-3 text-ink-dim uppercase">{{ $stateLabel }}</p>
+                        @foreach ($share['milestones'] as $milestone)
+                            <p class="data-sm mt-1.5 text-phosphor uppercase">★ {{ $milestone['label'] }}</p>
+                        @endforeach
+                        <p class="data-micro mt-4 border-t border-seam pt-3 text-ink-faint uppercase">
+                            {{ \Illuminate\Support\Carbon::parse($share['date'])->format('D j M Y') }} · Foody
+                        </p>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <button type="button"
+                                x-on:click="const text = @js($share['share_text']); navigator.share ? navigator.share({ text }).catch(() => {}) : navigator.clipboard?.writeText(text)"
+                                class="key keycap-sm hit flex-1 py-2.5 text-ink">
+                            Share it
+                        </button>
+                        <button type="button" x-on:click="shareOpen = false"
+                                class="keycap-sm hit flex-1 py-2.5 text-ink-faint">
+                            Done
+                        </button>
+                    </div>
+                </div>
+            </div>
         </section>
 
         {{-- 2 · CORE CONTEXT — the day's numbers under the score: kcal on the

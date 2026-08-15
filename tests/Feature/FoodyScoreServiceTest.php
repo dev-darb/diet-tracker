@@ -307,6 +307,25 @@ class FoodyScoreServiceTest extends TestCase
         $this->assertSame(72, $best->payload['previous_best']);
     }
 
+    public function test_share_payload_is_self_referential_with_no_comparative_framing(): void
+    {
+        $this->logGoodWeek();
+        $this->logGoodDay($this->asOf->toDateString());
+        $record = $this->service->computeAndRecord($this->user, $this->asOf);
+
+        $payload = app(\App\Services\FoodyScore\SharePayloadService::class)->daily($this->user, $record);
+
+        $this->assertSame('daily_score', $payload['kind']);
+        $this->assertSame($record->score, $payload['score']);
+        $this->assertStringContainsString((string) $record->score, $payload['share_text']);
+        // First firm day mints its milestone into the same payload.
+        $this->assertSame('first_firm_score', $payload['milestones'][0]['kind']);
+        $this->assertSame('First firm score', $payload['milestones'][0]['label']);
+        // Nothing comparative: no ranks, no other users (spec §18).
+        $this->assertArrayNotHasKey('rank', $payload);
+        $this->assertStringNotContainsString('beat', strtolower($payload['share_text']));
+    }
+
     public function test_milestones_are_personal_records_with_no_cross_user_comparison(): void
     {
         // Structural guarantee: milestone rows reference exactly one user and

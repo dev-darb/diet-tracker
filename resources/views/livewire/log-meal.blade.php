@@ -69,6 +69,9 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
 
     public string $outFat = '';
 
+    /** @var array<string, float|null> estimator-stated sugars/sat-fat/fibre/salt, carried into the event unedited */
+    public array $outSecondary = [];
+
     /** Set after a successful AI estimate: the stated basis + confidence. */
     public ?string $estimateBasis = null;
 
@@ -162,6 +165,14 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         $this->outProtein = $fill($estimate->protein);
         $this->outCarbs = $fill($estimate->carbs);
         $this->outFat = $fill($estimate->fat);
+        // The estimator also states sugars/sat-fat/fibre/salt. They stay out
+        // of the minimal edit surface but ride along into the event — the
+        // moderation and fibre pillars need them, and discarding a stated
+        // figure would fabricate an unknown (spec §1, §11).
+        $this->outSecondary = array_intersect_key(
+            $estimate->figures(),
+            array_flip(['sugars', 'saturated_fat', 'fibre', 'salt']),
+        );
         $this->estimateBasis = $estimate->basis;
         $this->estimateConfidence = (int) round($estimate->confidence * 100);
     }
@@ -268,6 +279,11 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
             'protein' => $figure($this->outProtein),
             'carbs' => $figure($this->outCarbs),
             'fat' => $figure($this->outFat),
+            // The estimate's secondary figures (null when entered manually).
+            'sugars' => $this->outSecondary['sugars'] ?? null,
+            'saturated_fat' => $this->outSecondary['saturated_fat'] ?? null,
+            'fibre' => $this->outSecondary['fibre'] ?? null,
+            'salt' => $this->outSecondary['salt'] ?? null,
         ], venue: trim($this->outVenue) ?: null);
 
         $this->finish($event->name);
@@ -320,7 +336,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
 
     public function startOver(): void
     {
-        $this->reset(['step', 'components', 'mealName', 'filter', 'outName', 'outVenue', 'outCalories', 'outProtein', 'outCarbs', 'outFat', 'estimateBasis', 'estimateConfidence', 'estimateFailed', 'mealPhoto', 'photoNote', 'photoFailed', 'loggedName']);
+        $this->reset(['step', 'components', 'mealName', 'filter', 'outName', 'outVenue', 'outCalories', 'outProtein', 'outCarbs', 'outFat', 'outSecondary', 'estimateBasis', 'estimateConfidence', 'estimateFailed', 'mealPhoto', 'photoNote', 'photoFailed', 'loggedName']);
         $this->resetValidation();
     }
 

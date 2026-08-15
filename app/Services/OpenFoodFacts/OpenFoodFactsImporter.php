@@ -61,7 +61,9 @@ class OpenFoodFactsImporter
                 'name' => $this->limit($product->productName) ?? 'Unknown product',
                 'variant' => null,
                 ...$this->packSize($product->quantity),
-                'category' => null,
+                // OFF's most specific category tag, in plain words — feeds
+                // fruit-&-veg portions and plant-diversity classification.
+                'category' => $this->limit($product->category()),
                 'primary_image_path' => null,
             ]);
 

@@ -1,7 +1,8 @@
 @props(['indicators', 'label' => 'Indicators'])
 
 {{--
-    Component indicators (brief §9.5): qualitative bands, NOT a numeric score.
+    Component indicators (brief §9.5): qualitative bands. The Foody Score on
+    Home is the app's only number — these never become a second score.
     Bands and values are computed in NutritionAnalyticsService — this partial only
     maps a band to its signal chip and lays the rows out. No arithmetic here.
 --}}
