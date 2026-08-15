@@ -69,6 +69,13 @@ return [
         'model' => env('AI_DIET_INSIGHT_MODEL', 'openai/gpt-4o'),
     ],
 
+    // Foody Score daily insight wording (spec §14). The engine ranks; this
+    // model only words the survivors in the one Foody voice.
+    'score_insight_writer' => [
+        'provider' => env('AI_SCORE_INSIGHT_PROVIDER', $gateway),
+        'model' => env('AI_SCORE_INSIGHT_MODEL', 'openai/gpt-4o'),
+    ],
+
     // AI chef (Pantry): stock + goal + constraints -> breakfast/lunch/dinner
     // ideas with short recipes. Text-only.
     'recipe_suggester' => [

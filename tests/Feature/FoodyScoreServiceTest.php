@@ -190,7 +190,7 @@ class FoodyScoreServiceTest extends TestCase
             'user_id' => $this->user->id,
             'score_date' => $this->asOf->subDays(30)->toDateString(),
             'score' => 91, 'raw_score' => 91, 'band' => 'excellent', 'display_state' => 'firm',
-            'pillars' => [], 'reason_codes' => ['energy.on_track'], 'contributors' => [],
+            'pillars' => [], 'reason_codes' => ['energy.on_track'], 'contributors' => [], 'candidates' => [],
             'confidence' => ['day_completeness' => 1, 'nutrient_coverage' => 1, 'historical' => 1],
             'algorithm_version' => 'foody_score_v0_hypothetical',
             'target_rules_version' => 'target_rules_v0',
@@ -216,7 +216,7 @@ class FoodyScoreServiceTest extends TestCase
             'user_id' => $this->user->id,
             'score_date' => $this->asOf->subDay()->toDateString(),
             'score' => 90, 'raw_score' => 90, 'band' => 'excellent', 'display_state' => 'firm',
-            'pillars' => [], 'reason_codes' => [], 'contributors' => [],
+            'pillars' => [], 'reason_codes' => [], 'contributors' => [], 'candidates' => [],
             'confidence' => ['day_completeness' => 1, 'nutrient_coverage' => 1, 'historical' => 1],
             'algorithm_version' => 'foody_score_v1', 'target_rules_version' => 'target_rules_v1',
         ]);
@@ -294,7 +294,7 @@ class FoodyScoreServiceTest extends TestCase
             'user_id' => $this->user->id,
             'score_date' => $this->asOf->subDays(3)->toDateString(),
             'score' => 72, 'raw_score' => 72, 'band' => 'steady', 'display_state' => 'firm',
-            'pillars' => [], 'reason_codes' => [], 'contributors' => [],
+            'pillars' => [], 'reason_codes' => [], 'contributors' => [], 'candidates' => [],
             'confidence' => ['day_completeness' => 1, 'nutrient_coverage' => 1, 'historical' => 1],
             'algorithm_version' => 'foody_score_v1', 'target_rules_version' => 'target_rules_v1',
         ]);

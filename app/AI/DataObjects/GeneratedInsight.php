@@ -27,6 +27,8 @@ final class GeneratedInsight
 {
     public const TYPE_WEEKLY_FOCUS = 'weekly_focus';
 
+    public const TYPE_SCORE_DAILY = 'score_daily';
+
     public const PRIORITY_HIGH = 'high';
 
     public const PRIORITY_MEDIUM = 'medium';

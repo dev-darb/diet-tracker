@@ -46,6 +46,7 @@ class FoodyScoreService
                 'reason_codes' => $result->reasonCodes,
                 'contributors' => $result->contributors,
                 'confidence' => $result->confidence,
+                'candidates' => $result->candidates,
                 'algorithm_version' => $result->algorithmVersion,
                 'target_rules_version' => $result->targetRulesVersion,
             ],

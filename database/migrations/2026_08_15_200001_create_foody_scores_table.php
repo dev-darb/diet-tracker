@@ -28,6 +28,7 @@ return new class extends Migration
             $table->json('reason_codes');
             $table->json('contributors');                   // ['up' => [...], 'down' => [...], 'largest_delta' => ...]
             $table->json('confidence');                     // day_completeness / nutrient_coverage / historical
+            $table->json('candidates');                     // ranked insight candidates the wording layer may use
 
             $table->string('algorithm_version', 40);
             $table->string('target_rules_version', 40);

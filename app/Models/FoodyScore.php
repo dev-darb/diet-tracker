@@ -24,6 +24,7 @@ class FoodyScore extends Model
         'reason_codes',
         'contributors',
         'confidence',
+        'candidates',
         'algorithm_version',
         'target_rules_version',
     ];
@@ -40,6 +41,7 @@ class FoodyScore extends Model
             'reason_codes' => 'array',
             'contributors' => 'array',
             'confidence' => 'array',
+            'candidates' => 'array',
         ];
     }
 
