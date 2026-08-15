@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-15T05:30:00Z",
+  "generatedAt": "2026-08-15T05:45:00Z",
   "title": "Design System: Jabba",
   "extensions": {
     "colorMeta": {
@@ -291,6 +291,10 @@
       "label": {
         "displayName": "Silkscreen",
         "purpose": "Uppercase mono micro-label (0.14em, ink-faint) that self-labels every module, nav key, and the top-bar nameplate — panel printing, never decoration."
+      },
+      "station-caption": {
+        "displayName": "Station Caption",
+        "purpose": "Control-strip station engraving only — the 9px mono caption under each nav glyph. The smallest legible engraving on the chassis; used nowhere else."
       }
     },
     "shadows": [

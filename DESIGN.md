@@ -82,6 +82,12 @@ typography:
     fontWeight: 400
     letterSpacing: "0.02em"
     lineHeight: 1.4
+  station-caption:
+    fontFamily: "'Fragment Mono', ui-monospace, 'SF Mono', monospace"
+    fontSize: "0.5625rem"
+    fontWeight: 400
+    letterSpacing: "0.08em"
+    lineHeight: 1
   keycap:
     fontFamily: "'Fragment Mono', ui-monospace, 'SF Mono', monospace"
     fontSize: "0.8125rem"
