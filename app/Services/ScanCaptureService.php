@@ -2,15 +2,19 @@
 
 namespace App\Services;
 
+use App\AI\Contracts\MealPhotoInterpreter;
 use App\AI\Contracts\ProductIdentifier;
 use App\AI\DataObjects\IdentifiedProduct;
 use App\AI\DataObjects\ProductImage;
+use App\Enums\CaptureKind;
 use App\Enums\QuantityUnit;
 use App\Enums\ScanCaptureStatus;
 use App\Jobs\ProcessScanCapture;
+use App\Models\PantryItem;
 use App\Models\ScanCapture;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -43,10 +47,18 @@ class ScanCaptureService
     /** Inline rescues per poll tick — keeps the request bounded. */
     private const RESCUES_PER_PULSE = 2;
 
+    /**
+     * Below this triage confidence the classification is a guess — the card
+     * asks "What am I looking at?" instead (infer when reasonably confident;
+     * ask when guessing would create worse UX or bad nutrition data).
+     */
+    public const KIND_CONFIDENCE_FLOOR = 0.5;
+
     public function __construct(
         private readonly ProductResolver $resolver,
         private readonly PantryService $pantry,
         private readonly ConsumptionService $consumption,
+        private readonly MealPhotoInterpreter $mealInterpreter,
     ) {}
 
     /** Create the capture row and hand it to the queue. Instant by design. */
@@ -58,6 +70,7 @@ class ScanCaptureService
             'barcode' => $barcode !== null && trim($barcode) !== '' ? trim($barcode) : null,
             'eat_now' => $eatNow,
             'status' => ScanCaptureStatus::Queued,
+            'stage' => 'looking',
         ]);
 
         ProcessScanCapture::dispatch($capture->id);
@@ -83,50 +96,100 @@ class ScanCaptureService
             ->limit(self::RESCUES_PER_PULSE)
             ->get();
 
+        if ($stranded->isNotEmpty()) {
+            // Rescue is the SAFETY NET, not the intended path — a healthy
+            // worker settles captures long before staleness. Seeing this in
+            // the logs means the queue worker is missing or down (DEPLOY B2).
+            Log::warning('Scan captures rescued inline — is the queue worker running?', [
+                'count' => $stranded->count(),
+                'queue_connection' => config('queue.default'),
+            ]);
+        }
+
         foreach ($stranded as $capture) {
             $this->process($capture, $identifier);
         }
     }
 
-    /** The background pipeline: identify → resolve → gate. Called by the job. */
+    /**
+     * The background pipeline: identify (with triage) → route by kind →
+     * resolve → gate. Called by the job, or inline by the rescue path. The
+     * `stage` column tracks REAL progress so the UI's feedback maps to what
+     * the backend is actually doing, never a fictional ticker.
+     */
     public function process(ScanCapture $capture, ProductIdentifier $identifier): void
     {
         if (! $capture->status->inFlight()) {
             return; // idempotent: a retried job never re-applies a settled capture
         }
 
-        $capture->update(['status' => ScanCaptureStatus::Identifying]);
+        $capture->update(['status' => ScanCaptureStatus::Identifying, 'stage' => 'identifying']);
 
         $meta = [];
+        $forced = $capture->kind; // set when the user answered "What am I looking at?"
 
         if ($capture->barcode !== null) {
             // Keyless deterministic fast path — no AI cost, no image needed.
             $detected = IdentifiedProduct::fromArray(['barcode' => $capture->barcode, 'confidence' => 1.0]);
+            $capture->fill(['kind' => CaptureKind::PackagedProduct]);
         } elseif ($capture->image_path !== null) {
-            try {
-                $detected = $identifier->identify(ProductImage::fromStoragePath($capture->image_path, 'public'));
-            } catch (Throwable $e) {
-                // KEY-ABSENT GRACE: no provider key → honest notice, never a 500.
-                report($e);
-                $capture->update(['status' => ScanCaptureStatus::AiUnavailable]);
+            if ($forced === CaptureKind::PreparedMeal) {
+                $this->settleAsMeal($capture, null);
 
                 return;
             }
 
+            try {
+                $detected = $identifier->identify(
+                    ProductImage::fromStoragePath($capture->image_path, 'public'),
+                    $forced?->hintLabel(),
+                );
+            } catch (Throwable $e) {
+                // KEY-ABSENT GRACE: no provider key → honest notice, never a 500.
+                report($e);
+                $capture->update(['status' => ScanCaptureStatus::AiUnavailable, 'stage' => null]);
+
+                return;
+            }
+
+            // Triage: the user's asserted kind wins; otherwise the model's,
+            // but only when it is confident enough to act on.
+            $kind = $forced ?? CaptureKind::fromModel($detected->kind);
+
+            if ($forced === null) {
+                if ($kind === CaptureKind::PreparedMeal && $detected->confidence >= self::KIND_CONFIDENCE_FLOOR) {
+                    $this->settleAsMeal($capture, $detected->dishName);
+
+                    return;
+                }
+
+                if ($kind === CaptureKind::Unknown || $detected->confidence < self::KIND_CONFIDENCE_FLOOR) {
+                    // Genuinely uncertain — asking beats guessing (and beats
+                    // forcing a banana into "packaged product").
+                    $capture->update(['kind' => $kind, 'status' => ScanCaptureStatus::NeedsKind, 'stage' => null]);
+
+                    return;
+                }
+            }
+
+            $capture->fill(['kind' => $kind]);
+
             $config = config('ai.product_identifier');
             $meta = ['model_provider' => $config['provider'] ?? null, 'model_name' => $config['model'] ?? null];
         } else {
-            $capture->update(['status' => ScanCaptureStatus::Failed, 'error' => 'Capture carried neither a photo nor a barcode.']);
+            $capture->update(['status' => ScanCaptureStatus::Failed, 'error' => 'Capture carried neither a photo nor a barcode.', 'stage' => null]);
 
             return;
         }
+
+        $capture->fill(['stage' => 'checking'])->save();
 
         try {
             $result = $this->resolver->resolve($detected, $capture->user, $meta);
             $result->resolutionJob->update(['uploaded_image_path' => $capture->image_path]);
         } catch (Throwable $e) {
             report($e);
-            $capture->update(['status' => ScanCaptureStatus::Failed, 'error' => $e->getMessage()]);
+            $capture->update(['status' => ScanCaptureStatus::Failed, 'error' => $e->getMessage(), 'stage' => null]);
 
             return;
         }
@@ -139,21 +202,105 @@ class ScanCaptureService
         ]);
 
         if ($result->canonicalProduct === null) {
-            $capture->fill(['status' => ScanCaptureStatus::Unknown])->save();
+            $capture->fill(['status' => ScanCaptureStatus::Unknown, 'stage' => null])->save();
 
             return;
         }
 
         if ($result->isSuggestion()) {
             // The 0.60–0.85 band: the confirm screen is genuinely protective here.
-            $capture->fill(['status' => ScanCaptureStatus::Suggested])->save();
+            $capture->fill(['status' => ScanCaptureStatus::Suggested, 'stage' => null])->save();
 
             return;
         }
 
         // Identity-grade provenance — apply automatically, undoably.
-        $capture->save();
+        $capture->fill(['stage' => 'finishing'])->save();
         $this->apply($capture, ScanCaptureStatus::AutoAdded);
+    }
+
+    /**
+     * A prepared meal never touches the pantry gate: the specialised meal
+     * interpreter reads the plate NOW — while the photo is still on this
+     * instance's disk (serverless local storage makes later reads unreliable)
+     * — and the reading is persisted so the meal flow opens prefilled without
+     * ever needing the image again.
+     */
+    private function settleAsMeal(ScanCapture $capture, ?string $dishName): void
+    {
+        $reading = null;
+
+        if ($capture->image_path !== null && $this->mealInterpreter->available()) {
+            try {
+                $reading = $this->mealInterpreter->interpret(
+                    ProductImage::fromStoragePath($capture->image_path, 'public'),
+                    $this->pantryCandidates($capture->user),
+                );
+            } catch (Throwable $e) {
+                report($e); // the capture still settles as a meal with what triage saw
+            }
+        }
+
+        $capture->update([
+            'kind' => CaptureKind::PreparedMeal,
+            'dish_name' => $reading?->dishName ?? $dishName,
+            'meal_reading' => $reading !== null ? [
+                'dish_name' => $reading->dishName,
+                'pantry_item_ids' => $reading->pantryItemIds,
+                'also_seen' => $reading->alsoSeen,
+                'confidence' => $reading->confidence,
+            ] : null,
+            'status' => ScanCaptureStatus::Meal,
+            'stage' => null,
+        ]);
+    }
+
+    /**
+     * The user answered "What am I looking at?" on an uncertain capture: force
+     * the kind and requeue through the same pipeline. A meal goes straight to
+     * interpretation; product kinds re-identify with the user's claim as a hint.
+     */
+    public function setKind(ScanCapture $capture, CaptureKind $kind): void
+    {
+        // Valid from the uncertain state AND from an un-logged meal card
+        // ("Not a meal?") — but never once anything has been written.
+        $reclassifiable = $capture->status === ScanCaptureStatus::NeedsKind
+            || ($capture->status === ScanCaptureStatus::Meal && $capture->consumption_event_id === null);
+
+        if (! $reclassifiable) {
+            return;
+        }
+
+        $capture->update([
+            'kind' => $kind,
+            'status' => ScanCaptureStatus::Queued,
+            'stage' => 'looking',
+            'dish_name' => null,
+            'meal_reading' => null,
+        ]);
+
+        ProcessScanCapture::dispatch($capture->id);
+    }
+
+    /**
+     * The user's in-stock items as interpreter grounding candidates — the same
+     * recognise-and-select list the meal flow offers.
+     *
+     * @return list<array{id: int, label: string}>
+     */
+    private function pantryCandidates(User $user): array
+    {
+        return PantryItem::query()
+            ->with('canonicalProduct')
+            ->where('user_id', $user->id)
+            ->where('current_quantity', '>', 0)
+            ->get()
+            ->map(fn (PantryItem $item) => [
+                'id' => $item->id,
+                'label' => trim(($item->canonicalProduct->brand ?? '').' '.$item->canonicalProduct->name),
+            ])
+            ->values()
+            ->all();
     }
 
     /** User confirmed a suggested match — apply it exactly like an auto-add. */

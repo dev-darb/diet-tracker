@@ -8,6 +8,7 @@ use App\AI\DataObjects\ProductImage;
 use App\AI\Support\AiJobContext;
 use App\Services\AiJobLogger;
 use Prism\Prism\Facades\Prism;
+use Prism\Prism\Schema\EnumSchema;
 use Prism\Prism\Schema\NumberSchema;
 use Prism\Prism\Schema\ObjectSchema;
 use Prism\Prism\Schema\StringSchema;
@@ -34,9 +35,9 @@ class PrismProductIdentifier implements ProductIdentifier
         private readonly string $model,
     ) {}
 
-    public function identify(ProductImage $image): IdentifiedProduct
+    public function identify(ProductImage $image, ?string $kindHint = null): IdentifiedProduct
     {
-        return $this->logger->run('product_identification', function (AiJobContext $context) use ($image): IdentifiedProduct {
+        return $this->logger->run('product_identification', function (AiJobContext $context) use ($image, $kindHint): IdentifiedProduct {
             $context->provider = $this->provider;
             $context->model = $this->model;
 
@@ -45,7 +46,7 @@ class PrismProductIdentifier implements ProductIdentifier
                 ->withSchema($this->schema())
                 ->withSystemPrompt($this->systemPrompt())
                 ->withMessages([
-                    new UserMessage($this->userPrompt(), [$this->toPrismImage($image)]),
+                    new UserMessage($this->userPrompt($kindHint), [$this->toPrismImage($image)]),
                 ])
                 ->asStructured();
 
@@ -62,37 +63,57 @@ class PrismProductIdentifier implements ProductIdentifier
         });
     }
 
-    /** Strict structured-output schema for the identity fields (brief §7.2). */
+    /** Strict structured-output schema: triage first, then identity (brief §7.2). */
     private function schema(): ObjectSchema
     {
         return new ObjectSchema(
-            name: 'identified_product',
-            description: 'The packaged grocery product visible in the image.',
+            name: 'identified_capture',
+            description: 'What the food photo shows, classified, with identity fields.',
             properties: [
-                new StringSchema('brand', 'Brand or manufacturer, e.g. "The Gym Kitchen". Null if not visible.', nullable: true),
-                new StringSchema('product_name', 'Product name without the brand, e.g. "High Protein Katsu Chicken". Null if not visible.', nullable: true),
+                new EnumSchema('kind', 'What the image mainly shows: a branded packaged product; a loose ingredient or unprepared food (fruit, vegetables, raw meat, a bakery item); a prepared meal/dish on a plate or in a container ready to eat; or unknown if genuinely unclear.', ['packaged_product', 'ingredient_or_food', 'prepared_meal', 'unknown']),
+                new StringSchema('brand', 'Brand or manufacturer, e.g. "The Gym Kitchen". Null if not visible or not a packaged product.', nullable: true),
+                new StringSchema('product_name', 'Product name without the brand (e.g. "High Protein Katsu Chicken"), or the plain name of a loose food (e.g. "Banana", "Chicken breast"). Null for prepared meals.', nullable: true),
                 new StringSchema('variant', 'Variant/flavour, e.g. "No Mayo". Null if none.', nullable: true),
                 new StringSchema('pack_size', 'Pack size exactly as printed, e.g. "189g" or "330ml". Null if not visible.', nullable: true),
                 new StringSchema('barcode', 'Barcode / GTIN digits if legibly visible, else null. Do not guess.', nullable: true),
-                new NumberSchema('confidence', 'Your confidence in this identification, from 0.0 to 1.0.'),
+                new StringSchema('dish_name', 'For a prepared meal only: a short natural name for the dish, e.g. "Chicken stir-fry". Null otherwise.', nullable: true),
+                new NumberSchema('confidence', 'Your confidence in the classification AND identification, from 0.0 to 1.0.'),
             ],
-            requiredFields: ['brand', 'product_name', 'variant', 'pack_size', 'barcode', 'confidence'],
+            requiredFields: ['kind', 'brand', 'product_name', 'variant', 'pack_size', 'barcode', 'dish_name', 'confidence'],
         );
     }
 
     private function systemPrompt(): string
     {
         return <<<'PROMPT'
-        You identify a single packaged grocery product from a photo of its packaging.
-        Extract only what is actually visible. Never invent a brand, name, size, or barcode.
-        If a field is not visible, return null for it. Do not read or compute nutrition values.
-        Report an honest confidence between 0 and 1.
+        You are the eye of a food scanner. First decide what the photo mainly shows:
+        a branded PACKAGED product, a loose INGREDIENT or unprepared food (fruit,
+        vegetables, raw meat, bakery items), a PREPARED MEAL (a plated dish or
+        ready-to-eat food in a container), or UNKNOWN if you genuinely cannot tell.
+
+        Then extract only what is actually visible:
+        - Packaged product: brand, product name, variant, pack size, barcode.
+        - Loose ingredient/food: the plain food name as product_name (brand null).
+        - Prepared meal: a short dish_name only; leave the product fields null.
+
+        Never invent a brand, name, size, or barcode. If a field is not visible,
+        return null for it. Do not read or compute nutrition values.
+        Report an honest confidence between 0 and 1 — use "unknown" with low
+        confidence rather than forcing a wrong classification.
         PROMPT;
     }
 
-    private function userPrompt(): string
+    private function userPrompt(?string $kindHint): string
     {
-        return 'Identify the packaged product shown in this image.';
+        $prompt = 'Classify and identify the food shown in this image.';
+
+        if ($kindHint !== null) {
+            // The user answered "What am I looking at?" — trust their claim
+            // for the classification and put the effort into identification.
+            $prompt .= " The user says this is a {$kindHint}; treat it as that kind.";
+        }
+
+        return $prompt;
     }
 
     private function toPrismImage(ProductImage $image): Image

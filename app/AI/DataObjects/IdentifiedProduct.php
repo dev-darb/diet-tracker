@@ -5,13 +5,17 @@ namespace App\AI\DataObjects;
 use App\Services\ProductResolver;
 
 /**
- * The typed result of visual product identification (brief §7.2 Step 2).
+ * The typed result of visual identification (brief §7.2 Step 2; unified
+ * capture, Aug 2026).
  *
  * Mirrors the structured shape the model returns:
- * `{brand, product_name, variant, pack_size, barcode, confidence}`. Every
- * identity field is nullable — the model may not see a brand, a variant, or a
- * barcode on the packaging — while `confidence` is always present (defaulting to
- * 0.0 when the model omits it). This is a pure DTO; it holds no provider types.
+ * `{kind, brand, product_name, variant, pack_size, barcode, dish_name,
+ * confidence}`. The model first decides WHAT it is looking at (`kind`:
+ * packaged product / loose ingredient / prepared meal / unknown), then
+ * extracts identity fields for the product kinds or a dish name for meals.
+ * Every identity field is nullable — the model may not see a brand, a
+ * variant, or a barcode — while `confidence` is always present (defaulting
+ * to 0.0 when omitted). This is a pure DTO; it holds no provider types.
  */
 final class IdentifiedProduct
 {
@@ -22,6 +26,8 @@ final class IdentifiedProduct
         public readonly ?string $packSize,
         public readonly ?string $barcode,
         public readonly float $confidence,
+        public readonly ?string $kind = null,
+        public readonly ?string $dishName = null,
     ) {}
 
     /**
@@ -39,6 +45,8 @@ final class IdentifiedProduct
             packSize: self::string($data['pack_size'] ?? null),
             barcode: self::string($data['barcode'] ?? null),
             confidence: self::confidence($data['confidence'] ?? null),
+            kind: self::string($data['kind'] ?? null),
+            dishName: self::string($data['dish_name'] ?? null),
         );
     }
 

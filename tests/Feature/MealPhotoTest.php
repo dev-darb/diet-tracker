@@ -2,21 +2,24 @@
 
 namespace Tests\Feature;
 
-use App\AI\Contracts\EatingOutEstimator;
 use App\AI\Contracts\MealPhotoInterpreter;
-use App\AI\DataObjects\EatingOutEstimate;
+use App\AI\Contracts\ProductIdentifier;
+use App\AI\DataObjects\IdentifiedProduct;
 use App\AI\DataObjects\MealPhotoReading;
 use App\AI\DataObjects\ProductImage;
 use App\AI\Local\UnavailableMealPhotoInterpreter;
 use App\AI\OpenRouter\PrismMealPhotoInterpreter;
+use App\Enums\CaptureKind;
 use App\Enums\QuantityUnit;
+use App\Enums\ScanCaptureStatus;
 use App\Models\CanonicalProduct;
 use App\Models\ConsumptionEvent;
+use App\Models\ScanCapture;
 use App\Models\User;
 use App\Services\AiJobLogger;
 use App\Services\PantryService;
+use App\Services\ScanCaptureService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Volt\Volt;
 use Prism\Prism\Enums\FinishReason;
@@ -27,9 +30,10 @@ use Prism\Prism\ValueObjects\Usage;
 use Tests\TestCase;
 
 /**
- * Meal-photo interpretation (capture flow Phase B; BUILD_PLAN §1b). The photo
- * proposes — pantry-grounded components for home-cooked, a dish name feeding
- * estimation for eating out — and the user confirms. Keyless -> no photo offer.
+ * Meal photos through the UNIFIED scanner (Aug 2026): triage routes a plate
+ * to the meal path, the specialised interpreter reads it at capture time
+ * (pantry-grounded), the reading persists on the capture, and the log-meal
+ * bridge opens prefilled. The photo proposes — the user confirms.
  */
 class MealPhotoTest extends TestCase
 {
@@ -41,6 +45,7 @@ class MealPhotoTest extends TestCase
     {
         parent::setUp();
         Storage::fake('public');
+        config()->set('prism.providers.openrouter.api_key', '');
         $this->user = User::factory()->onboarded()->create();
     }
 
@@ -51,7 +56,19 @@ class MealPhotoTest extends TestCase
         return app(PantryService::class)->purchase($this->user, $product, 500, QuantityUnit::Gram);
     }
 
-    /** A fake interpreter double for UI tests. */
+    private function bindIdentifier(array $fields): void
+    {
+        $this->app->bind(ProductIdentifier::class, fn () => new class($fields) implements ProductIdentifier
+        {
+            public function __construct(private readonly array $fields) {}
+
+            public function identify(ProductImage $image, ?string $kindHint = null): IdentifiedProduct
+            {
+                return IdentifiedProduct::fromArray($this->fields);
+            }
+        });
+    }
+
     private function bindReading(?MealPhotoReading $reading): void
     {
         $this->app->bind(MealPhotoInterpreter::class, fn () => new class($reading) implements MealPhotoInterpreter
@@ -98,77 +115,114 @@ class MealPhotoTest extends TestCase
         $this->assertDatabaseHas('ai_jobs', ['task_type' => 'meal_photo_interpretation', 'result_status' => 'interpreted']);
     }
 
-    public function test_photo_prefills_home_cooked_compose_with_pantry_matches(): void
+    // --- Triage routes a plate to the meal path, reading stored -------------
+
+    public function test_a_meal_photo_settles_as_a_meal_with_the_stored_reading(): void
     {
         $chicken = $this->stockedItem('Chicken thighs');
-        $this->stockedItem('Coconut milk'); // in pantry, not matched
 
-        $this->bindReading(new MealPhotoReading(
-            dishName: 'Chicken curry',
-            pantryItemIds: [$chicken->id],
-            alsoSeen: ['white rice'],
-            confidence: 0.8,
-        ));
+        $this->bindIdentifier(['kind' => 'prepared_meal', 'dish_name' => 'Chicken curry', 'confidence' => 0.9]);
+        $this->bindReading(new MealPhotoReading('Chicken curry', [$chicken->id], ['white rice'], 0.8));
 
-        Volt::actingAs($this->user)->test('log-meal')
-            ->call('chooseHomeCooked')
-            ->set('mealPhoto', UploadedFile::fake()->image('plate.jpg'))
-            ->call('interpretPhoto')
-            ->assertHasNoErrors()
-            ->assertSet('mealName', 'Chicken curry')
-            ->assertSee('white rice')
-            ->assertSee('Chicken thighs'); // prefilled component row
+        $capture = app(ScanCaptureService::class)->queue($this->user, 'scans/plate.jpg', null);
+        $capture->refresh();
 
-        // The matched component is staged for confirmation, nothing logged yet.
+        $this->assertSame(ScanCaptureStatus::Meal, $capture->status);
+        $this->assertSame(CaptureKind::PreparedMeal, $capture->kind);
+        $this->assertSame('Chicken curry', $capture->dish_name);
+        $this->assertSame([$chicken->id], $capture->meal_reading['pantry_item_ids']);
+        // A meal never touches the pantry gate.
+        $this->assertNull($capture->pantry_item_id);
         $this->assertSame(0, ConsumptionEvent::count());
     }
 
-    public function test_photo_names_and_estimates_an_eating_out_dish(): void
+    public function test_an_unreadable_plate_still_settles_as_a_meal_with_what_triage_saw(): void
     {
-        $this->bindReading(new MealPhotoReading('Chicken katsu curry', [], [], 0.75));
+        $this->bindIdentifier(['kind' => 'prepared_meal', 'dish_name' => 'Some stew', 'confidence' => 0.7]);
+        $this->bindReading(null); // interpreter saw nothing usable
 
-        $this->app->bind(EatingOutEstimator::class, fn () => new class implements EatingOutEstimator
-        {
-            public function available(): bool
-            {
-                return true;
-            }
+        $capture = app(ScanCaptureService::class)->queue($this->user, 'scans/blurry.jpg', null);
+        $capture->refresh();
 
-            public function estimate(string $dish, ?string $venue = null): ?EatingOutEstimate
-            {
-                return EatingOutEstimate::fromArray(['calories' => 1180, 'protein' => 45, 'confidence' => 0.8, 'basis' => 'Typical katsu curry.']);
-            }
-        });
+        $this->assertSame(ScanCaptureStatus::Meal, $capture->status);
+        $this->assertSame('Some stew', $capture->dish_name);
+        $this->assertNull($capture->meal_reading);
+    }
+
+    // --- The scan → log-meal bridge ------------------------------------------
+
+    private function mealCapture(array $readingOverrides = []): ScanCapture
+    {
+        return ScanCapture::create([
+            'user_id' => $this->user->id,
+            'image_path' => 'scans/plate.jpg',
+            'kind' => CaptureKind::PreparedMeal,
+            'status' => ScanCaptureStatus::Meal,
+            'dish_name' => 'Chicken curry',
+            'meal_reading' => array_merge([
+                'dish_name' => 'Chicken curry',
+                'pantry_item_ids' => [],
+                'also_seen' => ['white rice'],
+                'confidence' => 0.8,
+            ], $readingOverrides),
+        ]);
+    }
+
+    public function test_bridge_prefills_the_meal_flow_from_the_stored_reading(): void
+    {
+        $chicken = $this->stockedItem('Chicken thighs');
+        $capture = $this->mealCapture(['pantry_item_ids' => [$chicken->id]]);
+
+        $this->actingAs($this->user)
+            ->get('/eat/log?capture='.$capture->id)
+            ->assertOk()
+            ->assertSee('From your scan: Chicken curry')
+            ->assertSee('1 pantry match')
+            ->assertSee('white rice');
+    }
+
+    public function test_logging_the_bridged_meal_marks_the_capture_logged(): void
+    {
+        $capture = $this->mealCapture();
 
         Volt::actingAs($this->user)->test('log-meal')
+            ->set('captureId', $capture->id)
             ->call('chooseEatingOut')
-            ->set('mealPhoto', UploadedFile::fake()->image('dish.jpg'))
-            ->call('interpretPhoto')
+            ->set('outName', 'Chicken curry')
+            ->call('logOut')
             ->assertHasNoErrors()
-            ->assertSet('outName', 'Chicken katsu curry')
-            ->assertSet('outCalories', '1180')     // chained straight into estimation
-            ->assertSee('Typical katsu curry.');
+            ->assertSet('step', 'done');
+
+        $capture->refresh();
+        $this->assertNotNull($capture->consumption_event_id);
+        $this->assertSame('Chicken curry', $capture->consumptionEvent->name);
     }
 
-    public function test_failed_reading_degrades_to_manual(): void
+    public function test_another_users_capture_never_bridges(): void
     {
-        $this->bindReading(null);
+        $other = User::factory()->onboarded()->create();
+        $capture = ScanCapture::create([
+            'user_id' => $other->id,
+            'kind' => CaptureKind::PreparedMeal,
+            'status' => ScanCaptureStatus::Meal,
+            'dish_name' => 'Private dinner',
+        ]);
 
-        Volt::actingAs($this->user)->test('log-meal')
-            ->call('chooseHomeCooked')
-            ->set('mealPhoto', UploadedFile::fake()->image('blurry.jpg'))
-            ->call('interpretPhoto')
-            ->assertSet('photoFailed', true)
-            ->assertSee('add components below');
+        $this->actingAs($this->user)
+            ->get('/eat/log?capture='.$capture->id)
+            ->assertOk()
+            ->assertDontSee('Private dinner');
     }
 
-    public function test_keyless_flow_offers_no_photo_shortcut(): void
+    // --- One camera: log-meal points at the scanner --------------------------
+
+    public function test_log_meal_offers_the_scanner_not_its_own_camera(): void
     {
-        config()->set('prism.providers.openrouter.api_key', '');
         $this->assertInstanceOf(UnavailableMealPhotoInterpreter::class, app(MealPhotoInterpreter::class));
 
         Volt::actingAs($this->user)->test('log-meal')
             ->call('chooseHomeCooked')
-            ->assertDontSee('Photo the plate');
+            ->assertDontSee('Photo the plate')
+            ->assertSee('Point the scanner at it');
     }
 }

@@ -20,9 +20,17 @@ use App\Services\AiJobLogger;
 interface ProductIdentifier
 {
     /**
-     * Identify a single packaged product from an image, returning the extracted
-     * identity fields and a self-reported confidence. Implementations must log
-     * an `ai_jobs` diagnostics row for every call (via {@see AiJobLogger}).
+     * Look at a food photo: classify WHAT it is (packaged product, loose
+     * ingredient, prepared meal, unknown — the `kind` on the result), then
+     * extract identity fields for the product kinds or a dish name for meals,
+     * with a self-reported confidence. One specialised call does both — the
+     * classification is a decision the vision model makes anyway before it
+     * can extract anything. Implementations must log an `ai_jobs` diagnostics
+     * row for every call (via {@see AiJobLogger}).
+     *
+     * @param  string|null  $kindHint  a user-asserted kind ("the user says this
+     *                                 is a loose ingredient") when triage was
+     *                                 uncertain and the card asked; null normally.
      */
-    public function identify(ProductImage $image): IdentifiedProduct;
+    public function identify(ProductImage $image, ?string $kindHint = null): IdentifiedProduct;
 }
