@@ -10,6 +10,7 @@ use App\Enums\ScanCaptureStatus;
 use App\Jobs\ProcessScanCapture;
 use App\Models\ScanCapture;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
@@ -31,6 +32,17 @@ use Throwable;
  */
 class ScanCaptureService
 {
+    /**
+     * A capture still in flight after this long has been abandoned by the
+     * queue (driver pointed at a worker that isn't running, worker died,
+     * job lost). The scan page's poll then processes it inline — the worker
+     * is an optimisation, never a dependency.
+     */
+    public const STALE_AFTER_SECONDS = 20;
+
+    /** Inline rescues per poll tick — keeps the request bounded. */
+    private const RESCUES_PER_PULSE = 2;
+
     public function __construct(
         private readonly ProductResolver $resolver,
         private readonly PantryService $pantry,
@@ -51,6 +63,29 @@ class ScanCaptureService
         ProcessScanCapture::dispatch($capture->id);
 
         return $capture;
+    }
+
+    /**
+     * SELF-HEALING: process any of the user's captures the queue has left
+     * stranded. Called from the scan page's poll, so a capture always settles
+     * while the user is watching — with a healthy worker this finds nothing
+     * (captures settle in seconds and never go stale). Idempotence and the
+     * worker race are handled by process()'s inFlight() guard and apply()'s
+     * row lock.
+     */
+    public function rescueStale(User $user, ProductIdentifier $identifier): void
+    {
+        $stranded = ScanCapture::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', [ScanCaptureStatus::Queued, ScanCaptureStatus::Identifying])
+            ->where('updated_at', '<=', now()->subSeconds(self::STALE_AFTER_SECONDS))
+            ->oldest()
+            ->limit(self::RESCUES_PER_PULSE)
+            ->get();
+
+        foreach ($stranded as $capture) {
+            $this->process($capture, $identifier);
+        }
     }
 
     /** The background pipeline: identify → resolve → gate. Called by the job. */
@@ -209,24 +244,39 @@ class ScanCaptureService
 
     private function apply(ScanCapture $capture, ScanCaptureStatus $as): void
     {
-        $item = $this->pantry->purchase(
-            $capture->user,
-            $capture->matchedProduct,
-            1.0,
-            QuantityUnit::Unit,
-            ['scan_capture_id' => $capture->id],
-        );
+        // Serialised under a row lock: a queue worker that finally wakes up
+        // and the poll's inline rescue can race to apply the same capture —
+        // whichever arrives second must see the applied (or dismissed) state
+        // and walk away, or the user gets a phantom second unit.
+        DB::transaction(function () use ($capture, $as): void {
+            $fresh = ScanCapture::query()->whereKey($capture->id)->lockForUpdate()->first();
 
-        $eventId = null;
+            if ($fresh === null
+                || $fresh->status->applied()
+                || $fresh->status === ScanCaptureStatus::Dismissed) {
+                return;
+            }
 
-        if ($capture->eat_now) {
-            $eventId = $this->consumption->consumePantryItem($capture->user, $item, 1.0)->id;
-        }
+            $item = $this->pantry->purchase(
+                $capture->user,
+                $capture->matchedProduct,
+                1.0,
+                QuantityUnit::Unit,
+                ['scan_capture_id' => $capture->id],
+            );
 
-        $capture->update([
-            'status' => $as,
-            'pantry_item_id' => $item->id,
-            'consumption_event_id' => $eventId,
-        ]);
+            $eventId = null;
+
+            if ($fresh->eat_now) {
+                $eventId = $this->consumption->consumePantryItem($capture->user, $item, 1.0)->id;
+            }
+
+            $fresh->update([
+                'status' => $as,
+                'pantry_item_id' => $item->id,
+                'consumption_event_id' => $eventId,
+            ]);
+            $capture->refresh();
+        });
     }
 }

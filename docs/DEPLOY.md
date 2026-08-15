@@ -39,7 +39,7 @@ Laravel Cloud auto-injects `DB_*` and `REDIS_*` from the resources you provision
 | `APP_URL` | `https://foody.gg` | The custom domain (Environment -> Domains); the *.laravel.cloud URL keeps working. |
 | `SESSION_DRIVER` | `redis` | |
 | `CACHE_STORE` | `redis` | |
-| `QUEUE_CONNECTION` | `redis` | **A worker is now required** — the pipelined scanner and background AI run as queued jobs (see Part B2). Without a worker the app still works: jobs fall back to running inside the request (slower, never broken). |
+| `QUEUE_CONNECTION` | `redis` | The pipelined scanner and background AI run as queued jobs; add the worker in Part B2 for instant results. Without a worker the scan page self-heals: its poll processes any capture stranded in-flight for ~20s inline (slower, never stuck). `sync` also works — jobs then run inside the capture request itself. |
 | `DB_CONNECTION` | `pgsql` | `DB_*` host/user/pass come from the provisioned Postgres automatically. |
 | `FILESYSTEM_DISK` | `public` | **Caveat:** uploaded Scan photos go to local disk and may not survive a redeploy. Fine for early alpha; we switch to S3-compatible storage in hardening (brief §21 Q43). The barcode path stores no image. |
 | `OFF_BASE_URL` | `https://world.openfoodfacts.org` | Default; keyless. |
@@ -67,9 +67,11 @@ worker process:
 4. Deploy. Verify under **Console**: `php artisan queue:monitor redis` (or just
    scan something — results should land while the shutter stays live).
 
-If the worker is ever down, nothing breaks: capture rows settle when it comes
-back, and a session with `QUEUE_CONNECTION=sync` (e.g. local dev without a
-worker) runs the same jobs inline.
+If the worker is ever down, nothing stays stuck: the scan page's poll detects
+any capture stranded in-flight beyond ~20 seconds and processes it inline
+(`ScanCaptureService::rescueStale`), so results still land — just later than
+with a live worker. A session with `QUEUE_CONNECTION=sync` (e.g. local dev
+without a worker) runs the same jobs inline at capture time.
 | `AI_PRODUCT_IDENTIFIER_MODEL` | `openai/gpt-4o-mini` | Optional; swap to benchmark models (brief §14). Same `creator/model` format on both gateways. |
 
 **Mail note:** with `MAIL_MAILER=log`, "forgot password" links are written to logs, not delivered. For real reset emails, add a mail provider (Resend/Postmark/Mailgun) and set `MAIL_*`. Not required to test the core loop.
