@@ -661,7 +661,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         {{-- STEP — done -------------------------------------------------------}}
         @if ($step === 'done')
             <x-app.module label="Logged">
-                <p class="voice-display mt-4 text-[2.2rem]">On the<br>record</p>
+                <p class="voice-display mt-4 text-[2.6rem]">On the<br>record</p>
                 <p class="voice-caption mt-2 text-ink-dim">{{ $loggedName }}</p>
 
                 <div class="mt-5 space-y-2">
