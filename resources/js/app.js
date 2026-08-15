@@ -3,22 +3,30 @@ import { detectBarcode } from './barcode';
 /**
  * Plate-travel direction module (motion system, see app.css MOTION block).
  *
- * Before Livewire's wire:navigate swaps the body, this names the move's
- * spatial meaning on <html data-motion="…">; the incoming <main> then arrives
- * with the matching animation. The attribute survives the body swap (it lives
- * on the documentElement), fires the CSS the moment the new plates mount, and
- * is cleared once the travel is over — so ordinary morphs never animate.
+ * The native-OS illusion needs BOTH surfaces on screen at once: the outgoing
+ * plate travels away while the incoming plate travels in. Livewire's
+ * wire:navigate replaces the body outright, so this module clones the
+ * outgoing <main> the moment navigation starts, re-seats the clone in a
+ * fixed clip layer (.plate-ghost) the moment the new body lands, and lets
+ * CSS choreograph the pair — old and new together, chassis bolted still.
  *
- *   push-fwd / push-back  between sibling tabs, by control-strip key order
- *   cover                 descending into a focused tool or detail plate
- *   uncover               surfacing back to the desk
+ *   push-fwd / push-back  between sibling tabs, by control-strip key order:
+ *                         incoming slides in full-width, outgoing parallaxes
+ *                         away at a third speed and dims (the native stack)
+ *   cover                 a focused tool/detail rises over the desk, which
+ *                         visibly stays beneath
+ *   uncover               the tool slides off downward, revealing the desk
  *   (none)                unrelated moves stay instant
+ *
+ * Reduced motion: no ghost is ever cloned; the incoming plate settles with a
+ * 120ms opacity fade (plate-fade) and nothing travels.
  */
 (() => {
-    const TAB_ORDER = { home: 0, pantry: 1, scan: null, eat: 2, health: 3 };
+    const TAB_ORDER = { home: 0, pantry: 1, eat: 2, health: 3 };
 
     const key = (path) => (path.replace(/^\/+|\/+$/g, '') || 'home').toLowerCase();
-    const isTab = (k) => Object.hasOwn(TAB_ORDER, k) && TAB_ORDER[k] !== null;
+    const isTab = (k) => Object.hasOwn(TAB_ORDER, k);
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     const classify = (from, to) => {
         if (from === to) return null;
@@ -30,27 +38,68 @@ import { detectBarcode } from './barcode';
         return 'cover';                       // deeper into a tool keeps covering
     };
 
-    let clearTimer = null;
-    const set = (motion) => {
-        if (!motion) return;
+    let pending = null;   // spatial meaning chosen at interaction time
+    let ghost = null;     // the outgoing plate, cloned before the swap
+
+    // Clone the outgoing plate while it still exists. The clone is seated at
+    // main's exact viewport position (including scroll) inside a fixed,
+    // clipped, inert layer, so the frozen frame is pixel-true to what the
+    // user was just looking at.
+    const capture = () => {
+        ghost = null;
+
+        if (!pending || reduced.matches) return;
+
+        const main = document.querySelector('main');
+        if (!main) return;
+
+        const rect = main.getBoundingClientRect();
+        const wrap = document.createElement('div');
+        wrap.className = 'plate-ghost';
+        wrap.setAttribute('aria-hidden', 'true');
+
+        const clone = main.cloneNode(true);
+        clone.style.cssText = `position:absolute;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;margin:0;`;
+        wrap.appendChild(clone);
+        ghost = wrap;
+    };
+
+    const choreograph = () => {
+        if (!pending) return;
+
+        // A navigation that lapped a previous one retires its leftovers.
+        document.querySelectorAll('.plate-ghost').forEach((el) => el.remove());
+
+        const motion = pending;
+        pending = null;
+
         document.documentElement.dataset.motion = motion;
-        clearTimeout(clearTimer);
-        clearTimer = setTimeout(() => delete document.documentElement.dataset.motion, 3000);
+
+        if (ghost) {
+            ghost.dataset.motion = motion;
+            document.body.appendChild(ghost);
+        }
+
+        const seated = ghost;
+        ghost = null;
+
+        setTimeout(() => {
+            seated?.remove();
+            delete document.documentElement.dataset.motion;
+        }, 480);
     };
 
     document.addEventListener('click', (event) => {
         const link = event.target.closest('a[wire\\:navigate]');
         if (!link) return;
-        set(classify(key(location.pathname), key(new URL(link.href, location.origin).pathname)));
+        pending = classify(key(location.pathname), key(new URL(link.href, location.origin).pathname));
     });
 
     // The browser back button surfaces the previous plate from beneath.
-    window.addEventListener('popstate', () => set('uncover'));
+    window.addEventListener('popstate', () => { pending = 'uncover'; });
 
-    document.addEventListener('livewire:navigated', () => {
-        clearTimeout(clearTimer);
-        clearTimer = setTimeout(() => delete document.documentElement.dataset.motion, 400);
-    });
+    document.addEventListener('livewire:navigating', capture);
+    document.addEventListener('livewire:navigated', choreograph);
 })();
 
 // Exposed for the Scan flow's inline Alpine handler (resources/views/livewire/scan.blade.php).
