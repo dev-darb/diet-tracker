@@ -9,7 +9,8 @@
             <span class="keycap">{{ $slot }}</span>
         </div>
     @else
-        <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md border border-seam bg-plate-raised px-4 py-3 text-ink">
+        {{-- Chassis-dark so the toast reads as a solid plate over any list. --}}
+        <div class="stamp-in flex items-center justify-center gap-2.5 rounded-md border border-seam-strong bg-chassis px-4 py-3 text-ink">
             <span class="keycap">{{ $slot }}</span>
         </div>
     @endif

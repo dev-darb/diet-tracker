@@ -330,8 +330,11 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                 <div class="flex items-start gap-3">
                     {{-- Evidence: the frame or the digits --}}
                     @if ($capture->image_path)
-                        <img src="{{ Storage::disk('public')->url($capture->image_path) }}" alt=""
-                             class="size-10 shrink-0 rounded object-cover" onerror="this.style.visibility='hidden'">
+                        {{-- Deliberately a relative URL: the public-disk symlink serves
+                             /storage/* on whatever host the app answers on, so an
+                             APP_URL drift can never break thumbnails. Revisit at M8/S3. --}}
+                        <img src="/storage/{{ $capture->image_path }}" alt=""
+                             class="size-10 shrink-0 rounded object-cover" onerror="this.style.display='none'">
                     @else
                         <div class="flex size-10 shrink-0 items-center justify-center rounded bg-plate-well">
                             <x-app.icon name="barcode" class="size-5 text-ink-faint" />

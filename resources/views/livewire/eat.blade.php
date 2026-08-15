@@ -279,7 +279,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
         {{-- Deletion's undo window: the entry is out of the log, the pantry will
              be restored when the window closes — one tap brings it straight back. --}}
         <div x-show="del" x-cloak role="status" class="fixed inset-x-0 bottom-28 z-40 mx-auto max-w-md px-5">
-            <div class="stamp-in flex items-center justify-between gap-3 rounded-md border border-seam bg-plate-raised px-4 py-3 text-ink">
+            <div class="stamp-in flex items-center justify-between gap-3 rounded-md border border-seam-strong bg-chassis px-4 py-3 text-ink">
                 <span class="keycap">Entry deleted</span>
                 <button type="button"
                         x-on:click="del = false; clearTimeout(delT); $wire.cancelDelete()"
