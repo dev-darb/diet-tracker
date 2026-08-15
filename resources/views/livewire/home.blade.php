@@ -58,7 +58,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
             $up = $record->contributors['up'] ?? [];
 
             return $up !== []
-                ? 'Running well — '.strtolower(self::PILLAR_LABELS[$up[0]] ?? 'the basics').' is carrying it.'
+                ? 'Running well — '.strtolower(self::PILLAR_LABELS[$up[0]] ?? 'the basics').' is doing the heavy lifting.'
                 : 'Running well.';
         }
 
@@ -119,10 +119,11 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
     <div class="space-y-5">
         <h1 class="sr-only">Home</h1>
 
-        {{-- 1 · FOODY SCORE — the headline instrument. Confidence shapes the
-             presentation: firm glows, an early read sits quieter, building
-             stays faint — the number never pretends to more certainty than
-             the evidence holds (spec §13, §15). --}}
+        {{-- 1 · THE FACEPLATE — one instrument, seam-divided (Faceplate Rule:
+             one hero cluster per screen): score → read → today's numbers →
+             the week. Confidence shapes the score's presentation — firm
+             glows, an early read sits quieter, building stays faint (spec
+             §13, §15). --}}
         <section class="module px-5 pb-5 pt-4" x-data="{ shareOpen: false }">
             <div class="flex items-center justify-between">
                 <h2 class="silkscreen">Foody Score</h2>
@@ -193,110 +194,107 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                     </div>
                 </div>
             </div>
-        </section>
-
-        {{-- 2 · CORE CONTEXT — the day's numbers under the score: kcal on the
-             gauge, then the four nutrients that anchor the pillars. --}}
-        <section class="module px-5 pb-5 pt-4">
-            <h2 class="silkscreen">Today</h2>
-
-            @php($kcal = $today['totals']['calories'])
-            <p class="mt-4 flex items-baseline justify-center gap-3">
-                <span wire:key="kcal-{{ $kcal ?? 'none' }}"
-                      class="value-settle font-seg text-[clamp(2.6rem,10vw,3.4rem)] leading-none {{ $today['has_data'] && $kcal !== null ? 'text-ink' : 'text-ink-faint' }}"
-                      aria-label="{{ $kcal !== null ? number_format((float) $kcal).' kilocalories today' : 'No calories logged yet today' }}">{{ $kcal !== null ? number_format((float) $kcal, 0, '', '') : '----' }}</span>
-                <span class="data-md text-ink-dim">KCAL</span>
-            </p>
-
-            {{-- Calibrated to YOUR daily calorie target (NutritionTargetsService).
-                 The marker is the day's reading; geometry only, no maths here. --}}
+            {{-- 2 · TODAY — same instrument, one seam down. The score above is
+                 the screen's one gauge; kcal reads as the data-xl beside its
+                 calibrated scale. `----` when nothing is logged, never a zero. --}}
+            {{-- No data ≠ zero: an unlogged day reads ---- (Honest Blank Rule). --}}
+            @php($kcal = $today['has_data'] ? $today['totals']['calories'] : null)
             @php($calorieTarget = $today['targets']['calories'] ?? null)
             @php($scaleMax = (float) ($calorieTarget['target'] ?? 2500))
             @php($frac = $kcal !== null ? min(max((float) $kcal, 0) / $scaleMax, 1) : null)
-            <div class="mt-3" role="img" aria-label="{{ $kcal !== null ? 'Scale reading '.number_format((float) $kcal).' of your '.number_format($scaleMax).' kilocalorie target' : 'Scale idle' }}">
-                <svg viewBox="0 0 100 8" preserveAspectRatio="none" class="h-4 w-full" aria-hidden="true">
-                    @for ($i = 0; $i <= 50; $i++)
-                        <line x1="{{ $i * 2 }}" y1="{{ $i % 5 === 0 ? 0.5 : 2.5 }}" x2="{{ $i * 2 }}" y2="7.5"
-                              stroke="{{ $frac !== null && $i * 2 <= $frac * 100 ? 'var(--color-seam-strong)' : 'var(--color-seam)' }}" stroke-width="0.45" />
-                    @endfor
-                    @if ($frac !== null)
-                        <line x1="{{ $frac * 100 }}" y1="0" x2="{{ $frac * 100 }}" y2="8" stroke="var(--color-action)" stroke-width="0.9" />
-                    @endif
-                </svg>
-                <div class="data-micro flex justify-between text-ink-faint">
-                    <span>0</span>
-                    <span title="{{ $calorieTarget['basis'] ?? '' }}">
-                        {{ number_format($scaleMax, 0, '', '') }}
-                    </span>
+            <div class="-mx-5 mt-4 border-t border-seam px-5 pt-3">
+                <div class="flex items-baseline justify-between gap-3">
+                    <h3 class="silkscreen">Today</h3>
+                    <p class="flex items-baseline gap-2">
+                        <span wire:key="kcal-{{ $kcal ?? 'none' }}"
+                              class="value-settle data-xl {{ $today['has_data'] && $kcal !== null ? 'text-ink' : 'text-ink-faint' }}"
+                              aria-label="{{ $kcal !== null ? number_format((float) $kcal).' kilocalories today' : 'No calories logged yet today' }}">{{ $kcal !== null ? number_format((float) $kcal, 0, '', '') : '----' }}</span>
+                        <span class="data-sm text-ink-dim">KCAL</span>
+                    </p>
+                </div>
+
+                {{-- Calibrated to YOUR daily calorie target; geometry only. --}}
+                <div class="mt-2" role="img" aria-label="{{ $kcal !== null ? 'Scale reading '.number_format((float) $kcal).' of your '.number_format($scaleMax).' kilocalorie target' : 'Scale idle' }}">
+                    <svg viewBox="0 0 100 8" preserveAspectRatio="none" class="h-4 w-full" aria-hidden="true">
+                        @for ($i = 0; $i <= 50; $i++)
+                            <line x1="{{ $i * 2 }}" y1="{{ $i % 5 === 0 ? 0.5 : 2.5 }}" x2="{{ $i * 2 }}" y2="7.5"
+                                  stroke="{{ $frac !== null && $i * 2 <= $frac * 100 ? 'var(--color-seam-strong)' : 'var(--color-seam)' }}" stroke-width="0.45" />
+                        @endfor
+                        @if ($frac !== null)
+                            <line x1="{{ $frac * 100 }}" y1="0" x2="{{ $frac * 100 }}" y2="8" stroke="var(--color-action)" stroke-width="0.9" />
+                        @endif
+                    </svg>
+                    <div class="data-micro flex justify-between text-ink-faint">
+                        <span>0</span>
+                        <span title="{{ $calorieTarget['basis'] ?? '' }}">
+                            {{ number_format($scaleMax, 0, '', '') }}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            {{-- Protein / Carbs / Fat / Fibre — carbs and fibre are first-class
-                 citizens of the readout (spec §6, §8). Meters run against each
-                 nutrient's own target; unknown reads as a gap, never a zero. --}}
+            {{-- Protein / Carbs / Fat / Fibre — first-class citizens of the
+                 readout (spec §6, §8). Meters run against each nutrient's own
+                 target; unknown reads as a gap, never a zero. --}}
             @if ($today['has_data'])
-            @php($cluster = collect(['protein' => 'Protein', 'carbs' => 'Carbs', 'fat' => 'Fat', 'fibre' => 'Fibre'])
-                ->map(fn ($label, $key) => [
-                    'label' => $label,
-                    'value' => $today['totals'][$key],
-                    'target' => (float) ($today['targets'][$key]['target'] ?? 0),
-                ]))
-            <div class="-mx-5 mt-4 grid grid-cols-4 divide-x divide-seam border-t border-seam" aria-label="Protein, carbs, fat and fibre today">
-                @foreach ($cluster as $m)
-                    <div class="px-3 py-3.5">
-                        <h3 class="silkscreen">{{ $m['label'] }}</h3>
-                        <p class="data-lg mt-1.5 text-ink">
-                            {{ $m['value'] === null ? '—' : rtrim(rtrim(number_format((float) $m['value'], 1), '0'), '.') }}<span class="data-micro text-ink-dim">g</span>
-                        </p>
-                        <div class="meter mt-2.5" title="{{ $m['target'] > 0 ? 'of '.rtrim(rtrim(number_format($m['target'], 1), '0'), '.').'g' : '' }}">
-                            <span style="width: {{ $m['value'] !== null && $m['target'] > 0 ? round(min((float) $m['value'] / $m['target'], 1) * 100) : 0 }}%"></span>
+                @php($cluster = collect(['protein' => 'Protein', 'carbs' => 'Carbs', 'fat' => 'Fat', 'fibre' => 'Fibre'])
+                    ->map(fn ($label, $key) => [
+                        'label' => $label,
+                        'value' => $today['totals'][$key],
+                        'target' => (float) ($today['targets'][$key]['target'] ?? 0),
+                    ]))
+                <div class="-mx-5 mt-4 grid grid-cols-4 divide-x divide-seam border-t border-seam" aria-label="Protein, carbs, fat and fibre today">
+                    @foreach ($cluster as $m)
+                        <div class="px-3 py-3.5">
+                            <h3 class="silkscreen">{{ $m['label'] }}</h3>
+                            <p class="data-lg mt-1.5 text-ink">
+                                {{ $m['value'] === null ? '—' : rtrim(rtrim(number_format((float) $m['value'], 1), '0'), '.') }}<span class="data-micro text-ink-dim">g</span>
+                            </p>
+                            <div class="meter mt-2.5" title="{{ $m['target'] > 0 ? 'of '.rtrim(rtrim(number_format($m['target'], 1), '0'), '.').'g' : '' }}">
+                                <span style="width: {{ $m['value'] !== null && $m['target'] > 0 ? round(min((float) $m['value'] / $m['target'], 1) * 100) : 0 }}%"></span>
+                            </div>
                         </div>
-                    </div>
-                @endforeach
-            </div>
-            <p class="data-sm -mx-5 border-t border-seam px-5 pt-3 text-ink-faint uppercase">
-                {{ $today['food_variety'] }} {{ $today['food_variety'] === 1 ? 'food' : 'foods' }} logged{{ $lastLoggedAt ? ' · last '.\Illuminate\Support\Carbon::parse($lastLoggedAt)->format('H:i') : '' }}
-            </p>
-            @else
-                <p class="voice-body mt-4 border-t border-seam pt-3 text-ink-dim">
-                    Nothing logged yet.
+                    @endforeach
+                </div>
+                <p class="data-sm -mx-5 border-t border-seam px-5 pt-3 text-ink-faint uppercase">
+                    {{ $today['food_variety'] }} {{ $today['food_variety'] === 1 ? 'food' : 'foods' }} logged{{ $lastLoggedAt ? ' · last '.\Illuminate\Support\Carbon::parse($lastLoggedAt)->format('H:i') : '' }}
                 </p>
             @endif
+
+            {{-- 3 · THE WEEK — the same instrument's rolling band: score trace
+                 over the logging streak, day-aligned. --}}
+            <div class="-mx-5 mt-4 border-t border-seam px-5 pt-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="silkscreen">Last 7 days</h3>
+                    <p class="data-md text-ink">
+                        {{ str_pad((string) $daysLogged, 2, '0', STR_PAD_LEFT) }}<span class="text-ink-faint">/07</span>
+                        <span class="data-sm ml-1 text-ink-dim uppercase">logged</span>
+                    </p>
+                </div>
+                @if (collect($trace)->contains(fn ($d) => $d['score'] !== null))
+                    <div class="mt-3 grid h-9 grid-cols-7 items-end gap-1.5" role="img"
+                         aria-label="Foody Score for the last seven days">
+                        @foreach ($trace as $day)
+                            @if ($day['score'] !== null)
+                                <div class="w-full rounded-t-[2px] bg-seam-strong" style="height: {{ max(8, $day['score']) }}%"
+                                     title="{{ $day['date'] }}: {{ $day['score'] }}"></div>
+                            @else
+                                <div class="w-full self-end border-t border-seam" title="{{ $day['date'] }}: no score"></div>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+                <div class="mt-2.5 grid grid-cols-7 justify-items-center gap-1.5" aria-hidden="true">
+                    @foreach ($trace as $day)
+                        <span class="led {{ $day['has_data'] ? 'led-on' : '' }}"></span>
+                    @endforeach
+                </div>
+            </div>
         </section>
 
         {{-- 4 · SIGNALS — at most three, normally one or two, silent on a
              quiet day. Lazy island: the page never waits for wording. --}}
         <livewire:score-signals />
-
-        {{-- 5 · ROLLING CONTEXT — the week at a glance: score trace above,
-             logging streak below, aligned day by day. --}}
-        <section class="module px-5 py-3.5">
-            <div class="flex items-center justify-between">
-                <h2 class="silkscreen">Last 7 days</h2>
-                <p class="data-md text-ink">
-                    {{ str_pad((string) $daysLogged, 2, '0', STR_PAD_LEFT) }}<span class="text-ink-faint">/07</span>
-                    <span class="data-sm ml-1 text-ink-dim uppercase">logged</span>
-                </p>
-            </div>
-            @if (collect($trace)->contains(fn ($d) => $d['score'] !== null))
-                <div class="mt-3 grid h-9 grid-cols-7 items-end gap-1.5" role="img"
-                     aria-label="Foody Score for the last seven days">
-                    @foreach ($trace as $day)
-                        @if ($day['score'] !== null)
-                            <div class="w-full rounded-t-[2px] bg-seam-strong" style="height: {{ max(8, $day['score']) }}%"
-                                 title="{{ $day['date'] }}: {{ $day['score'] }}"></div>
-                        @else
-                            <div class="w-full self-end border-t border-seam" title="{{ $day['date'] }}: no score"></div>
-                        @endif
-                    @endforeach
-                </div>
-            @endif
-            <div class="mt-2.5 grid grid-cols-7 justify-items-center gap-1.5" aria-hidden="true">
-                @foreach ($trace as $day)
-                    <span class="led {{ $day['has_data'] ? 'led-on' : '' }}"></span>
-                @endforeach
-            </div>
-        </section>
 
         {{-- 6 · ACTION — logging is one tap from the front panel: SCAN owns
              the nav's centre key; every other meal goes through Log. --}}

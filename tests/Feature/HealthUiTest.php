@@ -75,10 +75,13 @@ class HealthUiTest extends TestCase
 
     public function test_home_shows_empty_snapshot_without_data(): void
     {
+        // A brand-new user: the kcal readout sits idle (----, never a zero)
+        // and the read explains the score is still building.
         $this->actingAs($this->user)->get('/home')
             ->assertOk()
             ->assertSee('Today')
-            ->assertSee('Nothing logged yet');
+            ->assertSee('----')
+            ->assertSee('firm read');
     }
 
     public function test_health_shows_weekly_averages_variety_and_trend(): void

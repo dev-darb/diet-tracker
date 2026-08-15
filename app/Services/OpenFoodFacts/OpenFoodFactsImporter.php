@@ -64,7 +64,10 @@ class OpenFoodFactsImporter
                 // OFF's most specific category tag, in plain words — feeds
                 // fruit-&-veg portions and plant-diversity classification.
                 'category' => $this->limit($product->category()),
-                'primary_image_path' => null,
+                // OFF's front-of-pack photo (their CDN, hotlink-safe): food
+                // imagery is functional UI — pantry rows and result cards
+                // show the food, not a glyph, whenever an image exists.
+                'primary_image_path' => $this->urlOrNull($product->imageUrl),
             ]);
 
             $version = $canonical->versions()->create([
@@ -136,6 +139,12 @@ class OpenFoodFactsImporter
         }
 
         return [$valueKey => null, $unitKey => null];
+    }
+
+    /** A URL either fits its varchar(255) column intact or is dropped — never truncated into a broken link. */
+    private function urlOrNull(?string $url): ?string
+    {
+        return $url !== null && mb_strlen($url) <= 255 ? $url : null;
     }
 
     /** Truncate a third-party string to fit its column (multibyte-safe). */

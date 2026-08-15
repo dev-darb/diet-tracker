@@ -27,6 +27,7 @@ final class OffProduct
         public readonly ?string $ingredientsText,
         public readonly array $allergens,
         public readonly array $categories,
+        public readonly ?string $imageUrl,
         private readonly array $nutriments,
     ) {}
 
@@ -45,6 +46,7 @@ final class OffProduct
             ingredientsText: self::string($product['ingredients_text'] ?? null),
             allergens: self::allergens($product['allergens_tags'] ?? []),
             categories: self::categories($product['categories_tags'] ?? []),
+            imageUrl: self::imageUrl($product),
             nutriments: is_array($product['nutriments'] ?? null) ? $product['nutriments'] : [],
         );
     }
@@ -177,6 +179,26 @@ final class OffProduct
 
             return self::string(str_replace('-', ' ', strtolower((string) end($parts))));
         }, $tags)));
+    }
+
+    /**
+     * The front-of-pack photo URL from OFF's CDN — the small rendition where
+     * available (row-scale imagery needs ~200px, not the 400px original).
+     * Food imagery is functional UI, not decoration; null stays null.
+     *
+     * @param  array<string, mixed>  $product
+     */
+    private static function imageUrl(array $product): ?string
+    {
+        foreach (['image_front_small_url', 'image_front_url', 'image_small_url', 'image_url'] as $key) {
+            $url = self::string($product[$key] ?? null);
+
+            if ($url !== null && str_starts_with($url, 'https://')) {
+                return $url;
+            }
+        }
+
+        return null;
     }
 
     private static function string(mixed $value): ?string

@@ -225,19 +225,19 @@ Roles are tokenized classes in `resources/css/app.css`; views never set raw size
 ### Named Rules
 **The Measured/Spoken Rule.** If it's measured, it's mono; if it's spoken, it's grotesk. No number ever renders in Archivo; no sentence ever renders in Fragment Mono.
 
-**The One Readout Rule.** DSEG7 appears exactly once in the app: the Home kcal master readout. A second seven-segment element anywhere devalues the gauge.
+**The One Readout Rule.** DSEG7 appears exactly once in the app: the Home **Foody Score** master readout (distill, Aug 2026 — the score is the number the product exists to give; kcal demoted to the screen's `data-xl` mono value). The share card reprints the same reading — one gauge, shown twice, never a second instrument. Any other seven-segment element devalues the gauge.
 
 ## Layout
 
 A mobile-first single column: `max-w-md` centered on the chassis (seam-edged with `md:border-x` on wider viewports), full-height flex shell. Sticky top status bar (orange live dot + user's first name + FOODY silkscreen, date, profile key; seam-bottomed, `bg-chassis/95` + backdrop-blur) and a fixed bottom control strip with safe-area-inset padding; main content gets `px-4 pt-4 pb-32` clearance.
 
-**The Faceplate Rule.** Readings that belong to one instrument share one plate, divided internally by seams (`divide-x`/`divide-y`, edge-to-edge via negative margins) — never a stack of adjacent cards. Home's TODAY cluster (readout + scale + macro row + provenance footer) and Health's THIS WEEK cluster (average + sparkline + metric grid + counters row) are the canonical faceplates. One hero cluster per screen.
+**The Faceplate Rule.** Readings that belong to one instrument share one plate, divided internally by seams (`divide-x`/`divide-y`, edge-to-edge via negative margins) — never a stack of adjacent cards. Home's faceplate (distill, Aug 2026) is the canonical example: score → spoken read → TODAY band (kcal `data-xl` + calibrated scale) → macro cluster → LAST 7 DAYS band, all one plate. Health's THIS WEEK cluster (average + sparkline + metric grid + counters row) is the other. One hero cluster per screen.
 
 **The Band Rhythm.** The page stacks in functional bands — MEASURE → ASSESS → MOTIVATE/GUIDE — on a two-step cadence: 8px pairs modules within a band (wrapper `space-y-2` or `-mt-3` against a 20px stack), 20px separates bands (root `space-y-5`); 12px remains the interior content rhythm only. A constant gap between all modules is the card-soup tell this rule exists to prevent.
 
 **The Recessed Bay Rule.** Standby, empty, and not-yet-powered regions render as recessed wells (`bg-plate-well`, seam border, no plate) — an unpowered slot in the face, never a full module pretending to hold content.
 
-**Panel printing.** A sparse operative surface carries silkscreened panel material — process steps (01/02/03 rows), capability lines — printed as seam-divided module footers, the way hardware prints its diagrams; content, never decoration.
+**Panel printing — RETIRED (distill, Aug 2026).** Process-step diagrams (01/02/03 rows) and capability engravings are gone: empty states are recessed bays carrying one spoken line, and the machine explains itself by behaving, not by printing its own manual. Capability footers that survive (e.g. the scanner's ON-DEVICE BARCODE READER line) state provenance, never process.
 
 Density is instrument-panel tight: rows at ~10px vertical padding, silkscreen label flush top-left; multi-value regions divide with seam hairlines rather than nesting cards.
 
@@ -251,6 +251,10 @@ No ambient shadows anywhere. Depth is conveyed by material tone (well → plate 
 ## Shapes
 
 Machined, small-radius geometry: 6px on plates and keys, 5px on recessed wells, 4px on chips, 2px on LED cells and meter tracks. Nothing is pill-shaped or fully round except two tiny status dots (live dot, barcode lamp). Corners never exceed 6px. Recurring silhouettes: the seam-bordered plate, the raised key, the 10px square LED cell, the 3px meter strip, viewfinder corner brackets drawn as stroked SVG paths. Charts are quantized — sparkline bars render as stacked LED cells, the kcal scale as engraved tick marks — never smooth gradient fills.
+
+**Food Imagery Is Functional UI (distill, Aug 2026).** The food itself is interface, never decoration: the capture the phone just shot is the HERO of its scan result card (edge-to-edge, aspect 5/3; compact in shopping mode); pantry rows lead with the product's own OFF photo at row scale (`size-9`, well-backed); a quiet mono monogram in a well stands in where no image exists — never a generic food glyph pretending. Imagery earns its place by identifying, and it degrades to typography, not to broken frames.
+
+**Time Is a Signal (distill, Aug 2026).** Expiry renders as a data value in the row's measured cluster (`data-micro`, uppercase: `5D LEFT` / `USE TODAY` / `PAST BEST`), shown only inside a week of relevance, amber only when imminent (≤1 day). Never an alarm, a badge, or a modal.
 
 ## Components
 
