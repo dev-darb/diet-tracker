@@ -16,6 +16,8 @@ enum PrimaryGoal: string
     case LoseWeight = 'lose_weight';
     case GainMuscle = 'gain_muscle';
     case Recomp = 'recomp';
+    case Performance = 'performance';
+    case GutHealth = 'gut_health';
 
     public function label(): string
     {
@@ -26,6 +28,8 @@ enum PrimaryGoal: string
             self::LoseWeight => 'Lose weight',
             self::GainMuscle => 'Gain weight or muscle',
             self::Recomp => 'Build muscle, lose fat',
+            self::Performance => 'Perform and endure',
+            self::GutHealth => 'Look after my gut',
         };
     }
 
@@ -38,6 +42,25 @@ enum PrimaryGoal: string
             self::LoseWeight => 'Gentle, sustainable guidance towards a lower weight.',
             self::GainMuscle => 'Support for building muscle and gaining weight.',
             self::Recomp => 'Recomposition: train at maintenance with high protein.',
+            self::Performance => 'Fuel training and endurance with carbs as a priority.',
+            self::GutHealth => 'Fibre, plants and variety take the front seat.',
+        };
+    }
+
+    /**
+     * The Foody Score goal-profile key this goal scores under (spec §4).
+     * Several product goals share a scoring profile; the profile decides
+     * pillar weights, curves and macro subweights in config/foody_score.php.
+     */
+    public function scoreProfile(): string
+    {
+        return match ($this) {
+            self::EatHealthier, self::UnderstandDiet, self::MaintainWeight => 'general_health',
+            self::LoseWeight => 'fat_loss',
+            self::GainMuscle => 'muscle_gain',
+            self::Recomp => 'recomp',
+            self::Performance => 'performance',
+            self::GutHealth => 'gut_health',
         };
     }
 

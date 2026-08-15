@@ -35,11 +35,17 @@ return [
         'moderation' => [0.10, 0.25],
     ],
 
-    // Keyed by App\Enums\PrimaryGoal values (audited against the live enum).
+    /*
+    | Keyed by SCORE PROFILE (PrimaryGoal::scoreProfile() maps the product's
+    | eight goals onto these six). `recomp` is a documented deviation: the
+    | spec's five profiles don't cover the existing Recomp goal, so it scores
+    | as muscle-gain macro emphasis at maintenance-style energy.
+    */
     'goal_profiles' => [
         'general_health' => ['energy' => 20, 'macro' => 20, 'fibre_plants' => 20, 'micronutrients' => 20, 'moderation' => 20],
         'fat_loss' => ['energy' => 25, 'macro' => 25, 'fibre_plants' => 17, 'micronutrients' => 17, 'moderation' => 16],
         'muscle_gain' => ['energy' => 25, 'macro' => 30, 'fibre_plants' => 15, 'micronutrients' => 15, 'moderation' => 15],
+        'recomp' => ['energy' => 22, 'macro' => 28, 'fibre_plants' => 17, 'micronutrients' => 17, 'moderation' => 16],
         'performance' => ['energy' => 25, 'macro' => 30, 'fibre_plants' => 15, 'micronutrients' => 15, 'moderation' => 15],
         'gut_health' => ['energy' => 15, 'macro' => 15, 'fibre_plants' => 35, 'micronutrients' => 20, 'moderation' => 15],
     ],
@@ -55,6 +61,7 @@ return [
         'general_health' => ['full' => [0.95, 1.05], 'sigma' => [0.15, 0.15]],
         'fat_loss' => ['full' => [0.90, 1.05], 'sigma' => [0.20, 0.12]],
         'muscle_gain' => ['full' => [0.95, 1.10], 'sigma' => [0.12, 0.20]],
+        'recomp' => ['full' => [0.95, 1.05], 'sigma' => [0.15, 0.15]],
         'performance' => ['full' => [0.95, 1.10], 'sigma' => [0.15, 0.18]],
         'gut_health' => ['full' => [0.95, 1.05], 'sigma' => [0.15, 0.15]],
     ],
@@ -69,6 +76,7 @@ return [
             'gut_health' => [0.90, 1.15],
             'muscle_gain' => [0.95, 1.20],
             'fat_loss' => [0.95, 1.20],
+            'recomp' => [0.95, 1.20],
             'performance' => [0.90, 1.15],
         ],
         'carbs' => [
@@ -76,6 +84,7 @@ return [
             'gut_health' => [0.80, 1.20],
             'fat_loss' => [0.80, 1.20],
             'muscle_gain' => [0.85, 1.15],
+            'recomp' => [0.85, 1.15],
             'performance' => [0.90, 1.10],
         ],
         'fat' => [
@@ -88,6 +97,7 @@ return [
             'gut_health' => ['protein' => 0.35, 'carbs' => 0.35, 'fat' => 0.30],
             'fat_loss' => ['protein' => 0.45, 'carbs' => 0.27, 'fat' => 0.28],
             'muscle_gain' => ['protein' => 0.45, 'carbs' => 0.32, 'fat' => 0.23],
+            'recomp' => ['protein' => 0.47, 'carbs' => 0.28, 'fat' => 0.25],
             'performance' => ['protein' => 0.33, 'carbs' => 0.45, 'fat' => 0.22],
         ],
         // Manual macro-goal edits multiply the base subweight by the ratio of

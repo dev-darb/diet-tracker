@@ -44,6 +44,9 @@ class NutritionTargetsService
     /** UK Eatwell reference intake for saturated fat ("less than"). */
     public const SATURATED_FAT_CAP_G = 20.0;
 
+    /** UK food-label reference intake for TOTAL sugars ("no more than"). */
+    public const TOTAL_SUGARS_RI_G = 90.0;
+
     /** NHS maximum salt for adults. */
     public const SALT_CAP_G = 6.0;
 
@@ -101,6 +104,8 @@ class NutritionTargetsService
         'lose_weight' => 0.85,
         'gain_muscle' => 1.10,
         'recomp' => 1.0, // recomposition trains AT maintenance; protein does the work
+        'performance' => 1.05, // modest surplus to fuel training volume
+        'gut_health' => 1.0,
     ];
 
     /**
@@ -114,6 +119,24 @@ class NutritionTargetsService
         'gain_muscle' => 1.8,
         'lose_weight' => 1.6,
         'recomp' => 2.0, // upper evidence range: simultaneous muscle gain + fat loss
+        'performance' => 1.4, // endurance-athlete consensus range
+    ];
+
+    /**
+     * Carb/fat energy split by goal, as fractions of the calorie target
+     * (4 kcal/g carbs, 9 kcal/g fat). Mainstream reference splits: ~50%
+     * carbohydrate energy and ≤35% fat energy for general health (UK Eatwell),
+     * carbs raised for performance fuelling, eased where a deficit
+     * prioritises protein.
+     *
+     * @var array<string, array{carbs: float, fat: float}>
+     */
+    public const MACRO_ENERGY_SPLIT = [
+        'default' => ['carbs' => 0.50, 'fat' => 0.30],
+        'performance' => ['carbs' => 0.55, 'fat' => 0.27],
+        'gain_muscle' => ['carbs' => 0.50, 'fat' => 0.27],
+        'recomp' => ['carbs' => 0.45, 'fat' => 0.28],
+        'lose_weight' => ['carbs' => 0.45, 'fat' => 0.30],
     ];
 
     public const PROTEIN_G_PER_KG_DEFAULT = 1.2;
@@ -132,12 +155,25 @@ class NutritionTargetsService
     {
         $profile = $user->profile;
 
+        $calories = $this->withOverride($this->calories($profile), $profile?->custom_calorie_target, 'kcal');
+        $protein = $this->withOverride($this->protein($profile), $profile?->custom_protein_g, 'g');
+
         return [
-            'calories' => $this->calories($profile),
-            'protein' => $this->protein($profile),
+            'calories' => $calories,
+            'protein' => $protein,
+            'carbs' => $this->withOverride($this->energySplitTarget($profile, $calories, 'carbs', 4.0, 'Carbs'), $profile?->custom_carbs_g, 'g'),
+            'fat' => $this->withOverride($this->energySplitTarget($profile, $calories, 'fat', 9.0, 'Fat'), $profile?->custom_fat_g, 'g'),
             'fibre' => [
                 'target' => self::FIBRE_G, 'unit' => 'g', 'direction' => 'higher', 'label' => 'Fibre',
                 'basis' => 'UK SACN recommendation (~30 g/day)', 'personalised' => false,
+            ],
+            // Documented deviation from the Foody Score spec's "free sugars":
+            // the schema tracks TOTAL sugars only, so moderation scores against
+            // the UK label reference intake for total sugars (90 g/day) rather
+            // than fabricating a free-sugars figure we don't have.
+            'sugars' => [
+                'target' => self::TOTAL_SUGARS_RI_G, 'unit' => 'g', 'direction' => 'lower', 'label' => 'Sugars',
+                'basis' => 'UK label reference intake (90 g/day total sugars)', 'personalised' => false,
             ],
             'saturated_fat' => [
                 'target' => self::SATURATED_FAT_CAP_G, 'unit' => 'g', 'direction' => 'lower', 'label' => 'Saturated fat',
@@ -252,6 +288,57 @@ class NutritionTargetsService
             'unit' => 'g', 'direction' => 'higher', 'label' => 'Protein',
             'basis' => "{$perKg} g/kg x {$weight} kg — {$goalNote}",
             'personalised' => true,
+        ];
+    }
+
+    /**
+     * Carb/fat gram targets derived from the calorie target via the goal's
+     * energy split. Inherits the calorie target's personalisation.
+     *
+     * @param  array{target: float, unit: string, direction: string, label: string, basis: string, personalised: bool}  $calories
+     * @return array{target: float, unit: string, direction: string, label: string, basis: string, personalised: bool}
+     */
+    private function energySplitTarget(?UserProfile $profile, array $calories, string $key, float $kcalPerGram, string $label): array
+    {
+        $goal = $profile?->primary_goal?->value;
+        $split = self::MACRO_ENERGY_SPLIT[$goal] ?? self::MACRO_ENERGY_SPLIT['default'];
+        $fraction = $split[$key];
+
+        $grams = round($calories['target'] * $fraction / $kcalPerGram / 5) * 5;
+        $pct = (int) round($fraction * 100);
+
+        return [
+            'target' => max(5.0, $grams), 'unit' => 'g', 'direction' => 'target', 'label' => $label,
+            'basis' => "~{$pct}% of your {$calories['target']} kcal target as {$label}",
+            'personalised' => $calories['personalised'],
+        ];
+    }
+
+    /**
+     * Explicit manual targets become the scoring targets (Foody Score spec
+     * §4). The receipt says so — provenance stays first-class.
+     *
+     * The derived (profile-default) figure is kept alongside as `default` so
+     * the score engine can weigh how far the user's own target sits from the
+     * profile baseline (manual subweight ratio, spec §4).
+     *
+     * @param  array{target: float, unit: string, direction: string, label: string, basis: string, personalised: bool}  $derived
+     * @return array{target: float, unit: string, direction: string, label: string, basis: string, personalised: bool, explicit?: bool, default?: float}
+     */
+    private function withOverride(array $derived, float|int|null $custom, string $unit): array
+    {
+        if ($custom === null || (float) $custom <= 0) {
+            return $derived;
+        }
+
+        return [
+            ...$derived,
+            'target' => (float) $custom,
+            'unit' => $unit,
+            'basis' => 'Your own target, set in Profile',
+            'personalised' => true,
+            'explicit' => true,
+            'default' => $derived['target'],
         ];
     }
 }
