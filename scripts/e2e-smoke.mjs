@@ -56,28 +56,36 @@ const dupes = health.scripts.filter((s, i) => health.scripts.indexOf(s) !== i);
 dupes.length === 0 ? ok('no duplicated scripts') : fail(`duplicated scripts: ${dupes.join(', ')}`);
 health.components > 0 ? ok(`${health.components} live Livewire component(s)`) : fail('no live Livewire components — page is inert');
 
-// ---- scan: barcode fast path (detection stubbed) ----
+// ---- scan: the pipelined scanner (capture drop-box + results stack) ----
 await page.click('a[href*=scan]');
 await page.waitForTimeout(1500);
-await page.evaluate(() => { window.detectBarcode = async () => '5000159407236'; });
-await page.setInputFiles('input[type=file]', { name: 'p.jpg', mimeType: 'image/jpeg', buffer: JPEG });
-await page.waitForTimeout(2500);
-(await page.isVisible('button:has-text("Identify product")')) ? ok('Identify button appeared') : fail('Identify button missing');
+(await page.isVisible('text=Scan')) ? ok('scanner rendered') : fail('scanner missing');
 
-await page.click('button:has-text("Identify product")');
-await page.waitForTimeout(5000);
-if (await page.isVisible('text=Is this right?')) {
-    ok('confirm step reached');
-    await page.click('button:has-text("Yes, add it")');
-    await page.waitForTimeout(1200);
-    await page.click('button:has-text("Add to pantry")');
-    await page.waitForTimeout(2500);
-    (await page.isVisible('text=Added to')) ? ok('added to pantry') : fail('done step missing');
-} else if (await page.isVisible('text=confidently identify')) {
-    // Open Food Facts unreachable in this environment — the flow still worked.
-    ok('scan resolved to the needs-research fallback (OFF unreachable?) — flow alive');
+// A barcode capture POSTs to the drop-box and settles in the background; the
+// results stack polls it in. XSRF cookie carries the token for in-page fetch.
+const status = await page.evaluate(async () => {
+    const token = decodeURIComponent((document.cookie.match(/XSRF-TOKEN=([^;]+)/) || [])[1] || '');
+    const form = new FormData();
+    form.append('barcode', '5000159407236');
+    const res = await fetch('/scan/captures', {
+        method: 'POST',
+        headers: { 'X-XSRF-TOKEN': token, Accept: 'application/json' },
+        body: form,
+    });
+    return res.status;
+});
+status === 201 ? ok('capture accepted by the drop-box') : fail(`capture POST returned ${status}`);
+
+await page.waitForTimeout(8000); // poll interval + background settle
+if (await page.isVisible('text=IN PANTRY')) {
+    ok('capture auto-added via the provenance gate');
+} else if (await page.isVisible('text=IDENTIFY THIS YET')) {
+    // Open Food Facts unreachable in this environment — settled honestly.
+    ok('capture settled as unknown (OFF unreachable?) — pipeline alive');
+} else if (await page.isVisible('text=IDENTIFYING')) {
+    ok('capture visible and in flight (no worker running) — pipeline alive');
 } else {
-    fail('scan did not reach confirm or fallback');
+    fail('capture never appeared in the results stack');
 }
 
 problems.length === 0 ? ok('no browser warnings/errors') : fail(`browser problems: ${problems.slice(0, 3).join(' | ')}`);
