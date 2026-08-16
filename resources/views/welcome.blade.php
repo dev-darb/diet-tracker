@@ -1,36 +1,55 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>{{ config('app.name') }}</title>
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
-        @vite(['resources/css/app.css'])
+        @include('partials.head')
     </head>
-    <body class="min-h-dvh bg-plate-well text-ink antialiased">
-        <div class="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-plate px-6 py-10 shadow-sm ring-1 ring-seam">
-            <div class="flex flex-1 flex-col justify-center">
-                <span class="flex size-12 items-center justify-center rounded-2xl bg-emerald-600 text-lg font-semibold text-white">f</span>
-                <h1 class="mt-6 text-3xl font-semibold leading-tight tracking-tight text-ink">
-                    Know what you buy, eat, and how it adds up.
-                </h1>
-                <p class="mt-3 text-base leading-relaxed text-ink-dim">
-                    Scan your groceries, keep track of what's in your pantry, log what you eat,
-                    and get calm, useful guidance about your diet.
-                </p>
+    {{-- The front door: the machine at rest, before it knows whose kitchen it
+         is. Same chassis, same seams, same orange key — so signing in feels
+         like stepping into the room you were just looking at. --}}
+    <body class="min-h-dvh bg-chassis text-ink antialiased">
+        <div class="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-8">
+            <div class="flex items-center gap-2 px-1 py-2">
+                <span class="size-2 rounded-full bg-action" aria-hidden="true"></span>
+                {{-- The brand, not APP_NAME: the env var is infrastructure. Same
+                     literal as the app shell so the door matches the room. --}}
+                <span class="silkscreen !text-ink">foody</span>
             </div>
 
-            <div class="space-y-3">
-                <a href="{{ route('register') }}"
-                   class="block w-full rounded-xl bg-emerald-600 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-700">
-                    Create an account
-                </a>
-                <a href="{{ route('login') }}"
-                   class="block w-full rounded-xl border border-seam bg-plate px-4 py-3 text-center text-sm font-semibold text-ink-dim transition hover:bg-plate-well">
-                    Log in
-                </a>
-                <p class="pt-2 text-center text-xs text-ink-faint">General nutrition guidance, not medical advice.</p>
+            <div class="flex flex-1 flex-col justify-center">
+                <div class="module px-5 pb-5 pt-4">
+                    <h2 class="silkscreen">What it does</h2>
+                    <h1 class="voice-title mt-3 text-ink">
+                        Know what you buy, what you eat, and how it adds up.
+                    </h1>
+                    <p class="voice-body mt-2 text-ink-dim">
+                        Scan a shop into your pantry, log what you actually eat, and get one
+                        honest read on the day — grounded in your own kitchen.
+                    </p>
+
+                    {{-- The loop, stated as the machine's three stations. --}}
+                    <div class="-mx-5 mt-5 grid grid-cols-3 divide-x divide-seam border-t border-seam">
+                        <div class="px-4 py-3">
+                            <x-app.icon name="camera" class="size-4 text-ink-faint" />
+                            <p class="voice-micro mt-1.5 text-ink-dim">Scan it</p>
+                        </div>
+                        <div class="px-4 py-3">
+                            <x-app.icon name="fork" class="size-4 text-ink-faint" />
+                            <p class="voice-micro mt-1.5 text-ink-dim">Eat it</p>
+                        </div>
+                        <div class="px-4 py-3">
+                            <x-app.icon name="pulse" class="size-4 text-ink-faint" />
+                            <p class="voice-micro mt-1.5 text-ink-dim">See the day</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <x-app.console-key primary :href="route('register')">Create an account</x-app.console-key>
+                <x-app.console-key :href="route('login')">Log in</x-app.console-key>
+                <p class="voice-micro pt-2 text-center text-ink-faint">
+                    General nutrition guidance, not medical advice.
+                </p>
             </div>
         </div>
     </body>

@@ -72,45 +72,31 @@ new #[Layout('components.layouts.auth')] class extends Component {
     }
 }; ?>
 
-<div class="flex flex-col gap-6">
-    <x-auth-header title="Log in to your account" description="Enter your email and password below to log in" />
+<div class="flex flex-col gap-5">
+    <x-auth-header title="Log in" description="Your kitchen, where you left it." />
 
-    <!-- Session Status -->
-    <x-auth-session-status class="text-center" :status="session('status')" />
+    <x-auth-session-status :status="session('status')" />
 
-    <form wire:submit="login" class="flex flex-col gap-6">
-        <!-- Email Address -->
-        <flux:input wire:model="email" label="{{ __('Email address') }}" type="email" name="email" required autofocus autocomplete="email" placeholder="email@example.com" />
+    <form wire:submit="login" class="flex flex-col gap-4">
+        <x-app.field label="Email" name="email" type="email" model="email" required autofocus autocomplete="email" />
 
-        <!-- Password -->
-        <div class="relative">
-            <flux:input
-                wire:model="password"
-                label="{{ __('Password') }}"
-                type="password"
-                name="password"
-                required
-                autocomplete="current-password"
-                placeholder="Password"
-            />
+        <x-app.field label="Password" name="password" type="password" model="password" required autocomplete="current-password" />
 
-            @if (Route::has('password.request'))
-                <x-text-link class="absolute right-0 top-0" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </x-text-link>
-            @endif
-        </div>
+        {{-- A binary state in the world's own device: an unlit cell that
+             lights when it's on. The browser's default box is off-world. --}}
+        <label class="flex items-center gap-2.5">
+            <input type="checkbox" wire:model="remember"
+                   class="size-4 shrink-0 appearance-none rounded-[2px] border border-seam-strong bg-plate-well transition checked:border-action checked:bg-action">
+            <span class="voice-caption text-ink-dim">Stay logged in</span>
+        </label>
 
-        <!-- Remember Me -->
-        <flux:checkbox wire:model="remember" label="{{ __('Remember me') }}" />
-
-        <div class="flex items-center justify-end">
-            <flux:button variant="primary" type="submit" class="w-full">{{ __('Log in') }}</flux:button>
-        </div>
+        <x-app.console-key primary type="submit">Log in</x-app.console-key>
     </form>
 
-    <div class="space-x-1 text-center text-sm text-zinc-600 dark:text-zinc-400">
-        Don't have an account?
-        <x-text-link href="{{ route('register') }}">Sign up</x-text-link>
+    <div class="flex items-center justify-between gap-3 border-t border-seam pt-3">
+        <x-text-link href="{{ route('register') }}">Create an account</x-text-link>
+        @if (Route::has('password.request'))
+            <x-text-link href="{{ route('password.request') }}">Forgot password?</x-text-link>
+        @endif
     </div>
 </div>

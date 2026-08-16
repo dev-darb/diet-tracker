@@ -28,37 +28,32 @@ new class extends Component {
     }
 }; ?>
 
-<section class="mt-10 space-y-6">
-    <div class="relative mb-5">
-        <flux:heading>{{ __('Delete Account') }}</flux:heading>
-        <flux:subheading>{{ __('Delete your account and all of its resources') }}</flux:subheading>
+{{-- Deleting an account is the one act that cannot be undone, so it is the
+     one place a blocking confirm is genuinely protective (the undo grammar
+     covers everything reversible). A disclosure, not a modal: the console
+     has no modal vocabulary. --}}
+<div x-data="{ confirming: false }">
+    <h2 class="silkscreen">Delete account</h2>
+    <p class="voice-caption mt-1.5 text-ink-dim">Your account and everything in it — pantry, log, history — permanently.</p>
+
+    <button type="button" x-show="!confirming" x-on:click="confirming = true"
+            class="key keycap-sm mt-3 px-3.5 py-2 !border-high/50 text-high">
+        Delete account
+    </button>
+
+    <div class="split" :class="confirming && 'split-open'" :inert="!confirming">
+    <div>
+    <form wire:submit="deleteUser" class="mt-3 space-y-3">
+        <x-app.field label="Password" name="delete_password" type="password" model="password"
+                     autocomplete="current-password" />
+        <div class="flex items-center gap-2">
+            <button type="submit" class="key keycap-sm px-3.5 py-2 !border-high !bg-high !text-black">
+                Delete permanently
+            </button>
+            <button type="button" x-on:click="confirming = false"
+                    class="keycap-sm hit px-2 py-2 text-ink-dim transition hover:text-ink">Cancel</button>
+        </div>
+    </form>
     </div>
-
-    <flux:modal.trigger name="confirm-user-deletion">
-        <flux:button variant="danger" x-data="" x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')">
-            {{ __('Delete Account') }}
-        </flux:button>
-    </flux:modal.trigger>
-
-    <flux:modal name="confirm-user-deletion" :show="$errors->isNotEmpty()" focusable class="max-w-lg">
-        <form wire:submit="deleteUser" class="space-y-6">
-            <div>
-                <flux:heading size="lg">{{ __('Are you sure you want to delete your account?') }}</flux:heading>
-
-                <flux:subheading>
-                    {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
-                </flux:subheading>
-            </div>
-
-            <flux:input wire:model="password" id="password" label="{{ __('Password') }}" type="password" name="password" />
-
-            <div class="flex justify-end space-x-2">
-                <flux:modal.close>
-                    <flux:button variant="filled">{{ __('Cancel') }}</flux:button>
-                </flux:modal.close>
-
-                <flux:button variant="danger" type="submit">{{ __('Delete Account') }}</flux:button>
-            </div>
-        </form>
-    </flux:modal>
-</section>
+    </div>
+</div>

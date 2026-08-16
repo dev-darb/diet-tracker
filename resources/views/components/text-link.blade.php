@@ -1,6 +1,3 @@
-<a
-    {{ $attributes->merge(['class' => 'underline text-sm decoration-neutral-400 underline-offset-2 duration-300 ease-out hover:decoration-neutral-700 text-neutral-900 dark:text-neutral-200 dark:hover:decoration-neutral-100']) }}
-   
->
+<a {{ $attributes->merge(['class' => 'voice-caption text-ink-dim underline decoration-seam-strong underline-offset-4 transition hover:text-ink']) }}>
     {{ $slot }}
 </a>

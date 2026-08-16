@@ -68,50 +68,16 @@ new #[Layout('components.layouts.auth')] class extends Component {
     }
 }; ?>
 
-<div class="flex flex-col gap-6">
-    <x-auth-header title="Reset password" description="Please enter your new password below" />
+<div class="flex flex-col gap-5">
+    <x-auth-header title="Set a new password" />
 
-    <!-- Session Status -->
-    <x-auth-session-status class="text-center" :status="session('status')" />
+    <form wire:submit="resetPassword" class="flex flex-col gap-4">
+        <x-app.field label="Email" name="email" type="email" model="email" required autocomplete="email" />
 
-    <form wire:submit="resetPassword" class="flex flex-col gap-6">
-        <!-- Email Address -->
-        <div class="grid gap-2">
-            <flux:input wire:model="email" id="email" label="{{ __('Email') }}" type="email" name="email" required autocomplete="email" />
-        </div>
+        <x-app.field label="New password" name="password" type="password" model="password" required autofocus autocomplete="new-password" />
 
-        <!-- Password -->
-        <div class="grid gap-2">
-            <flux:input
-                wire:model="password"
-                id="password"
-                label="{{ __('Password') }}"
-                type="password"
-                name="password"
-                required
-                autocomplete="new-password"
-                placeholder="Password"
-            />
-        </div>
+        <x-app.field label="Confirm password" name="password_confirmation" type="password" model="password_confirmation" required autocomplete="new-password" />
 
-        <!-- Confirm Password -->
-        <div class="grid gap-2">
-            <flux:input
-                wire:model="password_confirmation"
-                id="password_confirmation"
-                label="{{ __('Confirm password') }}"
-                type="password"
-                name="password_confirmation"
-                required
-                autocomplete="new-password"
-                placeholder="Confirm password"
-            />
-        </div>
-
-        <div class="flex items-center justify-end">
-            <flux:button type="submit" variant="primary" class="w-full">
-                {{ __('Reset password') }}
-            </flux:button>
-        </div>
+        <x-app.console-key primary type="submit">Save the password</x-app.console-key>
     </form>
 </div>
