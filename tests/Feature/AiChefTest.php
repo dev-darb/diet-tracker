@@ -22,11 +22,10 @@ use Prism\Prism\ValueObjects\Usage;
 use Tests\TestCase;
 
 /**
- * AI chef — the Pantry's default face. Standardised recipe format: structured
- * ingredients (pantry rows lit, everything else shopping-list honesty),
- * upgrades worth buying — and deliberately NO supplement/vitamin suggestions
- * (founder call). Grounding: only offered ids may be claimed; keyless -> the
- * pantry defaults to Stock and the chef shows a quiet note.
+ * The RESIDENT chef (tranche 4, Aug 2026): a compact, time-of-day-aware card
+ * on the Pantry's stock face, backed by durable chef_suggestions rows.
+ * Grounding: only offered ids may be claimed; cooked suggestions are records
+ * and never overwritten; keyless -> no chef, the inventory stands alone.
  */
 class AiChefTest extends TestCase
 {
@@ -65,10 +64,10 @@ class AiChefTest extends TestCase
         });
     }
 
-    private function curryIdeas(int $pantryItemId): RecipeIdeas
+    private function curryIdeas(int $pantryItemId, ?string $slot = null): RecipeIdeas
     {
         return new RecipeIdeas([[
-            'slot' => 'dinner',
+            'slot' => $slot ?? app(\App\Services\ChefService::class)->slotNow(),
             'title' => 'Coconut chicken curry',
             'summary' => 'Protein-forward and simple.',
             'ingredients' => [
@@ -117,25 +116,30 @@ class AiChefTest extends TestCase
         $this->assertDatabaseHas('ai_jobs', ['task_type' => 'recipe_suggestion', 'result_status' => 'suggested']);
     }
 
-    public function test_chef_renders_standardised_recipe_cards(): void
+    public function test_the_resident_card_shows_the_current_slots_dish(): void
     {
         $chicken = $this->stocked('Chicken thighs');
         $this->bindChef($this->curryIdeas($chicken->id));
 
-        Volt::actingAs($this->user)->test('ai-chef')
-            ->call('suggest')
+        Volt::actingAs($this->user)->test('pantry-chef')
+            ->call('load')
             ->assertHasNoErrors()
-            ->assertSee('DINNER')
             ->assertSee('Coconut chicken curry')
+            ->assertSee('Protein-forward and simple.')
+            ->assertSee('Cooked this')
             ->assertSee('Chicken thighs')
-            ->assertSee('300 g')                       // amount to use
-            ->assertSee('In stock')                    // lit pantry row
-            ->assertSee('To get')                      // honest shopping row
-            ->assertSee('Fresh coriander lifts the curry')
+            ->assertSee('In stock')
+            ->assertSee('To get')
             ->assertSee('~650 KCAL');
+
+        // The durable artifact: the suggestion persisted for the slot.
+        $this->assertDatabaseHas('chef_suggestions', [
+            'user_id' => $this->user->id,
+            'title' => 'Coconut chicken curry',
+        ]);
     }
 
-    public function test_results_are_cached_for_the_day_and_fresh_ideas_bypasses(): void
+    public function test_the_artifact_is_durable_and_another_idea_regenerates(): void
     {
         $chicken = $this->stocked('Chicken thighs');
         $calls = new class
@@ -143,9 +147,10 @@ class AiChefTest extends TestCase
             public int $count = 0;
         };
 
-        $this->app->bind(RecipeSuggester::class, fn () => new class($chicken->id, $calls) implements RecipeSuggester
+        $slot = app(\App\Services\ChefService::class)->slotNow();
+        $this->app->bind(RecipeSuggester::class, fn () => new class($chicken->id, $calls, $slot) implements RecipeSuggester
         {
-            public function __construct(private readonly int $itemId, private $calls) {}
+            public function __construct(private readonly int $itemId, private $calls, private readonly string $slot) {}
 
             public function available(): bool
             {
@@ -157,7 +162,7 @@ class AiChefTest extends TestCase
                 $this->calls->count++;
 
                 return new RecipeIdeas([[
-                    'slot' => 'lunch', 'title' => 'Idea #'.$this->calls->count, 'summary' => '',
+                    'slot' => $this->slot, 'title' => 'Idea #'.$this->calls->count, 'summary' => '',
                     'ingredients' => [['name' => 'Chicken', 'amount' => '150 g', 'pantry_item_id' => $this->itemId]],
                     'upgrades' => [], 'steps' => ['Cook'],
                     'approx_calories' => null, 'approx_protein' => null,
@@ -165,53 +170,80 @@ class AiChefTest extends TestCase
             }
         });
 
-        $component = Volt::actingAs($this->user)->test('ai-chef')->call('suggest');
-        $component->call('suggest'); // same day -> cache
+        $component = Volt::actingAs($this->user)->test('pantry-chef')->call('load');
+        $component->call('load'); // same slot, same day -> the stored row, no new call
         $this->assertSame(1, $calls->count);
 
-        $component->call('freshIdeas'); // explicit bypass
+        $component->call('anotherIdea'); // explicit regenerate
         $this->assertSame(2, $calls->count);
+        $this->assertSame(1, \App\Models\ChefSuggestion::query()->where('slot', $slot)->count());
     }
 
-    public function test_keyless_chef_shows_not_configured_and_pantry_defaults_to_stock(): void
+    public function test_cooked_this_prefills_compose_and_flips_the_card(): void
+    {
+        $chicken = $this->stocked('Chicken thighs');
+        $this->bindChef($this->curryIdeas($chicken->id));
+
+        // Generate today's suggestion.
+        Volt::actingAs($this->user)->test('pantry-chef')->call('load');
+        $suggestion = \App\Models\ChefSuggestion::query()->firstOrFail();
+
+        // The bridge prefills home-cooked compose with the dish + stock.
+        $this->actingAs($this->user)
+            ->get('/eat/log?chef='.$suggestion->id)
+            ->assertOk()
+            ->assertSee('From the chef: Coconut chicken curry')
+            ->assertSee('Chicken thighs');
+
+        // Logging it links back and the card flips to cooked.
+        Volt::actingAs($this->user)->test('log-meal')
+            ->set('chefId', $suggestion->id)
+            ->set('mealName', $suggestion->title)
+            ->call('addComponent', $chicken->id)
+            ->call('logHomeCooked')
+            ->assertHasNoErrors()
+            ->assertSet('step', 'done');
+
+        $suggestion->refresh();
+        $this->assertNotNull($suggestion->consumption_event_id);
+
+        Volt::actingAs($this->user)->test('pantry-chef')
+            ->call('load')
+            ->assertSee('COOKED')
+            ->assertDontSee('Cooked this');
+    }
+
+    public function test_a_cooked_suggestion_is_never_overwritten_by_regeneration(): void
+    {
+        $chicken = $this->stocked('Chicken thighs');
+        $this->bindChef($this->curryIdeas($chicken->id));
+
+        $chef = app(\App\Services\ChefService::class);
+        $suggestion = $chef->plan($this->user);
+        $event = app(\App\Services\ConsumptionService::class)->consumePantryItem($this->user, $chicken->fresh(), 100);
+        $chef->markCooked($suggestion, $event);
+
+        $this->bindChef($this->curryIdeas($chicken->id)); // a "different" plan
+        $chef = app(\App\Services\ChefService::class);
+        $chef->refresh($this->user);
+
+        $this->assertSame($suggestion->id, $chef->current($this->user)->id);
+        $this->assertNotNull($chef->current($this->user)->consumption_event_id);
+    }
+
+    public function test_keyless_pantry_has_no_chef_and_the_inventory_stands_alone(): void
     {
         config()->set('prism.providers.openrouter.api_key', '');
         $this->assertInstanceOf(UnavailableRecipeSuggester::class, app(RecipeSuggester::class));
 
-        Volt::actingAs($this->user)->test('ai-chef')
-            ->assertSee('off for now');
-
-        Volt::actingAs($this->user)->test('pantry')
-            ->assertSet('view', 'stock');
-    }
-
-    public function test_pantry_defaults_to_stock_and_the_chef_is_one_key_away(): void
-    {
-        // The pantry is an INVENTORY first (founder, Aug 2026): stock is the
-        // default face even when the chef is configured.
-        $chicken = $this->stocked('Chicken thighs');
-        $this->bindChef($this->curryIdeas($chicken->id));
-
-        Volt::actingAs($this->user)->test('pantry')
-            ->assertSet('view', 'stock')
-            ->assertSee('Add item')
-            ->assertSee('Chicken thighs')
-            ->call('showChef')
-            ->assertSet('view', 'chef')
-            ->assertDontSee('Add item')     // stock affordances live in the stock view
-            ->call('showStock')
-            ->assertSet('view', 'stock');
-    }
-
-    public function test_failure_shows_a_friendly_note_with_retry(): void
-    {
         $this->stocked('Chicken thighs');
-        $this->bindChef(null);
 
-        Volt::actingAs($this->user)->test('ai-chef')
-            ->call('suggest')
-            ->assertSet('failed', true)
-            ->assertSee('scan your next shop')
-            ->assertSee('Try again');
+        Volt::actingAs($this->user)->test('pantry-chef')
+            ->call('load')
+            ->assertDontSee('Cooked this');
+
+        Volt::actingAs($this->user)->test('pantry')
+            ->assertSee('Add item')
+            ->assertSee('Chicken thighs');
     }
 }

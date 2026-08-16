@@ -40,6 +40,9 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
     /** The scan capture this meal came from (?capture= bridge), if any. */
     public ?int $captureId = null;
 
+    /** The chef suggestion being cooked (?chef= bridge), if any. */
+    public ?int $chefId = null;
+
     /** The scan reading's summary line, shown above the prefilled flow. */
     public ?string $photoNote = null;
 
@@ -182,6 +185,8 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
      */
     public function mount(): void
     {
+        $this->mountChef();
+
         $captureId = (int) request()->query('capture', 0);
 
         if ($captureId <= 0) {
@@ -221,6 +226,43 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         }
 
         $this->photoNote = implode(' · ', $parts);
+    }
+
+    /**
+     * The CHEF → meal bridge (tranche 4): "Cooked this" on the resident chef
+     * card arrives here via ?chef=, jumping straight into home-cooked compose
+     * with the dish name and the in-stock ingredients preselected. The user
+     * confirms portions; the deterministic maths stay untouched.
+     */
+    private function mountChef(): void
+    {
+        $chefId = (int) request()->query('chef', 0);
+
+        if ($chefId <= 0) {
+            return;
+        }
+
+        $suggestion = \App\Models\ChefSuggestion::query()
+            ->whereKey($chefId)
+            ->where('user_id', Auth::id())
+            ->whereNull('consumption_event_id')
+            ->first();
+
+        if ($suggestion === null) {
+            return;
+        }
+
+        $this->chefId = $suggestion->id;
+        $this->mealName = $suggestion->title;
+        $this->step = 'home';
+
+        foreach ($suggestion->inStockItemIds() as $id) {
+            if ($this->ownedItem((int) $id) !== null) {
+                $this->components[(int) $id] = ['choice' => 0, 'custom' => ''];
+            }
+        }
+
+        $this->photoNote = 'From the chef: '.$suggestion->title.' — confirm what actually went in.';
     }
 
     public function logOut(ConsumptionService $service): void
@@ -298,7 +340,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
 
     public function startOver(): void
     {
-        $this->reset(['step', 'components', 'mealName', 'filter', 'outName', 'outVenue', 'outCalories', 'outProtein', 'outCarbs', 'outFat', 'outSecondary', 'estimateBasis', 'estimateConfidence', 'estimateFailed', 'captureId', 'photoNote', 'loggedName']);
+        $this->reset(['step', 'components', 'mealName', 'filter', 'outName', 'outVenue', 'outCalories', 'outProtein', 'outCarbs', 'outFat', 'outSecondary', 'estimateBasis', 'estimateConfidence', 'estimateFailed', 'captureId', 'chefId', 'photoNote', 'loggedName']);
         $this->resetValidation();
     }
 
@@ -311,6 +353,15 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                 ->whereKey($this->captureId)
                 ->where('user_id', Auth::id())
                 ->where('status', ScanCaptureStatus::Meal)
+                ->update(['consumption_event_id' => $event->id]);
+        }
+
+        // And with the chef: the resident card flips to COOKED · LOGGED.
+        if ($event !== null && $this->chefId !== null) {
+            \App\Models\ChefSuggestion::query()
+                ->whereKey($this->chefId)
+                ->where('user_id', Auth::id())
+                ->whereNull('consumption_event_id')
                 ->update(['consumption_event_id' => $event->id]);
         }
 

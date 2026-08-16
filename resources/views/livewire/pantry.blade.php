@@ -1,6 +1,5 @@
 <?php
 
-use App\AI\Contracts\RecipeSuggester;
 use App\Enums\QuantityUnit;
 use App\Models\CanonicalProduct;
 use App\Models\PantryItem;
@@ -20,11 +19,6 @@ use Livewire\Volt\Component;
  */
 new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Component
 {
-    /** stock | chef — the pantry is an INVENTORY first (founder, Aug 2026);
-     * the chef is an invited view today and becomes a resident module of the
-     * stock face in the next chef pass. */
-    public string $view = 'stock';
-
     // Manual-add form (visibility is client state; only the data lives here)
     public string $productSearch = '';
 
@@ -33,21 +27,6 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
     public string $addQuantity = '1';
 
     public string $addUnit = QuantityUnit::Unit->value;
-
-    public function mount(): void
-    {
-        $this->view = 'stock';
-    }
-
-    public function showChef(): void
-    {
-        $this->view = 'chef';
-    }
-
-    public function showStock(): void
-    {
-        $this->view = 'stock';
-    }
 
     public function selectProduct(int $productId): void
     {
@@ -151,7 +130,6 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
             'matches' => $matches,
             'selectedProduct' => $this->selectedProductId ? CanonicalProduct::find($this->selectedProductId) : null,
             'unitOptions' => QuantityUnit::options(),
-            'chefAvailable' => app(RecipeSuggester::class)->available(),
         ];
     }
 }; ?>
@@ -165,35 +143,12 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
             <div>
                 <h1 class="voice-title text-ink">Pantry</h1>
             </div>
-            @if ($view === 'stock')
-                <button type="button" x-on:click="addOpen = !addOpen"
-                        :class="addOpen ? 'text-ink-dim' : 'key-action'"
-                        class="key keycap-sm px-3.5 py-2.5">
-                    <span x-text="addOpen ? 'Close' : 'Add item'">Add item</span>
-                </button>
-            @endif
+            <button type="button" x-on:click="addOpen = !addOpen"
+                    :class="addOpen ? 'text-ink-dim' : 'key-action'"
+                    class="key keycap-sm px-3.5 py-2.5">
+                <span x-text="addOpen ? 'Close' : 'Add item'">Add item</span>
+            </button>
         </div>
-
-        {{-- View switch: stock is the pantry; the chef is one key away. --}}
-        @if ($chefAvailable)
-            <div class="grid grid-cols-2 gap-2">
-                <button type="button" wire:click="showChef"
-                        class="key keycap-sm px-3 py-2.5 text-center {{ $view === 'chef' ? 'key-action' : 'text-ink-dim' }}">
-                    Chef
-                </button>
-                <button type="button" wire:click="showStock"
-                        class="key keycap-sm px-3 py-2.5 text-center {{ $view === 'stock' ? 'key-action' : 'text-ink-dim' }}">
-                    Stock
-                </button>
-            </div>
-        @endif
-
-        {{-- CHEF — the proactive day plan (default when configured). --}}
-        @if ($view === 'chef')
-            <livewire:ai-chef />
-        @endif
-
-        @if ($view === 'stock')
 
         {{-- Manual add (pre-Scan path) — opens instantly, stays open for the
              next item so a shop unloads in one run. SPLIT: the desk parts to
@@ -328,7 +283,11 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                 </ul>
             </section>
         @endif
-        @endif
+
+        {{-- The RESIDENT CHEF (tranche 4): a little chef living in the pantry
+             who knows the stock and suggests the likeliest current meal.
+             Inventory first — the chef sits under the shelf, never above it. --}}
+        <livewire:pantry-chef />
 
         <x-app.stamp-toast show="added">Added to stock</x-app.stamp-toast>
 
