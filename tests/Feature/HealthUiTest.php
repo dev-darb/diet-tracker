@@ -43,6 +43,53 @@ class HealthUiTest extends TestCase
         ]);
     }
 
+    /** A week of logged days ending today, seen from a fixed evening. */
+    private function logSteadyWeek(float $todayCalories = 2250): void
+    {
+        $this->travelTo(Carbon::parse('2026-08-16 21:00:00'));
+
+        for ($i = 7; $i >= 1; $i--) {
+            $this->logDay($this->user, now()->subDays($i)->toDateString(), [
+                'calories' => 2250, 'protein' => 100, 'fibre' => 30, 'saturated_fat' => 15, 'salt' => 4,
+            ]);
+        }
+
+        $this->logDay($this->user, now()->toDateString(), [
+            'calories' => $todayCalories, 'protein' => 100, 'fibre' => 30, 'saturated_fat' => 15, 'salt' => 4,
+        ]);
+    }
+
+    public function test_a_finished_day_closes_on_home_with_its_streak(): void
+    {
+        $this->logSteadyWeek();
+
+        $this->actingAs($this->user)->get('/home')
+            ->assertOk()
+            ->assertSee('Day closed')
+            ->assertSee('8 days running');
+    }
+
+    public function test_energy_inside_the_goal_band_lights_the_readout(): void
+    {
+        // 2250 kcal against the generic 2250 target: dead inside the
+        // general-health full band, so the reading earns the good lamp.
+        $this->logSteadyWeek(2250);
+
+        $this->actingAs($this->user)->get('/home')
+            ->assertOk()
+            ->assertSee('value-settle data-xl text-good', escape: false);
+    }
+
+    public function test_energy_outside_the_goal_band_does_not_light_the_readout(): void
+    {
+        // Well over the band — an honest reading, no reward lamp.
+        $this->logSteadyWeek(3400);
+
+        $this->actingAs($this->user)->get('/home')
+            ->assertOk()
+            ->assertDontSee('value-settle data-xl text-good', escape: false);
+    }
+
     public function test_home_score_reads_as_building_with_thin_history(): void
     {
         // One logged day is not enough history for a confident number — the

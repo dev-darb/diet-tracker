@@ -418,10 +418,14 @@
         animation: value-settle 700ms var(--ease-arrive) both;
     }
 }
+/* The final keyframe is deliberately IMPLICIT: with no `color` at 100% the
+   readout settles back to whatever colour it actually carries — ink normally,
+   but `good` when the reading itself is a target hit, so a lit value stays
+   lit. Declaring `currentColor` here resolved to the inherited colour and
+   silently overrode the element's own state colour. */
 @keyframes value-settle {
     0% { color: var(--color-good); }
     35% { color: var(--color-good); }
-    100% { color: currentColor; }
 }
 
 /* SPLIT — a surface parts to reveal another (disclosures, inline forms).

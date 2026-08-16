@@ -17,6 +17,13 @@ use Carbon\CarbonImmutable;
  */
 class FoodyScoreService
 {
+    /**
+     * Day-completeness at or above which the eating day counts as accounted
+     * for — the magnitude gate on the day-close reward (tranche 5).
+     */
+    public const DAY_CLOSE_COMPLETENESS = 0.9;
+
+
     public function __construct(
         private readonly InputAssembler $assembler,
         private readonly ScoreEngine $engine,
@@ -175,6 +182,61 @@ class FoodyScoreService
                 $this->mint($user, "steady_streak_{$length}", $achievedOn, ['days' => $length]);
             }
         }
+
+        $this->detectDayClose($user, $record);
+    }
+
+    /**
+     * The day-close (tranche 5): the top tier of the reward ladder —
+     * value-settle (input) → stamp (completion) → DAY CLOSE (magnitude).
+     *
+     * It fires only on a genuine trigger: a firm score, an eating day that is
+     * essentially accounted for, and — critically — food actually logged
+     * today. Day-completeness alone is time-based, so a late evening with an
+     * empty log would otherwise "close" a day the user never lived; the
+     * logging streak is the real evidence.
+     */
+    private function detectDayClose(User $user, FoodyScore $record): void
+    {
+        $completeness = (float) ($record->confidence['day_completeness'] ?? 0.0);
+
+        if ($completeness < self::DAY_CLOSE_COMPLETENESS) {
+            return;
+        }
+
+        $streak = $this->loggingStreak($user, CarbonImmutable::parse($record->score_date->toDateString()));
+
+        if ($streak < 1) {
+            return; // nothing was logged today — there is no day to close
+        }
+
+        $this->mint($user, 'day_closed', $record->score_date->toDateString(), [
+            'score' => $record->score,
+            'band' => $record->band,
+            'logging_streak' => $streak,
+        ]);
+    }
+
+    /** Consecutive days (ending on $day) with food actually logged. */
+    public function loggingStreak(User $user, CarbonImmutable $day): int
+    {
+        $dates = $user->consumptionEvents()
+            ->whereDate('consumed_at', '>=', $day->subDays(60)->toDateString())
+            ->whereDate('consumed_at', '<=', $day->toDateString())
+            ->pluck('consumed_at')
+            ->map(fn ($at) => $at->toDateString())
+            ->unique()
+            ->flip();
+
+        $streak = 0;
+        $cursor = $day;
+
+        while ($dates->has($cursor->toDateString())) {
+            $streak++;
+            $cursor = $cursor->subDay();
+        }
+
+        return $streak;
     }
 
     /** Consecutive days (ending today) scoring steady-or-better (≥70). */
