@@ -48,31 +48,76 @@ Laravel Cloud auto-injects `DB_*` and `REDIS_*` from the resources you provision
 | `AI_GATEWAY` | `openrouter` | Selects the AI gateway all capabilities use: `openrouter` (default) or `vercel` (Part D). |
 | `OPENROUTER_API_KEY` | *(optional, later)* | Live photo identification when `AI_GATEWAY=openrouter` (Part D). |
 | `AI_GATEWAY_API_KEY` | *(optional, later)* | Live photo identification when `AI_GATEWAY=vercel` (Vercel AI Gateway, Part D). |
+| `AI_PRODUCT_IDENTIFIER_MODEL` | `openai/gpt-4o-mini` | Optional; swap to benchmark models (brief §14). Same `creator/model` format on both gateways. |
 
 ---
 
-## Part B2 — the queue worker (one-time, ~2 minutes)
+## Part B2 — the queue worker (one-time, ~3 minutes)
 
-The scanner now analyses photos **in the background** ("the interface should
-never make the user wait for the AI"): every shutter press queues a
-`ProcessScanCapture` job and the app polls for the result. That needs one
-worker process:
+The scanner analyses photos **in the background** ("the interface should never
+make the user wait for the AI"): every shutter press queues a
+`ProcessScanCapture` job and the app polls for the result. The resident chef
+and diet insights queue work the same way. That needs one worker process.
 
-1. In your Laravel Cloud app, open **Environment → Workers** (Compute → add a
-   worker on older UIs).
-2. Add a worker with the command:
-   `php artisan queue:work --tries=2 --timeout=200 --max-jobs=250`
-3. One worker at the smallest size is plenty for the alpha; it drains the
-   `redis` queue that `QUEUE_CONNECTION=redis` points at.
-4. Deploy. Verify under **Console**: `php artisan queue:monitor redis` (or just
-   scan something — results should land while the shutter stays live).
+**1. Confirm the queue connection.** Under **Environment → Variables**, check:
 
-If the worker is ever down, nothing stays stuck: the scan page's poll detects
-any capture stranded in-flight beyond ~20 seconds and processes it inline
-(`ScanCaptureService::rescueStale`), so results still land — just later than
-with a live worker. A session with `QUEUE_CONNECTION=sync` (e.g. local dev
-without a worker) runs the same jobs inline at capture time.
-| `AI_PRODUCT_IDENTIFIER_MODEL` | `openai/gpt-4o-mini` | Optional; swap to benchmark models (brief §14). Same `creator/model` format on both gateways. |
+```
+QUEUE_CONNECTION=redis
+```
+
+Laravel Cloud injects the `REDIS_*` credentials from the provisioned
+Valkey/Redis instance automatically — you do not set a host or password.
+
+**2. Add the worker.** Open **Environment → Workers** (older UIs: **Compute →
+add a worker**) and create one with:
+
+| Field | Value |
+| --- | --- |
+| Command | `php artisan queue:work --queue=default --tries=2 --timeout=200 --max-jobs=250 --max-time=3600` |
+| Connection / queue | `redis` / `default` |
+| Size | The smallest available — one worker drains the alpha comfortably |
+| Processes | 1 |
+
+Why those flags: `--tries=2` matches the job's own retry budget (a failed
+identification settles the capture honestly rather than spinning);
+`--timeout=200` sits above the job's 180s ceiling for a vision call plus an
+Open Food Facts import; `--max-jobs`/`--max-time` recycle the process
+periodically so a long-lived worker never accumulates memory.
+
+**3. Deploy.** The worker starts with the deployment. Nothing else changes.
+
+**4. Verify.** Either scan something (results should land in a second or two
+while the shutter stays live), or open **Console** and run:
+
+```
+php artisan queue:monitor redis:default --max=25
+```
+
+A healthy queue reports a near-zero backlog. To confirm the worker is the one
+doing the work rather than the fallback, check the application log: the
+rescue path writes `Scan captures rescued inline — is the queue worker
+running?` every time it has to step in. With a healthy worker that line never
+appears.
+
+### Retry window (important)
+
+`retry_after` on the redis connection **must stay above the longest job
+timeout** — it is set to 210s in `config/queue.php` against
+`ProcessScanCapture`'s 180s ceiling. At Laravel's stock 90s the queue would
+hand a still-running scan to a second worker, paying for the same AI
+identification twice. If you ever raise a job's timeout, raise
+`REDIS_QUEUE_RETRY_AFTER` past it in the same change.
+
+### If the worker is down
+
+Nothing stays stuck. The scan page's poll detects any capture stranded
+in-flight beyond ~20 seconds and runs the same pipeline inline
+(`ScanCaptureService::rescueStale`), so results still land — just later, and
+with that warning in the log. A session with `QUEUE_CONNECTION=sync` (e.g.
+local dev without a worker) runs jobs inline at capture time instead.
+
+---
+
 
 **Mail note:** with `MAIL_MAILER=log`, "forgot password" links are written to logs, not delivered. For real reset emails, add a mail provider (Resend/Postmark/Mailgun) and set `MAIL_*`. Not required to test the core loop.
 
