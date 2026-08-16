@@ -141,7 +141,7 @@ class ScanCaptureService
 
             try {
                 $detected = $identifier->identify(
-                    ProductImage::fromStoragePath($capture->image_path, 'public'),
+                    ProductImage::fromStoragePath($capture->image_path, config('foody.scans.disk')),
                     $forced?->hintLabel(),
                 );
             } catch (Throwable $e) {
@@ -233,7 +233,7 @@ class ScanCaptureService
         if ($capture->image_path !== null && $this->mealInterpreter->available()) {
             try {
                 $reading = $this->mealInterpreter->interpret(
-                    ProductImage::fromStoragePath($capture->image_path, 'public'),
+                    ProductImage::fromStoragePath($capture->image_path, config('foody.scans.disk')),
                     $this->pantryCandidates($capture->user),
                 );
             } catch (Throwable $e) {

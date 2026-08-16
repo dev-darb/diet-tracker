@@ -7,6 +7,7 @@ use App\Models\CanonicalProduct;
 use App\Models\ScanCapture;
 use App\Models\User;
 use App\Services\ScanCaptureService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -30,7 +31,7 @@ class ScanFlowTest extends TestCase
     {
         parent::setUp();
         config()->set('prism.providers.openrouter.api_key', '');
-        Storage::fake('public');
+        Storage::fake(config('foody.scans.disk'));
         $this->user = User::factory()->onboarded()->create();
     }
 
@@ -81,7 +82,27 @@ class ScanFlowTest extends TestCase
 
         $capture = ScanCapture::findOrFail($response->json('id'));
         $this->assertNotNull($capture->image_path);
-        Storage::disk('public')->assertExists($capture->image_path);
+        Storage::disk(config('foody.scans.disk'))->assertExists($capture->image_path);
+    }
+
+    /**
+     * Captures land on whichever disk is configured, so moving them to object
+     * storage — which is what a capture needs before it can become part of a
+     * food's identity rather than a throwaway — is an env change, not a rebuild.
+     */
+    public function test_captures_land_on_the_configured_disk(): void
+    {
+        config(['foody.scans.disk' => 'captures-test']);
+        Storage::fake('captures-test');
+
+        $response = $this->actingAs($this->user)->postJson(route('scan.captures.store'), [
+            'photo' => UploadedFile::fake()->image('pack.jpg', 800, 600),
+        ]);
+
+        $response->assertCreated();
+
+        $capture = ScanCapture::findOrFail($response->json('id'));
+        Storage::disk('captures-test')->assertExists($capture->image_path);
         // Keyless photo path settles honestly instead of 500ing.
         $this->assertSame(ScanCaptureStatus::AiUnavailable, $capture->status);
     }
@@ -183,7 +204,7 @@ class ScanFlowTest extends TestCase
 
         $other = User::factory()->onboarded()->create();
 
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
 
         Volt::actingAs($other)->test('scan')->call('confirmCapture', $capture->id);
 

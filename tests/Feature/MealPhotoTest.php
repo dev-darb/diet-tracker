@@ -44,7 +44,7 @@ class MealPhotoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('public');
+        Storage::fake(config('foody.scans.disk'));
         config()->set('prism.providers.openrouter.api_key', '');
         $this->user = User::factory()->onboarded()->create();
     }

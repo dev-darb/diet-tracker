@@ -40,7 +40,11 @@ class ScanCaptureController extends Controller
 
         if ($request->file('photo') !== null) {
             try {
-                $imagePath = $request->file('photo')->store('scans', 'public');
+                // The disk is configuration, not a literal: local disk is fine
+                // while a capture is only work-in-flight, but the moment a photo
+                // becomes part of a food's identity it has to outlive the
+                // container (config/foody.php).
+                $imagePath = $request->file('photo')->store('scans', config('foody.scans.disk'));
             } catch (Throwable $e) {
                 // Best effort — a storage hiccup must never sink a barcode scan.
                 report($e);
