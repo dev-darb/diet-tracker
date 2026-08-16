@@ -9,6 +9,7 @@ use App\Models\CanonicalProduct;
 use App\Models\ProductSource;
 use App\Models\ProductVersion;
 use App\Nutrition\NutrientRegistry;
+use App\Nutrition\NutritionSanityCheck;
 use App\ValueObjects\NutrientValues;
 use Illuminate\Support\Facades\DB;
 
@@ -86,17 +87,29 @@ class OpenFoodFactsImporter
             'primary_image_path' => $this->urlOrNull($product->imageUrl),
         ]);
 
+        // Cross-checks on figures that are individually possible but cannot all
+        // be true at once. Findings never alter the data — they drop the version
+        // to needs-review so a person can look, while it stays usable.
+        $quality = NutritionSanityCheck::columns(
+            NutrientValues::fromStated($nutrition['values']),
+            $serving,
+            $pack,
+        );
+
         $version = $canonical->versions()->create([
             'serving_basis' => ServingBasis::Per100g,
             'serving_size_value' => $serving?->inBaseUnit(),
             'serving_size_unit' => $serving?->unit->value,
             // Per-100g figures; each may be null (unknown) — persisted as NULL.
             ...$nutrition['values'],
+            ...$quality,
             'ingredients' => $product->ingredientsText,
             'allergens' => $product->allergens,
             'effective_from' => now(),
             'verified_at' => now(),
-            'status' => ProductVerificationStatus::AutoVerified,
+            'status' => $quality['sanity_findings'] === null
+                ? ProductVerificationStatus::AutoVerified
+                : ProductVerificationStatus::NeedsReview,
         ]);
 
         $version->sources()->create([

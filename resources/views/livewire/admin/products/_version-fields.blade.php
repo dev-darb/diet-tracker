@@ -1,5 +1,10 @@
 {{-- Shared nutrition-version fields for the admin create form and the
-     "add version" form on edit. Bound to properties present on both. --}}
+     "add version" form on edit. Bound to properties present on both.
+
+     The nutrient inputs are generated from App\Nutrition\NutrientRegistry, so
+     adding a nutrient never means editing this file. Every input is optional:
+     a blank field is UNKNOWN, and the placeholder says so out loud, because
+     this is the screen where a wrong zero would be typed by hand. --}}
 <div class="space-y-4">
     <div class="grid grid-cols-2 gap-4">
         <div>
@@ -22,32 +27,45 @@
                     <option value="ml">ml</option>
                 </select>
             </div>
+            <p class="mt-1 text-[11px] text-zinc-400">Grams or millilitres only — a serving of "1 portion" cannot be converted into nutrition.</p>
             @error('serving_size_value') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </div>
     </div>
 
     <div>
-        <p class="text-xs font-medium text-zinc-600">Macros <span class="font-normal text-zinc-400">(per the chosen basis)</span></p>
+        <p class="text-xs font-medium text-zinc-600">Macros <span class="font-normal text-zinc-400">(per the chosen basis · leave blank if the label doesn't state it)</span></p>
         <div class="mt-1 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            @foreach ([
-                'calories' => 'Calories (kcal)',
-                'protein' => 'Protein (g)',
-                'carbs' => 'Carbs (g)',
-                'sugars' => 'Sugars (g)',
-                'fat' => 'Fat (g)',
-                'saturated_fat' => 'Saturated fat (g)',
-                'fibre' => 'Fibre (g)',
-                'salt' => 'Salt (g)',
-            ] as $field => $label)
+            @foreach ($macroFields as $nutrient)
                 <div>
-                    <label class="text-[11px] text-zinc-500">{{ $label }}</label>
-                    <input type="number" step="any" min="0" inputmode="decimal" wire:model="{{ $field }}"
-                           class="mt-1 w-full rounded-lg border border-zinc-200 px-2.5 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                    @error($field) <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    <label class="text-[11px] text-zinc-500" for="nutrient-{{ $nutrient->key }}">{{ $nutrient->label }} ({{ $nutrient->unit->label() }})</label>
+                    <input id="nutrient-{{ $nutrient->key }}" type="number" step="any" min="0" inputmode="decimal"
+                           wire:model="nutrients.{{ $nutrient->key }}" placeholder="unknown"
+                           class="mt-1 w-full rounded-lg border border-zinc-200 px-2.5 py-2 text-sm placeholder:text-zinc-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    @error('nutrients.'.$nutrient->key) <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
             @endforeach
         </div>
     </div>
+
+    {{-- Micronutrients are stated for a minority of products, so they stay
+         folded away rather than presenting fifteen empty boxes on every form. --}}
+    <details class="rounded-lg border border-zinc-200 px-3 py-2">
+        <summary class="cursor-pointer text-xs font-medium text-zinc-600">
+            Micronutrients
+            <span class="font-normal text-zinc-400">— optional, blank stays unknown</span>
+        </summary>
+        <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            @foreach ($microFields as $nutrient)
+                <div>
+                    <label class="text-[11px] text-zinc-500" for="nutrient-{{ $nutrient->key }}">{{ $nutrient->label }} ({{ $nutrient->unit->label() }})</label>
+                    <input id="nutrient-{{ $nutrient->key }}" type="number" step="any" min="0" inputmode="decimal"
+                           wire:model="nutrients.{{ $nutrient->key }}" placeholder="unknown"
+                           class="mt-1 w-full rounded-lg border border-zinc-200 px-2.5 py-2 text-sm placeholder:text-zinc-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    @error('nutrients.'.$nutrient->key) <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+            @endforeach
+        </div>
+    </details>
 
     <div>
         <label class="text-xs font-medium text-zinc-600">Ingredients</label>

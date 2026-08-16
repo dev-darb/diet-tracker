@@ -6,6 +6,9 @@ use App\Enums\ProductVerificationStatus;
 use App\Enums\SourceType;
 use App\Models\CanonicalProduct;
 use App\Models\ProductVersion;
+use App\Nutrition\MeasuredAmount;
+use App\Nutrition\NutritionSanityCheck;
+use App\ValueObjects\NutrientValues;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
@@ -69,6 +72,20 @@ class CanonicalProductService
                 ? $versionData['status']
                 : ProductVerificationStatus::from($versionData['status'] ?? ProductVerificationStatus::Verified->value);
 
+            $values = NutrientValues::fromStated($versionData);
+
+            // The same cross-checks the importer runs. A hand-entered version is
+            // not exempt: transposing sugars and carbohydrate is easier by hand
+            // than by API. Findings are recorded beside the data, not applied to it.
+            $quality = NutritionSanityCheck::columns(
+                $values,
+                MeasuredAmount::fromNumeric(
+                    $versionData['serving_size_value'] ?? null,
+                    $versionData['serving_size_unit'] ?? null,
+                ),
+                $product->packSize(),
+            );
+
             $verifiedAt = in_array($status, [
                 ProductVerificationStatus::Verified,
                 ProductVerificationStatus::AutoVerified,
@@ -78,14 +95,13 @@ class CanonicalProductService
                 'serving_basis' => $versionData['serving_basis'],
                 'serving_size_value' => $versionData['serving_size_value'] ?? null,
                 'serving_size_unit' => $versionData['serving_size_unit'] ?? null,
-                'calories' => $versionData['calories'] ?? 0,
-                'protein' => $versionData['protein'] ?? 0,
-                'carbs' => $versionData['carbs'] ?? 0,
-                'sugars' => $versionData['sugars'] ?? 0,
-                'fat' => $versionData['fat'] ?? 0,
-                'saturated_fat' => $versionData['saturated_fat'] ?? 0,
-                'fibre' => $versionData['fibre'] ?? 0,
-                'salt' => $versionData['salt'] ?? 0,
+                // AUDIT D7: a nutrient left blank is UNKNOWN, not zero. This used
+                // to read `?? 0` per column, so the one path a founder uses to
+                // correct bad data was the one path that fabricated it — silently
+                // claiming a product contains no fibre because nobody typed a
+                // figure in. fromStated() is the constructor that cannot do that.
+                ...$values->toArray(),
+                ...$quality,
                 'ingredients' => $versionData['ingredients'] ?? null,
                 'allergens' => $this->normaliseAllergens($versionData['allergens'] ?? []),
                 'effective_from' => now(),

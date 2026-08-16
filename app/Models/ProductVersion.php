@@ -34,6 +34,8 @@ class ProductVersion extends Model
         'effective_from',
         'verified_at',
         'status',
+        'nutrient_coverage',
+        'sanity_findings',
     ];
 
     protected function casts(): array
@@ -43,6 +45,8 @@ class ProductVersion extends Model
             'status' => ProductVerificationStatus::class,
             'serving_size_value' => 'decimal:3',
             'allergens' => 'array',
+            'sanity_findings' => 'array',
+            'nutrient_coverage' => 'decimal:3',
             'effective_from' => 'datetime',
             'verified_at' => 'datetime',
         ];

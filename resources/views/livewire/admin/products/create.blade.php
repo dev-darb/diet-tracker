@@ -1,6 +1,10 @@
 <?php
 
 use App\Enums\ProductVerificationStatus;
+use App\Nutrition\Nutrient;
+use App\Nutrition\NutrientGroup;
+use App\Nutrition\NutrientRegistry;
+use App\ValueObjects\NutrientValues;
 use App\Enums\ServingBasis;
 use App\Services\CanonicalProductService;
 use Illuminate\Validation\Rule;
@@ -28,14 +32,14 @@ new #[Layout('components.layouts.admin', ['title' => 'New product'])] class exte
     public string $serving_basis = ServingBasis::Per100g->value;
     public ?string $serving_size_value = null;
     public string $serving_size_unit = 'g';
-    public ?string $calories = null;
-    public ?string $protein = null;
-    public ?string $carbs = null;
-    public ?string $sugars = null;
-    public ?string $fat = null;
-    public ?string $saturated_fat = null;
-    public ?string $fibre = null;
-    public ?string $salt = null;
+    /**
+     * Every tracked nutrient, keyed by registry key. A blank entry is
+     * UNKNOWN and is persisted as NULL — this form must never invent a zero
+     * (audit D7).
+     *
+     * @var array<string, string|null>
+     */
+    public array $nutrients = [];
     public string $ingredients = '';
     public string $allergens = '';
     public string $status = ProductVerificationStatus::Verified->value;
@@ -87,14 +91,13 @@ new #[Layout('components.layouts.admin', ['title' => 'New product'])] class exte
     /** @return array<string, mixed> */
     private function versionRules(): array
     {
-        $macro = ['nullable', 'numeric', 'min:0'];
+        $nutrient = ['nullable', 'numeric', 'min:0', 'max:999999'];
 
         return [
             'serving_basis' => ['required', Rule::enum(ServingBasis::class)],
             'serving_size_value' => ['nullable', 'numeric', 'min:0', Rule::requiredIf($this->serving_basis === ServingBasis::PerServing->value)],
             'serving_size_unit' => ['nullable', 'string', 'max:16'],
-            'calories' => $macro, 'protein' => $macro, 'carbs' => $macro, 'sugars' => $macro,
-            'fat' => $macro, 'saturated_fat' => $macro, 'fibre' => $macro, 'salt' => $macro,
+            'nutrients.*' => $nutrient,
             'ingredients' => ['nullable', 'string'],
             'allergens' => ['nullable', 'string'],
             'status' => ['required', Rule::enum(ProductVerificationStatus::class)],
@@ -112,14 +115,7 @@ new #[Layout('components.layouts.admin', ['title' => 'New product'])] class exte
             'serving_basis' => ServingBasis::from($data['serving_basis']),
             'serving_size_value' => $data['serving_size_value'] !== null && $data['serving_size_value'] !== '' ? (float) $data['serving_size_value'] : null,
             'serving_size_unit' => $data['serving_size_unit'] ?: null,
-            'calories' => (float) ($data['calories'] ?? 0),
-            'protein' => (float) ($data['protein'] ?? 0),
-            'carbs' => (float) ($data['carbs'] ?? 0),
-            'sugars' => (float) ($data['sugars'] ?? 0),
-            'fat' => (float) ($data['fat'] ?? 0),
-            'saturated_fat' => (float) ($data['saturated_fat'] ?? 0),
-            'fibre' => (float) ($data['fibre'] ?? 0),
-            'salt' => (float) ($data['salt'] ?? 0),
+            ...$this->statedNutrients(),
             'ingredients' => $data['ingredients'] ?: null,
             'allergens' => $data['allergens'] ?? '',
             'status' => ProductVerificationStatus::from($data['status']),
@@ -127,9 +123,53 @@ new #[Layout('components.layouts.admin', ['title' => 'New product'])] class exte
         ];
     }
 
+
+    /**
+     * The nutrient map as figures, with every blank left as NULL.
+     *
+     * Livewire hands back an empty string for a cleared number input, and
+     * `(float) ''` is 0.0 — which is exactly how this form used to claim that a
+     * product contains no fibre because nobody typed a number (audit D7). An
+     * unstated nutrient is unknown, and it stays unknown.
+     *
+     * @return array<string, float|null>
+     */
+    private function statedNutrients(): array
+    {
+        $stated = [];
+
+        foreach ($this->nutrients as $key => $value) {
+            $value = is_string($value) ? trim($value) : $value;
+
+            if ($value !== null && $value !== '' && is_numeric($value)) {
+                $stated[$key] = (float) $value;
+            }
+        }
+
+        // fromStated() treats every absent key as unknown, so the result carries
+        // an explicit null for each nutrient nobody filled in.
+        return NutrientValues::fromStated($stated)->toArray();
+    }
+
+    /** @return array<string, mixed> */
+    private function nutrientFieldGroups(): array
+    {
+        return [
+            'macroFields' => array_values(array_filter(
+                NutrientRegistry::all(),
+                static fn (Nutrient $n): bool => $n->group === NutrientGroup::Macro,
+            )),
+            'microFields' => array_values(array_filter(
+                NutrientRegistry::all(),
+                static fn (Nutrient $n): bool => $n->group === NutrientGroup::Micro,
+            )),
+        ];
+    }
+
     public function with(): array
     {
         return [
+            ...$this->nutrientFieldGroups(),
             'basisOptions' => ServingBasis::options(),
             'statusOptions' => ProductVerificationStatus::options(),
         ];

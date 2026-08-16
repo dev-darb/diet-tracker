@@ -33,10 +33,10 @@ class AdminProductTest extends TestCase
             ->set('pack_size_unit', 'ml')
             ->set('withVersion', true)
             ->set('serving_basis', ServingBasis::Per100g->value)
-            ->set('calories', '59')
-            ->set('protein', '1.1')
-            ->set('carbs', '6.6')
-            ->set('fat', '3.0')
+            ->set('nutrients.calories', '59')
+            ->set('nutrients.protein', '1.1')
+            ->set('nutrients.carbs', '6.6')
+            ->set('nutrients.fat', '3.0')
             ->set('confidence', '0.9')
             ->call('save')
             ->assertHasNoErrors();
@@ -52,6 +52,39 @@ class AdminProductTest extends TestCase
         $source = $version->sources()->firstOrFail();
         $this->assertSame(SourceType::UserConfirmed, $source->source_type);
         $this->assertSame(0.9, (float) $source->confidence);
+    }
+
+    /**
+     * AUDIT D7. Manual entry used to write `(float) ($data['fibre'] ?? 0)` for
+     * every column, so a nutrient the operator simply did not know became a hard
+     * 0.00 — a fabricated nutritional claim, entered through the very screen that
+     * exists to correct bad data.
+     */
+    public function test_a_nutrient_left_blank_is_stored_as_unknown_not_zero(): void
+    {
+        Volt::actingAs($this->admin)->test('admin.products.create')
+            ->set('brand', 'Yeo Valley')
+            ->set('name', 'Natural Yoghurt')
+            ->set('withVersion', true)
+            ->set('serving_basis', ServingBasis::Per100g->value)
+            ->set('nutrients.calories', '82')
+            ->set('nutrients.protein', '4.6')
+            ->set('nutrients.fibre', '')     // cleared by hand
+            ->set('nutrients.calcium', '150')
+            ->set('confidence', '1.0')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $version = CanonicalProduct::where('name', 'Natural Yoghurt')
+            ->firstOrFail()->versions()->firstOrFail();
+
+        $this->assertSame(82.0, (float) $version->calories);
+        $this->assertSame(150.0, (float) $version->calcium);
+
+        // Blank and never-touched alike: unknown, not zero.
+        $this->assertNull($version->fibre);
+        $this->assertNull($version->salt);
+        $this->assertNull($version->vitamin_d);
     }
 
     public function test_creation_requires_brand_and_name(): void
@@ -81,8 +114,8 @@ class AdminProductTest extends TestCase
 
         Volt::actingAs($this->admin)->test('admin.products.edit', ['product' => $product])
             ->set('serving_basis', ServingBasis::Per100g->value)
-            ->set('calories', '120')
-            ->set('protein', '4')
+            ->set('nutrients.calories', '120')
+            ->set('nutrients.protein', '4')
             ->set('status', ProductVerificationStatus::Verified->value)
             ->set('confidence', '1.0')
             ->call('addVersion')

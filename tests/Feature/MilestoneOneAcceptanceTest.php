@@ -41,14 +41,14 @@ class MilestoneOneAcceptanceTest extends TestCase
             ->set('pack_size_unit', 'g')
             ->set('withVersion', true)
             ->set('serving_basis', ServingBasis::Per100g->value)
-            ->set('calories', '100')   // per 100g
-            ->set('protein', '5')
-            ->set('carbs', '10')
-            ->set('sugars', '2')
-            ->set('fat', '3')
-            ->set('saturated_fat', '1')
-            ->set('fibre', '4')
-            ->set('salt', '0.5')
+            ->set('nutrients.calories', '100')   // per 100g
+            ->set('nutrients.protein', '5')
+            ->set('nutrients.carbs', '10')
+            ->set('nutrients.sugars', '2')
+            ->set('nutrients.fat', '3')
+            ->set('nutrients.saturated_fat', '1')
+            ->set('nutrients.fibre', '4')
+            ->set('nutrients.salt', '0.5')
             ->set('confidence', '1.0')
             ->call('save')
             ->assertHasNoErrors();
