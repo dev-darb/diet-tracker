@@ -16,7 +16,7 @@ interface ScoreInsightWriter
 {
     /**
      * @param  array<int, array<string, mixed>>  $candidates  the engine's chosen candidates, in rank order
-     * @return array<int, GeneratedInsight>  one worded insight per candidate, same order
+     * @return array<int, GeneratedInsight> one worded insight per candidate, same order
      */
     public function word(FoodyScore $record, array $candidates): array;
 }

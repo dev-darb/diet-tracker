@@ -2,6 +2,7 @@
 
 namespace App\Models\Concerns;
 
+use App\Nutrition\NutrientOrigins;
 use App\Nutrition\NutrientRegistry;
 use App\ValueObjects\NutrientValues;
 
@@ -23,7 +24,23 @@ trait HasNutrientColumns
 {
     public function initializeHasNutrientColumns(): void
     {
-        $this->mergeFillable(NutrientValues::KEYS);
-        $this->mergeCasts(NutrientRegistry::casts());
+        $this->mergeFillable([...NutrientValues::KEYS, 'nutrient_origins']);
+        $this->mergeCasts([...NutrientRegistry::casts(), 'nutrient_origins' => 'array']);
+    }
+
+    /**
+     * Where each of this row's figures came from. Nutrients absent from the map
+     * were stated by a source, which is the ordinary case and the reason the
+     * column is usually null.
+     */
+    public function nutrientOrigins(): NutrientOrigins
+    {
+        return NutrientOrigins::fromArray($this->nutrient_origins);
+    }
+
+    /** Whether any figure on this row was produced by a model rather than a source. */
+    public function hasEstimatedNutrients(): bool
+    {
+        return $this->nutrientOrigins()->hasEstimates();
     }
 }

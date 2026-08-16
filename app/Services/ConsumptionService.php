@@ -10,6 +10,7 @@ use App\Models\ConsumptionEvent;
 use App\Models\PantryItem;
 use App\Models\ProductVersion;
 use App\Models\User;
+use App\Nutrition\NutrientOrigins;
 use App\ValueObjects\NutrientValues;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -195,6 +196,9 @@ class ConsumptionService
      * coarse entry beats a gap: completeness of the ledger outranks precision.
      *
      * @param  array<string, float|null>  $figures  subset of NutrientValues::KEYS
+     * @param  NutrientOrigins|null  $origins  where each figure came from. A figure a
+     *                                         model produced must arrive marked, or it becomes
+     *                                         indistinguishable from one the user read off a menu.
      */
     public function logEatingOut(
         User $user,
@@ -202,6 +206,7 @@ class ConsumptionService
         array $figures = [],
         ?Carbon $consumedAt = null,
         ?string $venue = null,
+        ?NutrientOrigins $origins = null,
     ): ConsumptionEvent {
         $name = trim($name);
         $venue = $venue !== null && trim($venue) !== '' ? mb_substr(trim($venue), 0, 120) : null;
@@ -231,6 +236,7 @@ class ConsumptionService
             'venue' => $venue,
             'consumed_at' => $consumedAt ?? now(),
             ...$values,
+            'nutrient_origins' => ($origins ?? NutrientOrigins::none())->toArray(),
         ]);
     }
 

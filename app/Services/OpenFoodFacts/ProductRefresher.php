@@ -7,6 +7,8 @@ use App\Enums\ServingBasis;
 use App\Enums\SourceType;
 use App\Models\CanonicalProduct;
 use App\Models\ProductVersion;
+use App\Nutrition\NutrientOrigin;
+use App\Nutrition\NutrientOrigins;
 use App\Nutrition\NutritionSanityCheck;
 use App\Services\PantryNutritionService;
 use App\ValueObjects\NutrientValues;
@@ -186,6 +188,9 @@ class ProductRefresher
             'serving_size_unit' => $serving?->unit->value,
             ...$nutrition['values'],
             ...$quality,
+            'nutrient_origins' => NutrientOrigins::none()
+                ->markEach($nutrition['derived'], NutrientOrigin::Derived)
+                ->toArray(),
             'ingredients' => $fresh->ingredientsText,
             'allergens' => $fresh->allergens,
             'effective_from' => now(),

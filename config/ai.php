@@ -83,11 +83,14 @@ return [
         'model' => env('AI_RECIPE_MODEL', 'openai/gpt-4o-mini'),
     ],
 
-    // Eating-out estimation (capture flow, BUILD_PLAN §1b tier 3): dish + venue
-    // -> estimated figures. Text-only, so cheap models do well here.
-    'eating_out_estimator' => [
-        'provider' => env('AI_EATING_OUT_PROVIDER', $gateway),
-        'model' => env('AI_EATING_OUT_MODEL', 'openai/gpt-4o-mini'),
+
+    // Nutrition estimation for foods no source has figures for (founder
+    // decision, Aug 2026). This one reasons rather than recalls — it has to show
+    // its working and its figures have to survive deterministic guardrails — so
+    // it is worth a stronger model than the other text-only capabilities.
+    'nutrition_estimator' => [
+        'provider' => env('AI_NUTRITION_ESTIMATOR_PROVIDER', $gateway),
+        'model' => env('AI_NUTRITION_ESTIMATOR_MODEL', 'openai/gpt-4o'),
     ],
 
 ];

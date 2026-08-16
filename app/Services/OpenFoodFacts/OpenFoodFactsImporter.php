@@ -8,6 +8,8 @@ use App\Enums\SourceType;
 use App\Models\CanonicalProduct;
 use App\Models\ProductSource;
 use App\Models\ProductVersion;
+use App\Nutrition\NutrientOrigin;
+use App\Nutrition\NutrientOrigins;
 use App\Nutrition\NutrientRegistry;
 use App\Nutrition\NutritionSanityCheck;
 use App\ValueObjects\NutrientValues;
@@ -103,6 +105,12 @@ class OpenFoodFactsImporter
             // Per-100g figures; each may be null (unknown) — persisted as NULL.
             ...$nutrition['values'],
             ...$quality,
+            // Which figures were converted rather than stated, and from what.
+            // Derived data is real data in another unit — recorded so the
+            // conversion can be audited, not so it can be doubted.
+            'nutrient_origins' => NutrientOrigins::none()
+                ->markEach($nutrition['derived'], NutrientOrigin::Derived)
+                ->toArray(),
             'ingredients' => $product->ingredientsText,
             'allergens' => $product->allergens,
             'effective_from' => now(),

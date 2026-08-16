@@ -24,7 +24,7 @@ use Throwable;
  *
  * The model SELECTS pantry ids from the offered list and NAMES the dish — it
  * never estimates nutrition here (portions come from the user via chips;
- * eating-out figures come from EatingOutEstimator). Ids outside the candidate
+ * figures for foods with no source come from the guarded NutritionEstimator). Ids outside the candidate
  * list are dropped defensively in {@see MealPhotoReading::fromArray()}.
  *
  * Reliability contract: interpret() never throws into the request path — any

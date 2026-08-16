@@ -1,7 +1,14 @@
 <?php
 
-use App\AI\Contracts\EatingOutEstimator;
 use App\Enums\MealContext;
+use App\Models\NutritionEstimate;
+use App\Nutrition\Estimation\EstimationBasis;
+use App\Nutrition\Estimation\EstimationReason;
+use App\Nutrition\Estimation\EstimationRequest;
+use App\Nutrition\NutrientOrigin;
+use App\Nutrition\NutrientOrigins;
+use App\Services\NutritionEstimationService;
+use App\ValueObjects\NutrientValues;
 use App\Enums\ScanCaptureStatus;
 use App\Models\ConsumptionEvent;
 use App\Models\PantryItem;
@@ -139,40 +146,65 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         $this->finish($event->name, $event);
     }
 
+    /** The estimate record behind the prefilled figures, so its working can be shown. */
+    public ?int $estimateId = null;
+
+    /** @var array<int, string> the model's reasoning, kept for the disclosure */
+    public array $estimateWorking = [];
+
     /**
-     * Ask the estimator for the dish's figures (the user should never NEED to
-     * know them). The result pre-fills the editable fields — the user stays in
-     * charge of what gets logged, and failure degrades to manual entry.
+     * Ask for a reasoned estimate of the dish (the user should never NEED to know
+     * the figures). This is a bounded ask, not a blank cheque: the food is named,
+     * the nutrients are named, and the reason estimation is permitted at all is
+     * recorded — there is no source record for a dish someone cooked in a
+     * restaurant kitchen.
+     *
+     * What comes back has already been through the guardrails. If the reasoning
+     * was missing, the confidence too low, or the figures did not hold together,
+     * nothing arrives and the user types what they know instead.
      */
-    public function estimateOut(EatingOutEstimator $estimator): void
+    public function estimateOut(NutritionEstimationService $estimates): void
     {
         $this->validate(['outName' => ['required', 'string', 'max:120']]);
         $this->estimateFailed = false;
 
-        $estimate = $estimator->estimate($this->outName, trim($this->outVenue) ?: null);
+        $venue = trim($this->outVenue) ?: null;
 
-        if ($estimate === null || ! $estimate->hasFigures()) {
+        $outcome = $estimates->estimate(
+            EstimationRequest::for(
+                subject: $this->outName,
+                reason: EstimationReason::NoSourceRecord,
+                basis: EstimationBasis::WholeItem,
+                // The full macro set: the moderation and fibre pillars need the
+                // secondary figures, and dropping a nutrient the model reasoned
+                // about would manufacture an unknown out of a known.
+                nutrients: NutrientValues::MACRO_KEYS,
+                context: array_filter(['venue' => $venue, 'meal' => 'eaten out']),
+            ),
+            Auth::user(),
+        );
+
+        if ($outcome === null || ! $outcome->isAccepted()) {
             $this->estimateFailed = true;
 
             return;
         }
 
+        $values = $outcome->values();
         $fill = static fn (?float $v): string => $v === null ? '' : rtrim(rtrim(number_format($v, 1, '.', ''), '0'), '.');
 
-        $this->outCalories = $fill($estimate->calories);
-        $this->outProtein = $fill($estimate->protein);
-        $this->outCarbs = $fill($estimate->carbs);
-        $this->outFat = $fill($estimate->fat);
-        // The estimator also states sugars/sat-fat/fibre/salt. They stay out
-        // of the minimal edit surface but ride along into the event — the
-        // moderation and fibre pillars need them, and discarding a stated
-        // figure would fabricate an unknown (spec §1, §11).
-        $this->outSecondary = array_intersect_key(
-            $estimate->figures(),
-            array_flip(['sugars', 'saturated_fat', 'fibre', 'salt']),
-        );
-        $this->estimateBasis = $estimate->basis;
-        $this->estimateConfidence = (int) round($estimate->confidence * 100);
+        $this->outCalories = $fill($values['calories'] ?? null);
+        $this->outProtein = $fill($values['protein'] ?? null);
+        $this->outCarbs = $fill($values['carbs'] ?? null);
+        $this->outFat = $fill($values['fat'] ?? null);
+        // Sugars, saturates, fibre and salt stay off the edit surface but ride
+        // into the event: the moderation and fibre pillars need them.
+        $this->outSecondary = array_intersect_key($values, array_flip(['sugars', 'saturated_fat', 'fibre', 'salt']));
+
+        $this->estimateId = $outcome->record->id;
+        $this->estimateWorking = $outcome->record->workingLines();
+        $this->estimateBasis = $outcome->record->reference;
+        $this->estimateConfidence = (int) round(($outcome->record->confidence ?? 0) * 100);
     }
 
     /**
@@ -265,7 +297,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         $this->photoNote = 'From the chef: '.$suggestion->title.' — confirm what actually went in.';
     }
 
-    public function logOut(ConsumptionService $service): void
+    public function logOut(ConsumptionService $service, NutritionEstimationService $estimates): void
     {
         $data = $this->validate([
             'outName' => ['required', 'string', 'max:120'],
@@ -278,7 +310,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
 
         $figure = static fn (string $v): ?float => $v === '' ? null : (float) $v;
 
-        $event = $service->logEatingOut(Auth::user(), $data['outName'], [
+        $figures = [
             'calories' => $figure($this->outCalories),
             'protein' => $figure($this->outProtein),
             'carbs' => $figure($this->outCarbs),
@@ -288,9 +320,63 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
             'saturated_fat' => $this->outSecondary['saturated_fat'] ?? null,
             'fibre' => $this->outSecondary['fibre'] ?? null,
             'salt' => $this->outSecondary['salt'] ?? null,
-        ], venue: trim($this->outVenue) ?: null);
+        ];
+
+        $event = $service->logEatingOut(
+            Auth::user(),
+            $data['outName'],
+            $figures,
+            venue: trim($this->outVenue) ?: null,
+            origins: $this->originsFor($figures),
+        );
+
+        // Close the link from the estimate to what it ended up on, so the working
+        // stays reachable from the logged meal months later.
+        if ($this->estimateRecord() !== null) {
+            $estimates->attach($this->estimateRecord(), $event);
+        }
 
         $this->finish($event->name, $event);
+    }
+
+    /**
+     * Mark the figures that came from the estimate, and only those.
+     *
+     * A figure the user typed over is theirs, not the model's — comparing what
+     * is being logged against what the estimate proposed is what keeps the
+     * marker honest when someone corrects a number by hand.
+     *
+     * @param  array<string, float|null>  $figures
+     */
+    private function originsFor(array $figures): NutrientOrigins
+    {
+        $record = $this->estimateRecord();
+
+        if ($record === null) {
+            return NutrientOrigins::none();
+        }
+
+        $estimated = [];
+
+        foreach ((array) ($record->values ?? []) as $key => $value) {
+            $logged = $figures[$key] ?? null;
+
+            if ($logged !== null && abs((float) $logged - (float) $value) < 0.05) {
+                $estimated[] = $key;
+            }
+        }
+
+        return NutrientOrigins::none()->mark($estimated, NutrientOrigin::Estimated, (string) $record->id);
+    }
+
+    private function estimateRecord(): ?NutritionEstimate
+    {
+        return $this->estimateId === null
+            ? null
+            : NutritionEstimate::query()
+                ->whereKey($this->estimateId)
+                ->where('user_id', Auth::id())
+                ->first();
     }
 
     /** One-tap re-log of an eating-out usual; home-cooked usuals prefill instead. */
@@ -340,7 +426,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
 
     public function startOver(): void
     {
-        $this->reset(['step', 'components', 'mealName', 'filter', 'outName', 'outVenue', 'outCalories', 'outProtein', 'outCarbs', 'outFat', 'outSecondary', 'estimateBasis', 'estimateConfidence', 'estimateFailed', 'captureId', 'chefId', 'photoNote', 'loggedName']);
+        $this->reset(['step', 'components', 'mealName', 'filter', 'outName', 'outVenue', 'outCalories', 'outProtein', 'outCarbs', 'outFat', 'outSecondary', 'estimateBasis', 'estimateConfidence', 'estimateFailed', 'estimateId', 'estimateWorking', 'captureId', 'chefId', 'photoNote', 'loggedName']);
         $this->resetValidation();
     }
 
@@ -401,7 +487,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         return $item !== null && $item->user_id === Auth::id() ? $item : null;
     }
 
-    public function with(PortionSuggestionService $portions, EatingOutEstimator $estimator): array
+    public function with(PortionSuggestionService $portions, NutritionEstimationService $estimates): array
     {
         $pantryItems = PantryItem::with('canonicalProduct')
             ->where('user_id', Auth::id())
@@ -446,7 +532,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
             'pantryItems' => $pantryItems,
             'usuals' => $usuals,
             'selected' => $selected,
-            'estimatorAvailable' => $estimator->available(),
+            'estimatorAvailable' => $estimates->available(),
         ];
     }
 }; ?>
@@ -627,12 +713,33 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                     @endif
 
                     @if ($estimateBasis !== null)
-                        <p class="mt-2 rounded bg-plate-well px-3 py-2 text-xs text-ink-dim">
-                            <span class="silkscreen">~ Estimate</span> · {{ $estimateBasis }}
-                            @if ($estimateConfidence !== null)
-                                <span class="data-sm text-ink-faint">· {{ $estimateConfidence }}% confident</span>
+                        {{-- The estimate says what it is and what it was based
+                             on, with the reasoning one tap away. Quiet by
+                             default: a marker, not a warning — the figure is
+                             usable, it just is not a label reading. --}}
+                        <div class="mt-2 rounded bg-plate-well px-3 py-2" x-data="{ working: false }">
+                            <p class="text-xs text-ink-dim">
+                                <span class="silkscreen">~ Estimate</span> · {{ $estimateBasis }}
+                                @if ($estimateConfidence !== null)
+                                    <span class="data-sm text-ink-faint">· {{ $estimateConfidence }}% confident</span>
+                                @endif
+                            </p>
+                            @if ($estimateWorking !== [])
+                                <button type="button" x-on:click="working = !working"
+                                        class="keycap-sm hit mt-1.5 flex items-center gap-1.5 text-ink-faint transition hover:text-ink">
+                                    <span x-text="working ? 'Hide how' : 'How was this worked out?'"></span>
+                                    <span class="data-sm" x-text="working ? '−' : '+'"></span>
+                                </button>
+                                <ul x-show="working" x-cloak class="mt-2 space-y-1 border-t border-seam pt-2">
+                                    @foreach ($estimateWorking as $line)
+                                        <li class="voice-micro flex gap-2 text-ink-dim">
+                                            <span class="text-ink-faint" aria-hidden="true">·</span>
+                                            <span>{{ $line }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
                             @endif
-                        </p>
+                        </div>
                     @endif
                 @endif
 

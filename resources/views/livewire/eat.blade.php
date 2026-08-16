@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ConsumptionEvent;
+use App\Models\NutritionEstimate;
 use App\Services\ConsumptionService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -129,7 +130,18 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
             ])
             ->values();
 
-        return ['groups' => $groups];
+        // The working behind any estimated figure on these entries, so opening a
+        // record can answer "where did this number come from" without another
+        // query per row.
+        $estimates = NutritionEstimate::query()
+            ->where('user_id', Auth::id())
+            ->where('accepted', true)
+            ->where('subject_type', (new ConsumptionEvent)->getMorphClass())
+            ->whereIn('subject_id', $events->pluck('id'))
+            ->get()
+            ->keyBy('subject_id');
+
+        return ['groups' => $groups, 'estimates' => $estimates];
     }
 
     private function dayLabel(Carbon $date): string
@@ -219,6 +231,37 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                      one) + the corrective actions. SPLIT reveal. --}}
                                 <div class="split" :class="inspect && 'split-open'">
                                 <div>
+                                {{-- Where a figure came from, for anyone who goes
+                                     looking. A model may produce nutrition when
+                                     no source has any, but never anonymously:
+                                     the working that produced the number is kept
+                                     and reachable from the entry itself. --}}
+                                @php($estimate = $estimates[$event->id] ?? null)
+                                @if ($estimate !== null)
+                                    <div class="well mb-2 border border-seam px-4 py-3">
+                                        <span class="silkscreen">How this was worked out</span>
+                                        <p class="voice-micro mt-1.5 text-ink-dim">
+                                            {{ $estimate->reference }}
+                                            @if ($estimate->confidence !== null)
+                                                <span class="data-sm text-ink-faint">· {{ (int) round($estimate->confidence * 100) }}% confident</span>
+                                            @endif
+                                        </p>
+                                        @if ($estimate->workingLines() !== [])
+                                            <ul class="mt-2 space-y-1 border-t border-seam pt-2">
+                                                @foreach ($estimate->workingLines() as $line)
+                                                    <li class="voice-micro flex gap-2 text-ink-dim">
+                                                        <span class="text-ink-faint" aria-hidden="true">·</span>
+                                                        <span>{{ $line }}</span>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @endif
+                                        <p class="data-sm mt-2 border-t border-seam pt-2 text-ink-faint uppercase">
+                                            Estimated: {{ implode(', ', $event->nutrientOrigins()->keysWith(\App\Nutrition\NutrientOrigin::Estimated)) }}
+                                        </p>
+                                    </div>
+                                @endif
+
                                 {{-- The opened record ACTS (edit/delete) — it earns a well surface. --}}
                                 <div class="well mb-2 border border-seam px-4 py-3">
                                     @if ($event->items->isNotEmpty())
