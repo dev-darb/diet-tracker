@@ -8,6 +8,8 @@ use App\Enums\SourceType;
 use App\Models\CanonicalProduct;
 use App\Models\ProductSource;
 use App\Models\ProductVersion;
+use App\Nutrition\NutrientRegistry;
+use App\ValueObjects\NutrientValues;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -51,94 +53,61 @@ class OpenFoodFactsImporter
             return $existing;
         }
 
-        return DB::transaction(function () use ($product): CanonicalProduct {
-            $canonical = CanonicalProduct::create([
-                'gtin' => $product->barcode,
-                // OFF strings are third-party and unbounded; the columns are
-                // varchar(255). Postgres rejects an over-length value (SQLite does
-                // not), so truncate defensively — a valid scan must never 500.
-                'brand' => $this->limit($product->brand) ?? 'Unknown brand',
-                'name' => $this->limit($product->productName) ?? 'Unknown product',
-                'variant' => null,
-                ...$this->packSize($product->quantity),
-                // OFF's most specific category tag, in plain words — feeds
-                // fruit-&-veg portions and plant-diversity classification.
-                'category' => $this->limit($product->category()),
-                // OFF's front-of-pack photo (their CDN, hotlink-safe): food
-                // imagery is functional UI — pantry rows and result cards
-                // show the food, not a glyph, whenever an image exists.
-                'primary_image_path' => $this->urlOrNull($product->imageUrl),
-            ]);
-
-            $version = $canonical->versions()->create([
-                'serving_basis' => ServingBasis::Per100g,
-                ...$this->servingSize($product->servingSize),
-                // Per-100g macros; each may be null (unknown) — persisted as NULL.
-                ...$product->per100gNutrients(),
-                'ingredients' => $product->ingredientsText,
-                'allergens' => $product->allergens,
-                'effective_from' => now(),
-                'verified_at' => now(),
-                'status' => ProductVerificationStatus::AutoVerified,
-            ]);
-
-            $version->sources()->create([
-                'source_url' => "{$this->baseUrl()}/product/{$product->barcode}",
-                'source_type' => SourceType::OpenFoodFacts,
-                'retrieved_at' => now(),
-                'confidence' => self::SOURCE_CONFIDENCE,
-                'evidence_summary' => $this->evidenceSummary($product),
-            ]);
-
-            return $canonical->refresh();
-        });
+        return DB::transaction(fn (): CanonicalProduct => $this->persist($product));
     }
 
     /**
-     * Parse an OFF `quantity` string (e.g. "330 ml", "189g", "1 L") into a
-     * pack-size value + unit. Returns nulls when it cannot be parsed — a pack
-     * size we cannot read stays unknown rather than wrong.
-     *
-     * @return array{pack_size_value: float|null, pack_size_unit: string|null}
+     * Write the canonical product, its nutrition version and its provenance.
+     * Assumes it runs inside a database transaction.
      */
-    private function packSize(?string $quantity): array
+    private function persist(OffProduct $product): CanonicalProduct
     {
-        return $this->parseAmount($quantity, 'pack_size_value', 'pack_size_unit');
-    }
+        $pack = $product->packSize();
+        $serving = $product->servingSize();
+        $nutrition = $product->nutrition();
 
-    /**
-     * Parse an OFF `serving_size` string into a numeric value + unit for the
-     * version row (used by NutritionCalculator for per-serving conversions).
-     *
-     * @return array{serving_size_value: float|null, serving_size_unit: string|null}
-     */
-    private function servingSize(?string $servingSize): array
-    {
-        return $this->parseAmount($servingSize, 'serving_size_value', 'serving_size_unit');
-    }
+        $canonical = CanonicalProduct::create([
+            'gtin' => $product->barcode,
+            // OFF strings are third-party and unbounded; the columns are
+            // varchar(255). Postgres rejects an over-length value (SQLite does
+            // not), so truncate defensively — a valid scan must never 500.
+            'brand' => $this->limit($product->brand) ?? 'Unknown brand',
+            'name' => $this->limit($product->productName) ?? 'Unknown product',
+            'variant' => null,
+            // A real mass or volume, or nothing. Never a count of "bars".
+            'pack_size_value' => $pack?->inBaseUnit(),
+            'pack_size_unit' => $pack?->unit->value,
+            // OFF's most specific category tag, in plain words — feeds
+            // fruit-&-veg portions and plant-diversity classification.
+            'category' => $this->limit($product->category()),
+            // OFF's front-of-pack photo (their CDN, hotlink-safe): food
+            // imagery is functional UI — pantry rows and result cards
+            // show the food, not a glyph, whenever an image exists.
+            'primary_image_path' => $this->urlOrNull($product->imageUrl),
+        ]);
 
-    /**
-     * @return array<string, float|string|null>
-     */
-    private function parseAmount(?string $raw, string $valueKey, string $unitKey): array
-    {
-        if ($raw !== null && preg_match('/([\d]+(?:[.,]\d+)?)\s*([a-zA-Z]+)/', $raw, $m) === 1) {
-            $value = (float) str_replace(',', '.', $m[1]);
+        $version = $canonical->versions()->create([
+            'serving_basis' => ServingBasis::Per100g,
+            'serving_size_value' => $serving?->inBaseUnit(),
+            'serving_size_unit' => $serving?->unit->value,
+            // Per-100g figures; each may be null (unknown) — persisted as NULL.
+            ...$nutrition['values'],
+            'ingredients' => $product->ingredientsText,
+            'allergens' => $product->allergens,
+            'effective_from' => now(),
+            'verified_at' => now(),
+            'status' => ProductVerificationStatus::AutoVerified,
+        ]);
 
-            // The value/unit columns are decimal(10,3)/varchar; a malformed OFF
-            // string could parse to something that overflows on Postgres, so a
-            // wildly out-of-range amount is treated as unparseable (stays null).
-            if ($value <= 0.0 || $value >= 9_999_999.0) {
-                return [$valueKey => null, $unitKey => null];
-            }
+        $version->sources()->create([
+            'source_url' => "{$this->baseUrl()}/product/{$product->barcode}",
+            'source_type' => SourceType::OpenFoodFacts,
+            'retrieved_at' => now(),
+            'confidence' => self::SOURCE_CONFIDENCE,
+            'evidence_summary' => $this->evidenceSummary($product, $nutrition),
+        ]);
 
-            return [
-                $valueKey => $value,
-                $unitKey => $this->limit(strtolower($m[2]), 16),
-            ];
-        }
-
-        return [$valueKey => null, $unitKey => null];
+        return $canonical->refresh();
     }
 
     /** A URL either fits its varchar(255) column intact or is dropped — never truncated into a broken link. */
@@ -157,16 +126,51 @@ class OpenFoodFactsImporter
         return mb_strlen($value) > $max ? mb_substr($value, 0, $max) : $value;
     }
 
-    private function evidenceSummary(OffProduct $product): string
+    /**
+     * Provenance in words: what was stated, what had to be derived, and what OFF
+     * simply does not say. Derivations are named explicitly (energy from
+     * kilojoules, salt from sodium, a figure renormalised from a per-serving
+     * statement) because a derived number is real data and a fabricated one is
+     * not — and six months from now the difference has to still be visible.
+     *
+     * @param  array{values: array<string, float|null>, derived: array<string, string>}  $nutrition
+     */
+    private function evidenceSummary(OffProduct $product, array $nutrition): string
     {
         $per = $product->nutritionDataPer ?? '100g';
-        $unknown = array_keys(array_filter($product->per100gNutrients(), static fn ($v) => $v === null));
-
         $summary = "Imported from Open Food Facts (barcode {$product->barcode}); nutrition per {$per}.";
 
-        if ($unknown !== []) {
-            $summary .= ' Not stated by OFF: '.implode(', ', $unknown).'.';
+        if ($nutrition['derived'] !== []) {
+            $derived = [];
+
+            foreach ($nutrition['derived'] as $key => $sourceKey) {
+                $derived[] = "{$key} from {$sourceKey}";
+            }
+
+            $summary .= ' Derived: '.implode(', ', $derived).'.';
         }
+
+        // Macros only: naming all fifteen unstated micronutrients on every
+        // product would bury the macro gaps that actually matter.
+        $unknownMacros = array_keys(array_filter(
+            array_intersect_key($nutrition['values'], array_flip(NutrientValues::MACRO_KEYS)),
+            static fn ($v) => $v === null,
+        ));
+
+        if ($unknownMacros !== []) {
+            $summary .= ' Not stated by OFF: '.implode(', ', $unknownMacros).'.';
+        }
+
+        $statedMicros = count(array_filter(
+            array_intersect_key($nutrition['values'], array_flip(NutrientRegistry::microKeys())),
+            static fn ($v) => $v !== null,
+        ));
+
+        $summary .= sprintf(
+            ' Micronutrients stated: %d of %d.',
+            $statedMicros,
+            count(NutrientRegistry::microKeys()),
+        );
 
         return $summary;
     }

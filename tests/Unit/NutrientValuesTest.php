@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use App\Nutrition\NutrientGroup;
+use App\Nutrition\NutrientRegistry;
 use App\ValueObjects\NutrientValues;
 use PHPUnit\Framework\TestCase;
 
@@ -69,18 +71,97 @@ class NutrientValuesTest extends TestCase
         $v = new NutrientValues(
             calories: 200, protein: 10, carbs: 20, sugars: 5,
             fat: 8, saturatedFat: 3, fibre: 4, salt: 1.2,
+            micros: ['iron' => 2.1, 'vitamin_b12' => 0.6],
         );
 
-        $this->assertSame([
-            'calories' => 200.0,
-            'protein' => 10.0,
-            'carbs' => 20.0,
-            'sugars' => 5.0,
-            'fat' => 8.0,
-            'saturated_fat' => 3.0,
-            'fibre' => 4.0,
-            'salt' => 1.2,
-        ], $v->toArray());
+        $array = $v->toArray();
+
+        // Every registry key is exported, so the result drops straight onto a
+        // nutrition row without the caller knowing which columns exist.
+        $this->assertSame(NutrientValues::KEYS, array_keys($array));
+
+        $this->assertSame(200.0, $array['calories']);
+        $this->assertSame(1.2, $array['salt']);
+        $this->assertSame(2.1, $array['iron']);
+        $this->assertSame(0.6, $array['vitamin_b12']);
+
+        // A micronutrient nobody stated stays unknown — never a fabricated zero.
+        $this->assertNull($array['calcium']);
+    }
+
+    // --- Micronutrients (food-intelligence tranche, Aug 2026) ---------------
+
+    public function test_an_unstated_micronutrient_is_unknown_not_zero(): void
+    {
+        // The macro contract is unchanged: an absent macro still means "no
+        // contribution". An absent micro was never part of that contract, and
+        // reading it as zero would claim the food contains no iron at all.
+        $v = NutrientValues::fromArray(['calories' => 250]);
+
+        $this->assertSame(0.0, $v->get('salt'));
+        $this->assertNull($v->get('iron'));
+        $this->assertNull($v->get('vitamin_c'));
+    }
+
+    public function test_from_stated_treats_every_absent_key_as_unknown(): void
+    {
+        // The constructor for anything assembling nutrition from outside — an
+        // estimate, a resolved meal component, a reconciliation answer.
+        $v = NutrientValues::fromStated(['calories' => 250]);
+
+        $this->assertSame(250.0, $v->get('calories'));
+        $this->assertNull($v->get('salt'));
+        $this->assertNull($v->get('iron'));
+    }
+
+    public function test_zero_is_a_true_additive_identity_across_micronutrients(): void
+    {
+        // Sums start from zero(); if its micros were unknown, every total's
+        // micronutrients would collapse to unknown on the first addition.
+        $stated = new NutrientValues(calories: 100, micros: ['iron' => 3.0]);
+
+        $sum = NutrientValues::zero()->add($stated);
+
+        $this->assertSame(3.0, $sum->get('iron'));
+        $this->assertSame(100.0, $sum->get('calories'));
+    }
+
+    public function test_micronutrients_scale_and_propagate_unknowns_like_macros(): void
+    {
+        $v = new NutrientValues(calories: 100, micros: ['iron' => 2.0]);
+
+        $this->assertSame(1.0, $v->scale(0.5)->get('iron'));
+        // calcium is unknown here, so the sum cannot claim a calcium figure.
+        $this->assertNull($v->add(new NutrientValues(micros: ['calcium' => 50.0]))->get('calcium'));
+    }
+
+    public function test_rounding_keeps_microgram_precision(): void
+    {
+        // Vitamin B12 is quoted in micrograms; rounding it to the macros' 2dp
+        // would round a real figure away to nothing.
+        $v = new NutrientValues(micros: ['vitamin_b12' => 0.6234, 'iron' => 2.1266]);
+
+        $rounded = $v->rounded(2);
+
+        $this->assertSame(0.623, $rounded->get('vitamin_b12'));
+        $this->assertSame(2.127, $rounded->get('iron'));
+    }
+
+    public function test_coverage_reports_how_much_is_actually_stated(): void
+    {
+        $v = NutrientValues::fromStated(['calories' => 100, 'protein' => 5, 'iron' => 1.0]);
+
+        $this->assertSame(0.25, $v->coverage(NutrientGroup::Macro));
+        $this->assertSame(round(1 / 15, 4), $v->coverage(NutrientGroup::Micro));
+        $this->assertFalse($v->isComplete());
+    }
+
+    public function test_keys_stay_in_step_with_the_registry(): void
+    {
+        // The const exists so `$model->only(...)` reads cheaply across the app;
+        // the registry stays the source of truth. This is what holds them together.
+        $this->assertSame(NutrientRegistry::keys(), NutrientValues::KEYS);
+        $this->assertSame(NutrientRegistry::macroKeys(), NutrientValues::MACRO_KEYS);
     }
 
     public function test_scale_and_add_return_new_instances(): void

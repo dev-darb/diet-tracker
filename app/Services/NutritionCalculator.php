@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\QuantityUnit;
 use App\Enums\ServingBasis;
+use App\Nutrition\MeasuredAmount;
 use App\ValueObjects\NutrientValues;
 use InvalidArgumentException;
 
@@ -33,25 +34,24 @@ class NutritionCalculator
      * Convert a set of nutrient values between per-100(g/ml) and per-serving
      * bases, preserving the figures' meaning (brief §7.12).
      *
-     * @param  float|null  $servingSizeValue  the serving size in the same base
-     *                                        unit as the per-100 figures (g or
-     *                                        ml). Required whenever the two
-     *                                        bases differ.
+     * @param  MeasuredAmount|null  $servingSize  the serving as a real mass or
+     *                                            volume. Required whenever the two
+     *                                            bases differ.
      *
      * @throws InvalidArgumentException when the serving size is needed but
-     *                                  missing or non-positive.
+     *                                  missing.
      */
     public function convertBasis(
         NutrientValues $values,
         ServingBasis $from,
         ServingBasis $to,
-        ?float $servingSizeValue,
+        ?MeasuredAmount $servingSize,
     ): NutrientValues {
         if ($from === $to) {
             return $values;
         }
 
-        $serving = $this->requireServingSize($servingSizeValue, 'convert between per-100 and per-serving bases');
+        $serving = $this->requireServingSize($servingSize, 'convert between per-100 and per-serving bases');
 
         // per_100g → per_serving: one serving is `serving/100` of 100g.
         // per_serving → per_100g: 100g is `100/serving` servings.
@@ -72,13 +72,14 @@ class NutritionCalculator
      *
      * @param  NutrientValues  $values  the version's stored nutrient figures.
      * @param  ServingBasis  $basis  the basis those figures are quoted on.
-     * @param  float|null  $servingSizeValue  serving size in g/ml. Required
-     *                                        for per-serving figures, and for `unit`/`portion`
-     *                                        consumption of per-100 figures.
+     * @param  MeasuredAmount|null  $servingSize  the stated serving. Required for
+     *                                            per-serving figures, and for
+     *                                            `unit`/`portion` consumption of
+     *                                            per-100 figures.
      * @param  float  $quantity  how much was consumed (in `$unit`).
      * @param  QuantityUnit  $unit  the unit `$quantity` is expressed in.
-     * @param  float|null  $packSizeValue  grams/ml in one whole pack.
-     *                                     Required only when `$unit` is `pack`.
+     * @param  MeasuredAmount|null  $packSize  the contents of one whole pack.
+     *                                         Required only when `$unit` is `pack`.
      *
      * @throws InvalidArgumentException on negative quantity or a missing size
      *                                  the chosen unit requires.
@@ -86,10 +87,10 @@ class NutritionCalculator
     public function contribution(
         NutrientValues $values,
         ServingBasis $basis,
-        ?float $servingSizeValue,
+        ?MeasuredAmount $servingSize,
         float $quantity,
         QuantityUnit $unit,
-        ?float $packSizeValue = null,
+        ?MeasuredAmount $packSize = null,
     ): NutrientValues {
         if ($quantity < 0) {
             throw new InvalidArgumentException('Consumed quantity cannot be negative.');
@@ -102,10 +103,10 @@ class NutritionCalculator
         // Normalise the stored figures to a per-100(g/ml) baseline.
         $per100 = $basis === ServingBasis::Per100g
             ? $values
-            : $this->convertBasis($values, ServingBasis::PerServing, ServingBasis::Per100g, $servingSizeValue);
+            : $this->convertBasis($values, ServingBasis::PerServing, ServingBasis::Per100g, $servingSize);
 
         // Resolve how many grams/ml the consumed quantity represents.
-        $baseAmount = $this->baseAmountConsumed($quantity, $unit, $servingSizeValue, $packSizeValue);
+        $baseAmount = $this->baseAmountConsumed($quantity, $unit, $servingSize, $packSize);
 
         return $per100->scale($baseAmount / 100.0);
     }
@@ -130,12 +131,19 @@ class NutritionCalculator
     /**
      * Translate a `$quantity $unit` into a number of grams/ml, using the
      * serving/pack sizes where the unit requires them.
+     *
+     * Grams and millilitres are interchangeable at this boundary because the
+     * nutrition basis itself is "per 100 g OR 100 ml" — a product is quoted on
+     * one or the other, never both, so one hundred base units is one hundred
+     * base units. What is NOT interchangeable is a size that is not a mass or a
+     * volume at all, and {@see MeasuredAmount} makes that unrepresentable rather
+     * than merely discouraged (audit D5).
      */
     private function baseAmountConsumed(
         float $quantity,
         QuantityUnit $unit,
-        ?float $servingSizeValue,
-        ?float $packSizeValue,
+        ?MeasuredAmount $servingSize,
+        ?MeasuredAmount $packSize,
     ): float {
         return match ($unit) {
             // Already a mass/volume.
@@ -143,32 +151,32 @@ class NutritionCalculator
 
             // A whole item / portion == one stated serving.
             QuantityUnit::Unit, QuantityUnit::Portion => $quantity * $this->requireServingSize(
-                $servingSizeValue,
+                $servingSize,
                 'consume by unit/portion',
             ),
 
             // A whole pack.
-            QuantityUnit::Pack => $quantity * $this->requirePositive(
-                $packSizeValue,
-                'consume by pack requires a pack size',
+            QuantityUnit::Pack => $quantity * $this->require(
+                $packSize,
+                'A pack size in grams or millilitres is required to consume by pack.',
             ),
         };
     }
 
-    private function requireServingSize(?float $servingSizeValue, string $action): float
+    private function requireServingSize(?MeasuredAmount $servingSize, string $action): float
     {
-        return $this->requirePositive(
-            $servingSizeValue,
-            "A positive serving size is required to {$action}.",
+        return $this->require(
+            $servingSize,
+            "A serving size in grams or millilitres is required to {$action}.",
         );
     }
 
-    private function requirePositive(?float $value, string $message): float
+    private function require(?MeasuredAmount $amount, string $message): float
     {
-        if ($value === null || $value <= 0.0) {
+        if ($amount === null) {
             throw new InvalidArgumentException($message);
         }
 
-        return $value;
+        return $amount->inBaseUnit();
     }
 }

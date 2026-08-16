@@ -350,20 +350,14 @@ class ConsumptionService
             return NutrientValues::unknown();
         }
 
-        $values = NutrientValues::fromArray($version->only(NutrientValues::KEYS));
-        $servingSize = $version->serving_size_value !== null ? (float) $version->serving_size_value : null;
-        $packSize = $product !== null && $product->pack_size_value !== null
-            ? (float) $product->pack_size_value
-            : null;
-
         try {
             return $this->calculator->contribution(
-                $values,
+                NutrientValues::fromArray($version->only(NutrientValues::KEYS)),
                 $version->serving_basis,
-                $servingSize,
+                $version->servingSize(),
                 $quantity,
                 $unit,
-                $packSize,
+                $product?->packSize(),
             );
         } catch (InvalidArgumentException) {
             return NutrientValues::unknown();

@@ -111,7 +111,7 @@ class DietInsightContextBuilder
                 $values,
                 ServingBasis::PerServing,
                 ServingBasis::Per100g,
-                $version->serving_size_value !== null ? (float) $version->serving_size_value : null,
+                $version->servingSize(),
             );
         } catch (Throwable) {
             // Per-serving figures with no serving size can't be normalised — stay honest.

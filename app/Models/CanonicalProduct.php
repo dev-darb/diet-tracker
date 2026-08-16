@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Nutrition\MeasuredAmount;
 use Database\Factories\CanonicalProductFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +33,16 @@ class CanonicalProduct extends Model
         return [
             'pack_size_value' => 'decimal:3',
         ];
+    }
+
+    /**
+     * Net pack contents as a real mass or volume, or null when the stored size
+     * is not one (a legacy `1 "kg"` or `4 "x"` from the pre-audit parser reduces
+     * to null rather than to one gram — audit D4/D5).
+     */
+    public function packSize(): ?MeasuredAmount
+    {
+        return MeasuredAmount::fromNumeric($this->pack_size_value, $this->pack_size_unit);
     }
 
     /** @return HasMany<ProductVersion, $this> */

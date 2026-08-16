@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Enums\QuantityUnit;
 use App\Enums\ServingBasis;
+use App\Nutrition\MeasuredAmount;
 use App\Services\NutritionCalculator;
 use App\ValueObjects\NutrientValues;
 use InvalidArgumentException;
@@ -17,6 +18,12 @@ class NutritionCalculatorTest extends TestCase
     {
         parent::setUp();
         $this->calc = new NutritionCalculator;
+    }
+
+    /** Shorthand: a serving/pack size as the real mass the calculator now demands. */
+    private static function g(float $grams): ?MeasuredAmount
+    {
+        return MeasuredAmount::grams($grams);
     }
 
     // --- Basis conversion (brief §7.12) -------------------------------------
@@ -33,7 +40,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_per_100g_to_per_serving(): void
     {
         $per100 = new NutrientValues(calories: 400, protein: 8, salt: 1);
-        $perServing = $this->calc->convertBasis($per100, ServingBasis::Per100g, ServingBasis::PerServing, 30);
+        $perServing = $this->calc->convertBasis($per100, ServingBasis::Per100g, ServingBasis::PerServing, self::g(30));
 
         $this->assertSame(120.0, $perServing->calories);
         $this->assertSame(2.4, $perServing->protein);
@@ -43,7 +50,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_per_serving_to_per_100g(): void
     {
         $perServing = new NutrientValues(calories: 120, protein: 2.4);
-        $per100 = $this->calc->convertBasis($perServing, ServingBasis::PerServing, ServingBasis::Per100g, 30);
+        $per100 = $this->calc->convertBasis($perServing, ServingBasis::PerServing, ServingBasis::Per100g, self::g(30));
 
         $this->assertSame(400.0, $per100->calories);
         $this->assertSame(8.0, $per100->protein);
@@ -53,8 +60,8 @@ class NutritionCalculatorTest extends TestCase
     {
         $per100 = new NutrientValues(calories: 537, protein: 6.3, carbs: 57.5, salt: 1.2);
 
-        $there = $this->calc->convertBasis($per100, ServingBasis::Per100g, ServingBasis::PerServing, 25);
-        $back = $this->calc->convertBasis($there, ServingBasis::PerServing, ServingBasis::Per100g, 25);
+        $there = $this->calc->convertBasis($per100, ServingBasis::Per100g, ServingBasis::PerServing, self::g(25));
+        $back = $this->calc->convertBasis($there, ServingBasis::PerServing, ServingBasis::Per100g, self::g(25));
 
         $this->assertSame($per100->rounded(6)->toArray(), $back->rounded(6)->toArray());
     }
@@ -68,7 +75,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_convert_with_zero_serving_size_throws(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->calc->convertBasis(new NutrientValues(calories: 100), ServingBasis::Per100g, ServingBasis::PerServing, 0);
+        $this->calc->convertBasis(new NutrientValues(calories: 100), ServingBasis::Per100g, ServingBasis::PerServing, self::g(0));
     }
 
     // --- Consumption maths: grams / ml (brief §8.2, §8.9) -------------------
@@ -76,7 +83,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_grams_of_a_per_100g_product(): void
     {
         $per100 = new NutrientValues(calories: 400, protein: 8, carbs: 50);
-        $c = $this->calc->contribution($per100, ServingBasis::Per100g, 30, 150, QuantityUnit::Gram);
+        $c = $this->calc->contribution($per100, ServingBasis::Per100g, self::g(30), 150, QuantityUnit::Gram);
 
         $this->assertSame(600.0, $c->calories);
         $this->assertSame(12.0, $c->protein);
@@ -95,7 +102,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_grams_of_a_per_serving_product_uses_serving_size(): void
     {
         $perServing = new NutrientValues(calories: 120, protein: 2.4);
-        $c = $this->calc->contribution($perServing, ServingBasis::PerServing, 30, 150, QuantityUnit::Gram);
+        $c = $this->calc->contribution($perServing, ServingBasis::PerServing, self::g(30), 150, QuantityUnit::Gram);
 
         $this->assertSame(600.0, $c->calories);
         $this->assertSame(12.0, round($c->protein, 2));
@@ -106,7 +113,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_n_units_of_a_per_serving_product(): void
     {
         $perServing = new NutrientValues(calories: 120, protein: 2.4);
-        $c = $this->calc->contribution($perServing, ServingBasis::PerServing, 30, 2, QuantityUnit::Unit);
+        $c = $this->calc->contribution($perServing, ServingBasis::PerServing, self::g(30), 2, QuantityUnit::Unit);
 
         $this->assertSame(240.0, $c->calories);
         $this->assertSame(4.8, $c->protein);
@@ -115,7 +122,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_portions_of_a_per_100g_product(): void
     {
         $per100 = new NutrientValues(calories: 400);
-        $c = $this->calc->contribution($per100, ServingBasis::Per100g, 30, 2, QuantityUnit::Portion);
+        $c = $this->calc->contribution($per100, ServingBasis::Per100g, self::g(30), 2, QuantityUnit::Portion);
 
         $this->assertSame(240.0, $c->calories);
     }
@@ -123,8 +130,8 @@ class NutritionCalculatorTest extends TestCase
     public function test_unit_and_portion_are_equivalent(): void
     {
         $per100 = new NutrientValues(calories: 400, protein: 8);
-        $asUnit = $this->calc->contribution($per100, ServingBasis::Per100g, 30, 3, QuantityUnit::Unit);
-        $asPortion = $this->calc->contribution($per100, ServingBasis::Per100g, 30, 3, QuantityUnit::Portion);
+        $asUnit = $this->calc->contribution($per100, ServingBasis::Per100g, self::g(30), 3, QuantityUnit::Unit);
+        $asPortion = $this->calc->contribution($per100, ServingBasis::Per100g, self::g(30), 3, QuantityUnit::Portion);
 
         $this->assertSame($asUnit->toArray(), $asPortion->toArray());
     }
@@ -134,7 +141,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_fractional_serving(): void
     {
         $perServing = new NutrientValues(calories: 120, protein: 2.4);
-        $c = $this->calc->contribution($perServing, ServingBasis::PerServing, 30, 0.5, QuantityUnit::Unit);
+        $c = $this->calc->contribution($perServing, ServingBasis::PerServing, self::g(30), 0.5, QuantityUnit::Unit);
 
         $this->assertSame(60.0, $c->calories);
         $this->assertSame(1.2, $c->protein);
@@ -143,7 +150,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_fraction_of_a_pack_uses_pack_size(): void
     {
         $per100 = new NutrientValues(calories: 400, protein: 8);
-        $c = $this->calc->contribution($per100, ServingBasis::Per100g, 30, 0.5, QuantityUnit::Pack, packSizeValue: 250);
+        $c = $this->calc->contribution($per100, ServingBasis::Per100g, self::g(30), 0.5, QuantityUnit::Pack, packSize: self::g(250));
 
         $this->assertSame(500.0, $c->calories);
         $this->assertSame(10.0, $c->protein);
@@ -152,7 +159,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_pack_without_pack_size_throws(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->calc->contribution(new NutrientValues(calories: 400), ServingBasis::Per100g, 30, 1, QuantityUnit::Pack);
+        $this->calc->contribution(new NutrientValues(calories: 400), ServingBasis::Per100g, self::g(30), 1, QuantityUnit::Pack);
     }
 
     // --- Edge cases --------------------------------------------------------
@@ -160,7 +167,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_zero_quantity_returns_zero(): void
     {
         $per100 = new NutrientValues(calories: 400, protein: 8);
-        $c = $this->calc->contribution($per100, ServingBasis::Per100g, 30, 0, QuantityUnit::Gram);
+        $c = $this->calc->contribution($per100, ServingBasis::Per100g, self::g(30), 0, QuantityUnit::Gram);
 
         $this->assertSame(NutrientValues::zero()->toArray(), $c->toArray());
     }
@@ -188,7 +195,7 @@ class NutritionCalculatorTest extends TestCase
     public function test_negative_quantity_throws(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->calc->contribution(new NutrientValues(calories: 400), ServingBasis::Per100g, 30, -1, QuantityUnit::Gram);
+        $this->calc->contribution(new NutrientValues(calories: 400), ServingBasis::Per100g, self::g(30), -1, QuantityUnit::Gram);
     }
 
     // --- Meal / day summation (brief §8.4) ---------------------------------

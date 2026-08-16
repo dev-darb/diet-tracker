@@ -19,8 +19,25 @@ use Throwable;
  */
 class OpenFoodFactsClient
 {
-    /** Only the fields the importer needs, to keep payloads small (brief §7.5 note). */
-    private const FIELDS = 'code,product_name,brands,quantity,nutriments,ingredients_text,allergens_tags,serving_size,nutrition_data_per';
+    /**
+     * Only the fields the importer needs, to keep payloads small (brief §7.5 note).
+     *
+     * AUDIT D1 (Aug 2026): this list must contain every key {@see OffProduct}
+     * reads. It previously omitted `categories_tags` and the image URLs while
+     * OffProduct read both — so the API simply never returned them, and every
+     * product in the app had a null category and no photo. Nothing failed loudly;
+     * the plant-diversity scoring just quietly had nothing to classify, and the
+     * image markup on pantry rows, scan cards and the chef never once fired.
+     *
+     * `nutriments` carries the whole nutrient object, micronutrients included, so
+     * the registry's fifteen vitamins and minerals need no entry of their own.
+     *
+     * If you read a new field in OffProduct, add it here in the same commit.
+     */
+    private const FIELDS = 'code,product_name,brands,quantity,product_quantity,product_quantity_unit,'
+        .'nutriments,ingredients_text,allergens_tags,serving_size,serving_quantity,'
+        .'nutrition_data_per,categories_tags,'
+        .'image_front_small_url,image_front_url,image_small_url,image_url';
 
     public function fetchByBarcode(string $barcode): ?OffProduct
     {

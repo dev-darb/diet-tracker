@@ -87,14 +87,12 @@ class PantryNutritionService
         }
 
         $values = NutrientValues::fromArray($version->only(NutrientValues::KEYS));
-        $serving = $version->serving_size_value !== null ? (float) $version->serving_size_value : null;
+        $serving = $version->servingSize();
 
-        if ($serving !== null && $serving > 0.0) {
-            $unit = $version->serving_size_unit ?: 'g';
-
+        if ($serving !== null) {
             return [
                 'values' => $this->calculator->convertBasis($values, $version->serving_basis, ServingBasis::PerServing, $serving),
-                'basis_label' => 'per serving ('.rtrim(rtrim(number_format($serving, 3, '.', ''), '0'), '.').$unit.')',
+                'basis_label' => 'per serving ('.$serving->label().')',
             ];
         }
 
@@ -106,21 +104,14 @@ class PantryNutritionService
 
     private function nutritionFor(PantryItem $item, ProductVersion $version, float $quantity): ?NutrientValues
     {
-        $values = NutrientValues::fromArray($version->only(NutrientValues::KEYS));
-
-        $servingSize = $version->serving_size_value !== null ? (float) $version->serving_size_value : null;
-        $packSize = $item->canonicalProduct->pack_size_value !== null
-            ? (float) $item->canonicalProduct->pack_size_value
-            : null;
-
         try {
             return $this->calculator->contribution(
-                $values,
+                NutrientValues::fromArray($version->only(NutrientValues::KEYS)),
                 $version->serving_basis,
-                $servingSize,
+                $version->servingSize(),
                 $quantity,
                 $item->quantity_unit,
-                $packSize,
+                $item->canonicalProduct->packSize(),
             );
         } catch (InvalidArgumentException) {
             return null;

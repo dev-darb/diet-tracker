@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ConsumptionType;
 use App\Enums\MealContext;
+use App\Models\Concerns\HasNutrientColumns;
 use Database\Factories\ConsumptionEventFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,8 @@ class ConsumptionEvent extends Model
     /** @use HasFactory<ConsumptionEventFactory> */
     use HasFactory;
 
+    use HasNutrientColumns;
+
     protected $fillable = [
         'user_id',
         'type',
@@ -28,14 +31,6 @@ class ConsumptionEvent extends Model
         'name',
         'venue',
         'consumed_at',
-        'calories',
-        'protein',
-        'carbs',
-        'sugars',
-        'fat',
-        'saturated_fat',
-        'fibre',
-        'salt',
     ];
 
     protected function casts(): array
@@ -45,14 +40,6 @@ class ConsumptionEvent extends Model
             'context' => MealContext::class,
             'estimated' => 'boolean',
             'consumed_at' => 'datetime',
-            'calories' => 'decimal:2',
-            'protein' => 'decimal:2',
-            'carbs' => 'decimal:2',
-            'sugars' => 'decimal:2',
-            'fat' => 'decimal:2',
-            'saturated_fat' => 'decimal:2',
-            'fibre' => 'decimal:2',
-            'salt' => 'decimal:2',
         ];
     }
 

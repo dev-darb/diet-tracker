@@ -3,20 +3,23 @@
 namespace App\Models;
 
 use App\Enums\QuantityUnit;
+use App\Models\Concerns\HasNutrientColumns;
 use Database\Factories\ConsumptionItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One component of a consumption event with SNAPSHOTTED macros (BUILD_PLAN §5,
+ * One component of a consumption event with SNAPSHOTTED nutrition (BUILD_PLAN §5,
  * idea #6). The snapshot means historical days never change if the product is
- * later reformulated.
+ * later reformulated — or if a later import corrects the product's figures.
  */
 class ConsumptionItem extends Model
 {
     /** @use HasFactory<ConsumptionItemFactory> */
     use HasFactory;
+
+    use HasNutrientColumns;
 
     protected $fillable = [
         'consumption_event_id',
@@ -25,14 +28,6 @@ class ConsumptionItem extends Model
         'quantity',
         'unit',
         'portion_label',
-        'calories',
-        'protein',
-        'carbs',
-        'sugars',
-        'fat',
-        'saturated_fat',
-        'fibre',
-        'salt',
     ];
 
     protected function casts(): array
@@ -40,14 +35,6 @@ class ConsumptionItem extends Model
         return [
             'unit' => QuantityUnit::class,
             'quantity' => 'decimal:3',
-            'calories' => 'decimal:2',
-            'protein' => 'decimal:2',
-            'carbs' => 'decimal:2',
-            'sugars' => 'decimal:2',
-            'fat' => 'decimal:2',
-            'saturated_fat' => 'decimal:2',
-            'fibre' => 'decimal:2',
-            'salt' => 'decimal:2',
         ];
     }
 
