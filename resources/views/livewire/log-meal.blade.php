@@ -411,7 +411,8 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
              repeat meal is one tap; the taxonomy is for new ones. --}}
         @if ($step === 'context')
             @if ($usuals->isNotEmpty())
-                <x-app.module label="Your usuals">
+                <section>
+                <h2 class="silkscreen border-b border-seam pb-2">Your usuals</h2>
                     <div class="mt-3 space-y-2">
                         @foreach ($usuals as $usual)
                             <button type="button" wire:click="useUsual({{ $usual->id }})" wire:loading.attr="disabled"
@@ -424,10 +425,11 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                             </button>
                         @endforeach
                     </div>
-                </x-app.module>
+                </section>
             @endif
 
-            <x-app.module :label="$usuals->isNotEmpty() ? 'Something new' : 'Log a meal'">
+            <section>
+                <h2 class="silkscreen border-b border-seam pb-2">{{ $usuals->isNotEmpty() ? 'Something new' : 'Log a meal' }}</h2>
                 <div class="mt-4 space-y-2">
                     <x-app.console-key primary wire:click="chooseHomeCooked">
                         <span class="flex items-center justify-center gap-2"><x-app.icon name="pan" />Home-cooked</span>
@@ -439,12 +441,13 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                         <span class="flex items-center justify-center gap-2"><x-app.icon name="barcode" />Packaged — scan it</span>
                     </x-app.console-key>
                 </div>
-            </x-app.module>
+            </section>
         @endif
 
         {{-- STEP — home-cooked: compose from pantry ---------------------------}}
         @if ($step === 'home')
-            <x-app.module label="Home-cooked — what went in?">
+            <section>
+                <h2 class="silkscreen border-b border-seam pb-2">Home-cooked — what went in?</h2>
                 @if ($photoNote !== null)
                     {{-- The scan's reading — dish, matched components, also-seen. --}}
                     <p class="mt-3 rounded bg-plate-well px-3 py-2 text-xs text-ink-dim">{{ $photoNote }}</p>
@@ -503,10 +506,23 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                     <div class="mt-2 max-h-64 space-y-1 overflow-y-auto">
                         @forelse ($pantryItems as $item)
                             @continue(isset($components[$item->id]))
+                            {{-- The name is spoken voice, never keycap engraving
+                                 (Two Voices, One Speaker) — the key material
+                                 stays, the label doesn't shout. --}}
                             <button type="button" wire:click="addComponent({{ $item->id }})"
-                                    class="key keycap-sm flex w-full items-center justify-between px-3 py-2.5 text-left">
-                                <span class="min-w-0 truncate text-ink-dim">{{ $item->canonicalProduct->brand }} {{ $item->canonicalProduct->name }}</span>
-                                <span class="data-sm ml-2 shrink-0 text-ink-faint">+</span>
+                                    class="key flex w-full items-center gap-2.5 px-2.5 py-2 text-left">
+                                {{-- Ingredients look like food (One Row Molecule):
+                                     the product's own photo, or a quiet monogram. --}}
+                                @if ($item->canonicalProduct->primary_image_path)
+                                    <img src="{{ $item->canonicalProduct->primary_image_path }}" alt="" loading="lazy"
+                                         class="size-7 shrink-0 rounded bg-plate-well object-cover">
+                                @else
+                                    <span class="flex size-7 shrink-0 items-center justify-center rounded bg-plate-well">
+                                        <span class="data-micro text-ink-faint">{{ mb_strtoupper(mb_substr($item->canonicalProduct->name, 0, 1)) }}</span>
+                                    </span>
+                                @endif
+                                <span class="voice-caption min-w-0 flex-1 truncate text-ink-dim">{{ $item->canonicalProduct->brand }} {{ $item->canonicalProduct->name }}</span>
+                                <span class="data-sm shrink-0 text-ink-faint">+</span>
                             </button>
                         @empty
                             <p class="voice-caption py-2 text-ink-dim">Nothing in stock{{ trim($filter) !== '' ? ' matching that' : '' }} — scan or add products first.</p>
@@ -518,12 +534,13 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                     <x-app.console-key primary wire:click="logHomeCooked" wire:loading.attr="disabled">Log this meal</x-app.console-key>
                     <x-app.console-key wire:click="startOver">Back</x-app.console-key>
                 </div>
-            </x-app.module>
+            </section>
         @endif
 
         {{-- STEP — eating out: we estimate, you confirm -----------------------}}
         @if ($step === 'out')
-            <x-app.module label="Eating out">
+            <section>
+                <h2 class="silkscreen border-b border-seam pb-2">Eating out</h2>
 
                 @if ($photoNote !== null)
                     {{-- The scan's reading of the dish. --}}
@@ -589,12 +606,13 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                     <x-app.console-key primary wire:click="logOut" wire:loading.attr="disabled">Log it</x-app.console-key>
                     <x-app.console-key wire:click="startOver">Back</x-app.console-key>
                 </div>
-            </x-app.module>
+            </section>
         @endif
 
         {{-- STEP — done -------------------------------------------------------}}
         @if ($step === 'done')
-            <x-app.module label="Logged">
+            <section>
+                <h2 class="silkscreen border-b border-seam pb-2">Logged</h2>
                 <p class="voice-display mt-4 text-[2.6rem]">On the<br>record</p>
                 <p class="voice-caption mt-2 text-ink-dim">{{ $loggedName }}</p>
 
@@ -602,6 +620,6 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                     <x-app.console-key primary wire:click="startOver">Log another</x-app.console-key>
                     <x-app.console-key :href="route('eat')">See today's log</x-app.console-key>
                 </div>
-            </x-app.module>
+            </section>
         @endif
     </div>
