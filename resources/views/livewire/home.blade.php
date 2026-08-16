@@ -224,6 +224,7 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                  score engine credits. --}}
             @php($ratio = $kcal !== null && $scaleMax > 0 ? (float) $kcal / $scaleMax : null)
             @php($onTarget = $ratio !== null && $ratio >= $energyBand[0] && $ratio <= $energyBand[1])
+            @php($entries = $today['entries'] ?? ['known' => 0, 'total' => 0, 'complete' => true])
             <div class="-mx-5 mt-4 border-t border-seam px-5 pt-3">
                 <div class="flex items-baseline justify-between gap-3">
                     <h3 class="silkscreen">Today</h3>
@@ -234,6 +235,18 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                         <span class="data-sm text-ink-dim">KCAL</span>
                     </p>
                 </div>
+
+                {{-- The reading states what it is missing rather than blanking.
+                     A day carrying one figureless entry is still worth reading;
+                     what it must not do is present the partial sum as the whole
+                     day. Shown only when a gap exists — a complete day says
+                     nothing, because there is nothing to say. --}}
+                @if (! $entries['complete'] && $entries['total'] > 0)
+                    <p class="data-sm mt-1 text-ink-faint uppercase">
+                        From {{ $entries['known'] }} of {{ $entries['total'] }} {{ $entries['total'] === 1 ? 'entry' : 'entries' }} ·
+                        {{ $entries['total'] - $entries['known'] }} with no figures
+                    </p>
+                @endif
 
                 {{-- Calibrated to YOUR daily calorie target; geometry only. --}}
                 <div class="mt-2" role="img" aria-label="{{ $kcal !== null ? 'Scale reading '.number_format((float) $kcal).' of your '.number_format($scaleMax).' kilocalorie target' : 'Scale idle' }}">

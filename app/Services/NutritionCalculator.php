@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\QuantityUnit;
 use App\Enums\ServingBasis;
 use App\Nutrition\MeasuredAmount;
+use App\ValueObjects\NutrientTotal;
 use App\ValueObjects\NutrientValues;
 use InvalidArgumentException;
 
@@ -115,6 +116,11 @@ class NutritionCalculator
      * Sum a list of nutrient contributions into a single total (meal or day
      * total). Full precision is preserved; round at the edge.
      *
+     * Strict: a nutrient any contribution failed to state is unknown in the sum.
+     * That is right for a MEAL, whose figures are recorded as one thing. For a
+     * DAY — where one unknown item should not black out everything else logged —
+     * use {@see total()}.
+     *
      * @param  iterable<NutrientValues>  $contributions
      */
     public function sum(iterable $contributions): NutrientValues
@@ -126,6 +132,18 @@ class NutritionCalculator
         }
 
         return $total;
+    }
+
+    /**
+     * Total a list of contributions while keeping the gaps countable: both the
+     * strict sum and the sum of what is actually known, with how many
+     * contributions each nutrient is missing.
+     *
+     * @param  iterable<NutrientValues>  $contributions
+     */
+    public function total(iterable $contributions): NutrientTotal
+    {
+        return NutrientTotal::of($contributions);
     }
 
     /**

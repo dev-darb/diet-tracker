@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\UserProfile;
 use App\Services\FoodyScore\FoodyScoreService;
 use App\Services\FoodyScore\InputAssembler;
+use App\Services\FoodyScore\SharePayloadService;
 use App\ValueObjects\NutrientValues;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,23 +92,53 @@ class FoodyScoreServiceTest extends TestCase
     }
 
     /* ------------------------------------------------------------------ */
-    /* Input assembly semantics                                            */
+    /* Input assembly semantics */
     /* ------------------------------------------------------------------ */
 
-    public function test_day_totals_sum_event_snapshots_and_propagate_unknowns(): void
+    /**
+     * A day keeps BOTH readings (founder decision, Aug 2026). One entry with no
+     * fibre figure used to black out the whole day's fibre; now the day states
+     * the fibre it actually knows about, and states how many entries that figure
+     * is missing. Neither number pretends to be the other.
+     */
+    public function test_day_totals_carry_both_the_known_sum_and_its_gaps(): void
     {
         $today = $this->asOf->toDateString();
 
-        // An eating-out estimate with unknown fibre + a known pantry meal:
-        // the day's fibre must be UNKNOWN, never an understated sum.
+        // An eating-out estimate with unknown fibre + a known pantry meal.
         $this->logEvent("{$today} 12:00", ['calories' => 800.0, 'fibre' => null]);
         $this->logEvent("{$today} 18:00", ['calories' => 600.0, 'fibre' => 9.0]);
 
         $input = $this->assembler->assemble($this->user, $this->asOf);
-        $todayTotals = $input->days[$today];
 
-        $this->assertSame(1400.0, $todayTotals->calories);
-        $this->assertNull($todayTotals->fibre);
+        // What the pillars score: the figures that genuinely exist.
+        $this->assertSame(1400.0, $input->days[$today]->calories);
+        $this->assertSame(9.0, $input->days[$today]->fibre);
+
+        // What the day is missing, kept countable rather than collapsed.
+        $total = $input->dayTotals[$today];
+        $this->assertSame(1, $total->missing('fibre'));
+        $this->assertSame(2, $total->contributors('fibre'));
+        $this->assertSame(0.5, $total->coverage('fibre'));
+        $this->assertTrue($total->isComplete('calories'));
+
+        // And the strict reading still admits the hole, which is what confidence
+        // is computed from — a partial day scores, it just scores less certainly.
+        $this->assertNull($input->todayStrictTotals()->fibre);
+    }
+
+    public function test_a_day_with_one_unlogged_item_still_counts_as_evidence(): void
+    {
+        // Six recorded meals do not stop being evidence because a seventh had no
+        // figures. Excluding the day cost more accuracy than the gap did.
+        $yesterday = $this->asOf->subDay()->toDateString();
+
+        $this->logEvent("{$yesterday} 08:00", ['calories' => 400.0]);
+        $this->logEvent("{$yesterday} 13:00", ['calories' => null]);
+
+        $input = $this->assembler->assemble($this->user, $this->asOf);
+
+        $this->assertSame(1, $input->adequatelyLoggedDays);
     }
 
     public function test_herbs_and_spices_are_excluded_from_the_plant_count(): void
@@ -152,7 +183,7 @@ class FoodyScoreServiceTest extends TestCase
     }
 
     /* ------------------------------------------------------------------ */
-    /* Recording: versioning, immutability, stability                      */
+    /* Recording: versioning, immutability, stability */
     /* ------------------------------------------------------------------ */
 
     public function test_compute_and_record_persists_a_versioned_explained_record(): void
@@ -238,7 +269,7 @@ class FoodyScoreServiceTest extends TestCase
     }
 
     /* ------------------------------------------------------------------ */
-    /* Projected score (spec §16)                                          */
+    /* Projected score (spec §16) */
     /* ------------------------------------------------------------------ */
 
     public function test_projected_score_evaluates_a_planned_meal_without_persisting(): void
@@ -262,7 +293,7 @@ class FoodyScoreServiceTest extends TestCase
     }
 
     /* ------------------------------------------------------------------ */
-    /* Milestones (spec §17–§18): personal, never comparative              */
+    /* Milestones (spec §17–§18): personal, never comparative */
     /* ------------------------------------------------------------------ */
 
     public function test_first_firm_score_mints_a_milestone_once(): void
@@ -308,7 +339,7 @@ class FoodyScoreServiceTest extends TestCase
     }
 
     /* ------------------------------------------------------------------ */
-    /* The day close (tranche 5): earned rewards only                      */
+    /* The day close (tranche 5): earned rewards only */
     /* ------------------------------------------------------------------ */
 
     public function test_a_finished_logged_day_closes_with_its_logging_streak(): void
@@ -361,7 +392,7 @@ class FoodyScoreServiceTest extends TestCase
         $this->logGoodDay($this->asOf->toDateString());
         $record = $this->service->computeAndRecord($this->user, $this->asOf);
 
-        $payload = app(\App\Services\FoodyScore\SharePayloadService::class)->daily($this->user, $record);
+        $payload = app(SharePayloadService::class)->daily($this->user, $record);
 
         // The distinctive achievement is there; the routine close is not.
         $this->assertContains('first_firm_score', array_column($payload['milestones'], 'kind'));
@@ -374,7 +405,7 @@ class FoodyScoreServiceTest extends TestCase
         $this->logGoodDay($this->asOf->toDateString());
         $record = $this->service->computeAndRecord($this->user, $this->asOf);
 
-        $payload = app(\App\Services\FoodyScore\SharePayloadService::class)->daily($this->user, $record);
+        $payload = app(SharePayloadService::class)->daily($this->user, $record);
 
         $this->assertSame('daily_score', $payload['kind']);
         $this->assertSame($record->score, $payload['score']);

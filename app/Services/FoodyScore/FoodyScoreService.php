@@ -23,7 +23,6 @@ class FoodyScoreService
      */
     public const DAY_CLOSE_COMPLETENESS = 0.9;
 
-
     public function __construct(
         private readonly InputAssembler $assembler,
         private readonly ScoreEngine $engine,

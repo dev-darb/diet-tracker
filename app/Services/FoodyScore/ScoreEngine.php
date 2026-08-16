@@ -3,7 +3,6 @@
 namespace App\Services\FoodyScore;
 
 use App\Services\FoodyScore\Support\Curves;
-use App\ValueObjects\NutrientValues;
 
 /**
  * Foody Score v1 — the deterministic engine (spec §3–§16).
@@ -562,9 +561,14 @@ class ScoreEngine
     /** @return array{day_completeness: float, nutrient_coverage: float, historical: float} */
     private function confidence(ScoreInput $input, array $pillars): array
     {
+        // Coverage is read from the STRICT total, not the one the pillars scored.
+        // The pillars are allowed to work from the known part of a day so a
+        // single unlogged item does not black out six recorded meals — but the
+        // gap it looked past has to land somewhere, and it lands here. A partial
+        // day scores; it just does not claim to be a certain score.
         $known = 0;
         $total = 0;
-        foreach ($input->todayTotals()->toArray() as $value) {
+        foreach ($input->todayStrictTotals()->toArray() as $value) {
             $total++;
             if ($value !== null) {
                 $known++;

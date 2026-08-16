@@ -2,6 +2,7 @@
 
 namespace App\Services\FoodyScore;
 
+use App\ValueObjects\NutrientTotal;
 use App\ValueObjects\NutrientValues;
 use Carbon\CarbonImmutable;
 
@@ -16,7 +17,8 @@ final class ScoreInput
      * @param  string  $profileKey  goal score-profile key (config goal_profiles)
      * @param  array<string, array{target: float, unit: string, direction: string, basis: string, personalised: bool, explicit?: bool}>  $targets
      * @param  array<string, array{explicit: bool, default: float}>  $macroMeta  per-macro manual-target metadata (protein/carbs/fat)
-     * @param  array<string, NutrientValues>  $days  date (Y-m-d) => event-level day totals, most recent 14 days that have data
+     * @param  array<string, NutrientValues>  $days  date (Y-m-d) => the KNOWN part of each day's event-level totals, most recent 14 days that have data
+     * @param  array<string, NutrientTotal>  $dayTotals  the same days carrying their gaps: how many events did not state each nutrient
      * @param  array{unique_plants: int, plant_days: array<string, int>, classifiable: int, classified_plant: int, fermented: int, categories: array<int, string>, fruit_veg_lines: int, herb_spice_excluded: int}  $plants  7-day item-level plant evidence
      * @param  array<int, int>  $todayEventHours  hour-of-day of each event logged today
      * @param  float  $expectedFractionByNow  learned share of the day's intake expected by asOf (0–1)
@@ -38,11 +40,29 @@ final class ScoreInput
         public readonly array $microDays = [],
         public readonly array $recentInsightKeys = [],
         public readonly ?NutrientValues $scenario = null,
+        public readonly array $dayTotals = [],
     ) {}
 
     public function todayKey(): string
     {
         return $this->asOf->toDateString();
+    }
+
+    /**
+     * Today's total in its STRICT reading: unknown for any nutrient some event
+     * failed to state.
+     *
+     * The pillars score {@see todayTotals()}, which is the known part — a day
+     * with one unlogged coffee is still a day worth scoring. Confidence reads
+     * this one instead, so the gap the pillars were allowed to look past is
+     * still counted against how sure the score claims to be. Scoring a partial
+     * day at full confidence would be the worst of both readings.
+     */
+    public function todayStrictTotals(): NutrientValues
+    {
+        $total = $this->dayTotals[$this->todayKey()] ?? null;
+
+        return $total?->strict() ?? NutrientValues::unknown();
     }
 
     /** Today's totals with any projection scenario applied (spec §16). */

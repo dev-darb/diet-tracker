@@ -2,10 +2,10 @@
 
 namespace App\Services\FoodyScore;
 
-use App\Enums\PrimaryGoal;
 use App\Models\ConsumptionEvent;
 use App\Models\User;
 use App\Services\NutritionTargetsService;
+use App\ValueObjects\NutrientTotal;
 use App\ValueObjects\NutrientValues;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -79,7 +79,8 @@ class InputAssembler
             ->orderByDesc('consumed_at')
             ->get();
 
-        $days = $this->dayTotals($events);
+        $totals = $this->dayTotals($events);
+        $days = array_map(static fn (NutrientTotal $t): NutrientValues => $t->known(), $totals);
         $targets = $this->targets->targetsFor($user);
 
         return new ScoreInput(
@@ -88,10 +89,11 @@ class InputAssembler
             targets: $targets,
             macroMeta: $this->macroMeta($targets),
             days: $days,
+            dayTotals: $totals,
             plants: $this->plantEvidence($events, $asOf),
             todayEventHours: $this->todayEventHours($events, $asOf),
             expectedFractionByNow: $this->expectedFractionByNow($events, $asOf),
-            adequatelyLoggedDays: $this->adequatelyLoggedDays($days, $asOf),
+            adequatelyLoggedDays: $this->adequatelyLoggedDays($totals, $asOf),
             microDays: [], // audited: no reliable micronutrient columns yet (config core_set is empty)
             recentInsightKeys: $this->recentInsightKeys($user, $asOf),
             scenario: $scenario,
@@ -100,10 +102,16 @@ class InputAssembler
 
     /**
      * Per-day snapshot totals, newest first, keyed by ISO date. Only days with
-     * logged consumption appear; unknown nutrients propagate honestly.
+     * logged consumption appear.
+     *
+     * Each day is a {@see NutrientTotal}, which carries BOTH readings: the sum
+     * of what is known, and how many events did not state each nutrient. The
+     * pillars score the known figure — a day with one unlogged coffee is still a
+     * day, and blacking it out cost more accuracy than the gap did — while
+     * confidence reads the strict total and still sees the hole.
      *
      * @param  Collection<int, ConsumptionEvent>  $events
-     * @return array<string, NutrientValues>
+     * @return array<string, NutrientTotal>
      */
     private function dayTotals(Collection $events): array
     {
@@ -111,7 +119,7 @@ class InputAssembler
 
         foreach ($events as $event) {
             $date = $event->consumed_at->toDateString();
-            $days[$date] = ($days[$date] ?? NutrientValues::zero())->add(
+            $days[$date] = ($days[$date] ?? NutrientTotal::empty())->add(
                 NutrientValues::fromArray($event->only(NutrientValues::KEYS))
             );
         }
@@ -283,10 +291,14 @@ class InputAssembler
     }
 
     /**
-     * Days in the 14-day window with usable evidence: at least one logged
-     * event whose day total carries a known calorie figure.
+     * Days in the 14-day window with usable evidence: at least one logged event
+     * that stated its calories.
      *
-     * @param  array<string, NutrientValues>  $days
+     * Read from the KNOWN total rather than the strict one, so a day carrying a
+     * single unlogged item still counts as evidence. It plainly is evidence —
+     * six recorded meals do not stop being real because a seventh had no figures.
+     *
+     * @param  array<string, NutrientTotal>  $days
      */
     private function adequatelyLoggedDays(array $days, CarbonImmutable $asOf): int
     {
@@ -296,7 +308,7 @@ class InputAssembler
             if ($date === $asOf->toDateString()) {
                 continue; // today is in progress, not yet historical evidence
             }
-            if ($total->get('calories') !== null) {
+            if ($total->knownCount('calories') > 0) {
                 $count++;
             }
         }

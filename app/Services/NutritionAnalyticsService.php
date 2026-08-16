@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ConsumptionEvent;
 use App\Models\User;
+use App\ValueObjects\NutrientTotal;
 use App\ValueObjects\NutrientValues;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
@@ -102,11 +103,20 @@ class NutritionAnalyticsService
         $total = $agg['total'] ?? null;
         $fruitVeg = $this->fruitVegPortions($agg, 1);
 
+        $known = $total?->known();
+
+        // FIGURES go partial; VERDICTS do not. The day may show the fibre it
+        // knows about, but banding that partial figure as "Low" would be a
+        // judgement made on data we admitted we do not have — the missing item
+        // might be the one that hit the target. Indicators therefore read the
+        // strict total and stay Unknown until a nutrient is whole.
+        $strict = $total?->strict();
+
         $indicatorValues = [
-            'protein' => $total?->get('protein'),
-            'fibre' => $total?->get('fibre'),
-            'saturated_fat' => $total?->get('saturated_fat'),
-            'salt' => $total?->get('salt'),
+            'protein' => $strict?->get('protein'),
+            'fibre' => $strict?->get('fibre'),
+            'saturated_fat' => $strict?->get('saturated_fat'),
+            'salt' => $strict?->get('salt'),
             'fruit_veg' => $fruitVeg['known'] ? $fruitVeg['portions'] : null,
             'food_variety' => (float) ($agg['variety'] ?? 0),
         ];
@@ -114,8 +124,16 @@ class NutritionAnalyticsService
         return [
             'date' => $day->toDateString(),
             'has_data' => $agg !== null,
-            'totals' => ($total ?? NutrientValues::zero())->toArray(1),
-            'unknown_nutrients' => $total?->unknownKeys() ?? [],
+            // Today shows the figures it actually has, next to how many entries
+            // those figures are missing — "1,850 kcal from 6 of 7 items" is a
+            // more honest reading than a blanked-out day, not a looser one.
+            'totals' => ($known ?? NutrientValues::zero())->toArray(1),
+            'unknown_nutrients' => $total?->strict()->unknownKeys() ?? [],
+            'entries' => [
+                'known' => $total?->knownCount('calories') ?? 0,
+                'total' => $total?->contributors('calories') ?? 0,
+                'complete' => $total?->isComplete('calories') ?? true,
+            ],
             'food_variety' => (int) ($agg['variety'] ?? 0),
             'indicators' => $this->buildIndicators($indicatorValues, self::FOOD_VARIETY_TARGET_DAILY, $targets),
             'targets' => $targets,
@@ -213,7 +231,7 @@ class NutritionAnalyticsService
             'daily' => array_map(fn (string $d) => [
                 'date' => $d,
                 'has_data' => isset($all[$d]),
-                'calories' => isset($all[$d]) ? $all[$d]['total']->get('calories') : null,
+                'calories' => isset($all[$d]) ? $all[$d]['total']->strict()->get('calories') : null,
             ], $currentDates),
         ];
     }
@@ -240,7 +258,7 @@ class NutritionAnalyticsService
 
             if (! isset($days[$date])) {
                 $days[$date] = [
-                    'total' => NutrientValues::zero(),
+                    'total' => NutrientTotal::empty(),
                     'product_ids' => [],
                     'fruit_veg_lines' => 0,
                     'classifiable_lines' => 0,
@@ -295,7 +313,7 @@ class NutritionAnalyticsService
         $known = [];
 
         foreach ($dates as $date) {
-            $value = isset($days[$date]) ? $days[$date]['total']->get($key) : null;
+            $value = isset($days[$date]) ? $days[$date]['total']->strict()->get($key) : null;
             if ($value !== null) {
                 $known[] = $value;
             }
@@ -481,7 +499,7 @@ class NutritionAnalyticsService
     private function series(array $days, array $dates, string $key): array
     {
         return array_map(function (string $date) use ($days, $key): ?float {
-            $value = isset($days[$date]) ? $days[$date]['total']->get($key) : null;
+            $value = isset($days[$date]) ? $days[$date]['total']->strict()->get($key) : null;
 
             return $value === null ? null : round($value, $key === 'calories' ? 0 : 1);
         }, $dates);
