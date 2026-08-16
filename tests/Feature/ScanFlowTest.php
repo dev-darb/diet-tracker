@@ -107,6 +107,59 @@ class ScanFlowTest extends TestCase
         $this->assertSame(ScanCaptureStatus::AiUnavailable, $capture->status);
     }
 
+    /**
+     * The object-storage disk is configured with `throw => false`, so a failed
+     * write returns `false` rather than raising. Without care that becomes a
+     * capture whose image_path is the string "" — a photo the pipeline believes
+     * it has and can never read. A photo-only capture says so instead.
+     */
+    public function test_a_failed_photo_write_is_reported_not_silently_stored(): void
+    {
+        config(['foody.scans.disk' => 'unwritable']);
+        config(['filesystems.disks.unwritable' => [
+            'driver' => 'local',
+            'root' => '/proc/foody-cannot-write-here',
+            'throw' => false,
+        ]]);
+
+        $this->actingAs($this->user)
+            ->postJson(route('scan.captures.store'), [
+                'photo' => UploadedFile::fake()->image('pack.jpg', 400, 300),
+            ])
+            ->assertStatus(503);
+
+        $this->assertSame(0, ScanCapture::count());
+    }
+
+    /** A barcode read still lands even when the photo alongside it cannot be kept. */
+    public function test_a_failed_photo_write_never_sinks_a_barcode_scan(): void
+    {
+        $this->fakeOff([
+            'code' => '5000159407236',
+            'product_name' => 'Snickers',
+            'brands' => 'Mars',
+            'nutriments' => ['energy-kcal_100g' => 497],
+        ]);
+
+        config(['foody.scans.disk' => 'unwritable']);
+        config(['filesystems.disks.unwritable' => [
+            'driver' => 'local',
+            'root' => '/proc/foody-cannot-write-here',
+            'throw' => false,
+        ]]);
+
+        $response = $this->actingAs($this->user)->postJson(route('scan.captures.store'), [
+            'photo' => UploadedFile::fake()->image('pack.jpg', 400, 300),
+            'barcode' => '5000159407236',
+        ]);
+
+        $response->assertCreated();
+
+        $capture = ScanCapture::findOrFail($response->json('id'));
+        $this->assertNull($capture->image_path);
+        $this->assertSame(ScanCaptureStatus::AutoAdded, $capture->status);
+    }
+
     public function test_an_empty_post_is_rejected(): void
     {
         $this->actingAs($this->user)

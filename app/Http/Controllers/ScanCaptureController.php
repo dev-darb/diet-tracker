@@ -39,19 +39,26 @@ class ScanCaptureController extends Controller
         $imagePath = null;
 
         if ($request->file('photo') !== null) {
+            $stored = false;
+
             try {
                 // The disk is configuration, not a literal: local disk is fine
                 // while a capture is only work-in-flight, but the moment a photo
                 // becomes part of a food's identity it has to outlive the
                 // container (config/foody.php).
-                $imagePath = $request->file('photo')->store('scans', config('foody.scans.disk'));
+                $stored = $request->file('photo')->store('scans', config('foody.scans.disk'));
             } catch (Throwable $e) {
                 // Best effort — a storage hiccup must never sink a barcode scan.
                 report($e);
+            }
 
-                if ($barcode === null) {
-                    return response()->json(['message' => 'Could not store the photo — try again.'], 503);
-                }
+            // A local disk throws on failure, but the s3 disk is configured with
+            // `throw => false` and returns `false` instead. Both are the same
+            // event, and neither may become a capture holding a path of "".
+            $imagePath = is_string($stored) && $stored !== '' ? $stored : null;
+
+            if ($imagePath === null && $barcode === null) {
+                return response()->json(['message' => 'Could not store the photo — try again.'], 503);
             }
         }
 
