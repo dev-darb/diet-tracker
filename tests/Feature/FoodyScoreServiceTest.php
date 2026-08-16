@@ -307,6 +307,67 @@ class FoodyScoreServiceTest extends TestCase
         $this->assertSame(72, $best->payload['previous_best']);
     }
 
+    /* ------------------------------------------------------------------ */
+    /* The day close (tranche 5): earned rewards only                      */
+    /* ------------------------------------------------------------------ */
+
+    public function test_a_finished_logged_day_closes_with_its_logging_streak(): void
+    {
+        $this->logGoodWeek();
+        $this->logGoodDay($this->asOf->toDateString());
+
+        $this->service->computeAndRecord($this->user, $this->asOf);
+
+        $close = FoodyMilestone::query()
+            ->where('user_id', $this->user->id)
+            ->where('kind', 'day_closed')
+            ->first();
+
+        $this->assertNotNull($close);
+        $this->assertSame($this->asOf->toDateString(), $close->achieved_on->toDateString());
+        // Eight consecutive logged days: the week plus today.
+        $this->assertSame(8, $close->payload['logging_streak']);
+    }
+
+    public function test_a_late_evening_with_nothing_logged_never_closes_the_day(): void
+    {
+        // The week is logged, so the score is firm and — because the learned
+        // schedule says the eating day is over — day-completeness reads high.
+        // Nothing was eaten today though, so there is no day to close.
+        $this->logGoodWeek();
+
+        $record = $this->service->computeAndRecord($this->user, $this->asOf->setTime(21, 30));
+
+        $this->assertSame('firm', $record->display_state);
+        $this->assertGreaterThanOrEqual(0.9, $record->confidence['day_completeness']);
+        $this->assertSame(0, FoodyMilestone::query()->where('kind', 'day_closed')->count());
+    }
+
+    public function test_the_day_closes_once_however_often_the_score_recomputes(): void
+    {
+        $this->logGoodWeek();
+        $this->logGoodDay($this->asOf->toDateString());
+
+        $this->service->computeAndRecord($this->user, $this->asOf);
+        $this->service->computeAndRecord($this->user, $this->asOf->addMinutes(20));
+        $this->service->computeAndRecord($this->user, $this->asOf->addMinutes(40));
+
+        $this->assertSame(1, FoodyMilestone::query()->where('kind', 'day_closed')->count());
+    }
+
+    public function test_the_daily_close_stays_off_the_share_card(): void
+    {
+        $this->logGoodWeek();
+        $this->logGoodDay($this->asOf->toDateString());
+        $record = $this->service->computeAndRecord($this->user, $this->asOf);
+
+        $payload = app(\App\Services\FoodyScore\SharePayloadService::class)->daily($this->user, $record);
+
+        // The distinctive achievement is there; the routine close is not.
+        $this->assertContains('first_firm_score', array_column($payload['milestones'], 'kind'));
+        $this->assertNotContains('day_closed', array_column($payload['milestones'], 'kind'));
+    }
+
     public function test_share_payload_is_self_referential_with_no_comparative_framing(): void
     {
         $this->logGoodWeek();

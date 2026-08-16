@@ -53,6 +53,10 @@ class SharePayloadService
         $milestones = FoodyMilestone::query()
             ->where('user_id', $user->id)
             ->whereDate('achieved_on', $date)
+            // The daily close is a completion moment on Home, not a boast:
+            // stamping every finished day onto the share card would dilute
+            // the achievements that are genuinely distinctive.
+            ->where('kind', '!=', 'day_closed')
             ->get()
             ->map(fn (FoodyMilestone $m) => [
                 'kind' => $m->kind,

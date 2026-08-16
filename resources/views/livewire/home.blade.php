@@ -95,11 +95,27 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
             ->get()
             ->keyBy(fn (FoodyScore $row) => $row->score_date->toDateString());
 
+        // The day-close (tranche 5): the top reward tier, minted by the score
+        // service only on a genuinely finished, genuinely logged day.
+        $dayClose = \App\Models\FoodyMilestone::query()
+            ->where('user_id', $user->id)
+            ->where('kind', 'day_closed')
+            ->whereDate('achieved_on', now()->toDateString())
+            ->first();
+
+        // The goal's own full-credit energy band — the same one the engine
+        // scores against, so the lamp never disagrees with the number.
+        $profileKey = $user->profile?->primary_goal?->scoreProfile() ?? 'general_health';
+        $energyBand = config('foody_score.energy.'.$profileKey.'.full')
+            ?? config('foody_score.energy.general_health.full');
+
         return [
             'record' => $record,
             'readLine' => $this->read($record, $today['has_data']),
             'stateLabel' => $this->stateLabel($record),
             'share' => $share->daily($user, $record),
+            'dayClose' => $dayClose,
+            'energyBand' => $energyBand,
             'today' => $today,
             'trace' => array_map(fn (array $day) => [
                 ...$day,
@@ -202,12 +218,18 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
             @php($calorieTarget = $today['targets']['calories'] ?? null)
             @php($scaleMax = (float) ($calorieTarget['target'] ?? 2500))
             @php($frac = $kcal !== null ? min(max((float) $kcal, 0) / $scaleMax, 1) : null)
+            {{-- Target hit (tranche 5): when the day's energy lands inside the
+                 goal's own full-credit band, the reading lights good. An
+                 earned lamp, not decoration — it reads the same band the
+                 score engine credits. --}}
+            @php($ratio = $kcal !== null && $scaleMax > 0 ? (float) $kcal / $scaleMax : null)
+            @php($onTarget = $ratio !== null && $ratio >= $energyBand[0] && $ratio <= $energyBand[1])
             <div class="-mx-5 mt-4 border-t border-seam px-5 pt-3">
                 <div class="flex items-baseline justify-between gap-3">
                     <h3 class="silkscreen">Today</h3>
                     <p class="flex items-baseline gap-2">
                         <span wire:key="kcal-{{ $kcal ?? 'none' }}"
-                              class="value-settle data-xl {{ $today['has_data'] && $kcal !== null ? 'text-ink' : 'text-ink-faint' }}"
+                              class="value-settle data-xl {{ $onTarget ? 'text-good' : ($today['has_data'] && $kcal !== null ? 'text-ink' : 'text-ink-faint') }}"
                               aria-label="{{ $kcal !== null ? number_format((float) $kcal).' kilocalories today' : 'No calories logged yet today' }}">{{ $kcal !== null ? number_format((float) $kcal, 0, '', '') : '----' }}</span>
                         <span class="data-sm text-ink-dim">KCAL</span>
                     </p>
@@ -220,8 +242,12 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                             <line x1="{{ $i * 2 }}" y1="{{ $i % 5 === 0 ? 0.5 : 2.5 }}" x2="{{ $i * 2 }}" y2="7.5"
                                   stroke="{{ $frac !== null && $i * 2 <= $frac * 100 ? 'var(--color-seam-strong)' : 'var(--color-seam)' }}" stroke-width="0.45" />
                         @endfor
+                        {{-- The goal's full-credit band, engraved on the scale. --}}
+                        <line x1="{{ $energyBand[0] * 100 }}" y1="6.6" x2="{{ min($energyBand[1], 1) * 100 }}" y2="6.6"
+                              stroke="{{ $onTarget ? 'var(--color-good)' : 'var(--color-seam-strong)' }}" stroke-width="1.1" />
                         @if ($frac !== null)
-                            <line x1="{{ $frac * 100 }}" y1="0" x2="{{ $frac * 100 }}" y2="8" stroke="var(--color-action)" stroke-width="0.9" />
+                            <line x1="{{ $frac * 100 }}" y1="0" x2="{{ $frac * 100 }}" y2="8"
+                                  stroke="{{ $onTarget ? 'var(--color-good)' : 'var(--color-action)' }}" stroke-width="0.9" />
                         @endif
                     </svg>
                     <div class="data-micro flex justify-between text-ink-faint">
@@ -291,6 +317,31 @@ new #[Layout('components.layouts.app', ['title' => 'Home'])] class extends Compo
                 </div>
             </div>
         </section>
+
+        {{-- DAY CLOSE — the top tier of the reward ladder (value-settle →
+             stamp → day close). Fires only on a genuinely finished, genuinely
+             logged day; the LED sweep runs once, on the fresh mint, and the
+             panel renders calm on every later visit. --}}
+        @if ($dayClose !== null)
+            @php($freshClose = $dayClose->created_at->gt(now()->subSeconds(8)))
+            @php($closeStreak = (int) ($dayClose->payload['logging_streak'] ?? 1))
+            <section class="module {{ $freshClose ? 'stamp-in' : '' }} px-5 py-3.5" wire:key="day-close-{{ $dayClose->id }}"
+                     @if ($freshClose) role="status" @endif>
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="silkscreen text-good">Day closed</h2>
+                    <div class="{{ $freshClose ? 'led-sweep' : '' }} flex gap-1" aria-hidden="true">
+                        @for ($i = 0; $i < 8; $i++)
+                            <span class="led led-on"></span>
+                        @endfor
+                    </div>
+                </div>
+                <p class="voice-body mt-2 text-ink">
+                    {{ $closeStreak > 1
+                        ? "Everything's on the record — that's {$closeStreak} days running."
+                        : "Everything's on the record for today." }}
+                </p>
+            </section>
+        @endif
 
         {{-- 4 · SIGNALS — at most three, normally one or two, silent on a
              quiet day. Lazy island: the page never waits for wording. --}}
