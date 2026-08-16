@@ -67,7 +67,11 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+            // MUST stay greater than the longest job timeout (ProcessScanCapture
+            // allows 180s for a vision call + Open Food Facts import). At the
+            // framework default of 90s the queue would hand a still-running
+            // scan to a second worker — paying for the same AI call twice.
+            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 210),
             'block_for' => null,
             'after_commit' => false,
         ],
