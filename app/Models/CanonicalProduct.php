@@ -21,6 +21,8 @@ class CanonicalProduct extends Model
         'gtin',
         'brand',
         'name',
+        'raw_name',
+        'display_name',
         'variant',
         'pack_size_value',
         'pack_size_unit',
@@ -43,6 +45,24 @@ class CanonicalProduct extends Model
     public function packSize(): ?MeasuredAmount
     {
         return MeasuredAmount::fromNumeric($this->pack_size_value, $this->pack_size_unit);
+    }
+
+    /**
+     * What to call this product on screen.
+     *
+     * Falls back through brand + name for rows imported before clean names
+     * existed, so nothing renders blank while the backfill catches up. Every
+     * user-facing surface should read this rather than composing its own — the
+     * app spent a while assembling `brand.' '.name` in eight different places,
+     * which is how it ended up showing "Tesco TESCO FINEST…".
+     */
+    public function displayName(): string
+    {
+        if ($this->display_name !== null && $this->display_name !== '') {
+            return $this->display_name;
+        }
+
+        return trim(($this->brand ?? '').' '.($this->name ?? '')) ?: 'Unnamed product';
     }
 
     /** @return HasMany<ProductVersion, $this> */

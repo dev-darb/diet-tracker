@@ -12,6 +12,7 @@ use App\Nutrition\NutrientOrigin;
 use App\Nutrition\NutrientOrigins;
 use App\Nutrition\NutrientRegistry;
 use App\Nutrition\NutritionSanityCheck;
+use App\Nutrition\ProductNaming;
 use App\ValueObjects\NutrientValues;
 use Illuminate\Support\Facades\DB;
 
@@ -69,14 +70,20 @@ class OpenFoodFactsImporter
         $serving = $product->servingSize();
         $nutrition = $product->nutrition();
 
+        // Raw kept, clean derived. A crowdsourced string never reaches the
+        // presentation layer as-is (spec §4).
+        $names = ProductNaming::derive($product->productName, $product->brand);
+
         $canonical = CanonicalProduct::create([
             'gtin' => $product->barcode,
             // OFF strings are third-party and unbounded; the columns are
             // varchar(255). Postgres rejects an over-length value (SQLite does
             // not), so truncate defensively — a valid scan must never 500.
             'brand' => $this->limit($product->brand) ?? 'Unknown brand',
-            'name' => $this->limit($product->productName) ?? 'Unknown product',
-            'variant' => null,
+            'name' => $this->limit($names['name']) ?? 'Unknown product',
+            'raw_name' => $this->limit($names['raw_name']),
+            'display_name' => $this->limit($names['display_name']),
+            'variant' => $this->limit($names['variant']),
             // A real mass or volume, or nothing. Never a count of "bars".
             'pack_size_value' => $pack?->inBaseUnit(),
             'pack_size_unit' => $pack?->unit->value,

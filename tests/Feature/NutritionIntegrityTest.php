@@ -14,6 +14,7 @@ use App\Services\PantryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use Livewire\Volt\Volt;
 use Tests\TestCase;
 
 /**
@@ -171,6 +172,52 @@ class NutritionIntegrityTest extends TestCase
 
         // Before the unit contract this recorded 4 kcal — one gram of the food.
         $this->assertNull($event->calories);
+    }
+
+    /**
+     * ACCEPTANCE 3 — a raw crowdsourced string becomes a clean Foody name, with
+     * the original kept so our mistakes stay distinguishable from the source's.
+     */
+    public function test_a_raw_source_name_becomes_a_clean_display_name(): void
+    {
+        Http::fake(['world.openfoodfacts.org/*' => Http::response([
+            'status' => 1,
+            'product' => [
+                'code' => '5051111111111',
+                'product_name' => 'TESCO FINEST CHICKEN TIKKA MASALA 400G',
+                'brands' => 'Tesco',
+                'quantity' => '400g',
+                'nutriments' => ['energy-kcal_100g' => 145, 'proteins_100g' => 9, 'carbohydrates_100g' => 11, 'fat_100g' => 7],
+            ],
+        ], 200)]);
+
+        $product = $this->app->make(OpenFoodFactsImporter::class)->importByBarcode('5051111111111');
+
+        $this->assertSame('TESCO FINEST CHICKEN TIKKA MASALA 400G', $product->raw_name);
+        $this->assertSame('Chicken Tikka Masala', $product->name);
+        $this->assertSame('Finest', $product->variant);
+        $this->assertSame('Tesco Finest Chicken Tikka Masala', $product->displayName());
+
+        // And the pack size lives in its own field, not inside the name.
+        $this->assertEquals(400.0, (float) $product->pack_size_value);
+    }
+
+    /**
+     * The image is part of identity: it is how a user checks Foody resolved the
+     * right product. The pantry item page was the one detail surface that never
+     * showed one.
+     */
+    public function test_the_pantry_item_page_shows_the_product_image(): void
+    {
+        $this->fakeRice();
+
+        $product = $this->app->make(OpenFoodFactsImporter::class)->importByBarcode('5051234567890');
+        $item = $this->app->make(PantryService::class)
+            ->purchase($this->user, $product, 1.0, QuantityUnit::Pack);
+
+        Volt::actingAs($this->user)
+            ->test('pantry-item', ['pantryItem' => $item])
+            ->assertSee('https://images.openfoodfacts.org/rice.200.jpg');
     }
 
     /** Every registry nutrient has a column on all three nutrition tables. */

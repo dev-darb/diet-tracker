@@ -149,7 +149,7 @@ class ChefService
             ->get()
             ->map(fn (PantryItem $i) => [
                 'id' => $i->id,
-                'label' => trim(($i->canonicalProduct->brand ?? '').' '.$i->canonicalProduct->name),
+                'label' => $i->canonicalProduct->displayName(),
                 'quantity' => rtrim(rtrim(number_format((float) $i->current_quantity, 3, '.', ''), '0'), '.').' '.$i->quantity_unit->shortLabelFor((float) $i->current_quantity),
             ])
             ->values()

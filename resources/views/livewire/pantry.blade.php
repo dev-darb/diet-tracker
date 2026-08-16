@@ -112,7 +112,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
             ->with('canonicalProduct')
             ->where('current_quantity', '>', 0)
             ->get()
-            ->sortBy(fn ($item) => $item->canonicalProduct->brand.' '.$item->canonicalProduct->name)
+            ->sortBy(fn ($item) => $item->canonicalProduct->displayName())
             ->values();
 
         $matches = [];
@@ -243,7 +243,7 @@ new #[Layout('components.layouts.app', ['title' => 'Pantry'])] class extends Com
                                     </span>
                                 @endif
                                 <span class="min-w-0 flex-1">
-                                    <span class="voice-caption block truncate text-ink">{{ $item->canonicalProduct->brand }} — {{ $item->canonicalProduct->name }}</span>
+                                    <span class="voice-caption block truncate text-ink">{{ $item->canonicalProduct->displayName() }}</span>
                                     @if ($item->canonicalProduct->variant)
                                         <span class="data-sm mt-0.5 block truncate text-ink-dim">{{ $item->canonicalProduct->variant }}</span>
                                     @endif

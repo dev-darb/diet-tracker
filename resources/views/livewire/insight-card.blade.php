@@ -137,7 +137,7 @@ new class extends Component
                         <li class="flex items-center justify-between gap-3 py-2.5">
                             <a href="{{ route('pantry.item', $item) }}" wire:navigate
                                class="voice-caption min-w-0 truncate text-ink transition hover:text-info">
-                                {{ trim(($item->canonicalProduct->brand ? $item->canonicalProduct->brand.' ' : '').$item->canonicalProduct->name) }}
+                                {{ $item->canonicalProduct->displayName() }}
                             </a>
                             <span class="data-sm shrink-0 text-ink-dim">
                                 {{ rtrim(rtrim(number_format((float) $item->current_quantity, 3), '0'), '.') }} <span class="uppercase">{{ $item->quantity_unit?->value ?? '' }}</span>

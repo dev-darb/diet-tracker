@@ -297,7 +297,7 @@ class ScanCaptureService
             ->get()
             ->map(fn (PantryItem $item) => [
                 'id' => $item->id,
-                'label' => trim(($item->canonicalProduct->brand ?? '').' '.$item->canonicalProduct->name),
+                'label' => $item->canonicalProduct->displayName(),
             ])
             ->values()
             ->all();

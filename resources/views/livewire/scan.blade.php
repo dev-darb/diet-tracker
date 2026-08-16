@@ -501,12 +501,12 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             {{-- Shopping session: one confirming line, no per-item
                                  asks — the counter above carries the celebration. --}}
                             <div class="flex items-center justify-between gap-2">
-                                <p class="voice-caption min-w-0 truncate text-ink">{{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
+                                <p class="voice-caption min-w-0 truncate text-ink">{{ $product?->displayName() ?? 'Item' }}</p>
                                 <span class="chip shrink-0 border-good/40 text-good {{ $justSettled ? 'stamp-in' : '' }}">IN PANTRY</span>
                             </div>
 
                         @elseif ($capture->status->applied())
-                            <p class="voice-caption truncate text-ink">{{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
+                            <p class="voice-caption truncate text-ink">{{ $product?->displayName() ?? 'Item' }}</p>
                             <p class="data-sm mt-0.5 text-ink-faint uppercase">
                                 @if ($capture->provenance === 'matched_barcode') Barcode{{ $capture->barcode ? ' '.$capture->barcode : '' }}
                                 @elseif ($capture->provenance === 'matched_exact') Database match
@@ -564,7 +564,7 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             </div>
 
                         @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Suggested)
-                            <p class="voice-caption truncate text-ink">{{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
+                            <p class="voice-caption truncate text-ink">{{ $product?->displayName() ?? 'Item' }}</p>
                             <p class="data-sm mt-0.5 text-low uppercase">Best guess · {{ (int) round(((float) $capture->confidence) * 100) }}% — is this right?</p>
                             <div class="mt-2 flex flex-wrap items-center gap-2">
                                 <button type="button" wire:click="confirmCapture({{ $capture->id }})" wire:loading.attr="disabled"
@@ -588,10 +588,10 @@ new #[Layout('components.layouts.app', ['title' => 'Scan'])] class extends Compo
                             <p class="voice-micro mt-0.5 break-words text-ink-dim">{{ $capture->error ?: 'Something went wrong — scan it again.' }}</p>
 
                         @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Undone)
-                            <p class="data-sm text-ink-faint">UNDONE · {{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
+                            <p class="data-sm text-ink-faint">UNDONE · {{ $product?->displayName() ?? 'Item' }}</p>
 
                         @elseif ($capture->status === \App\Enums\ScanCaptureStatus::Rejected)
-                            <p class="data-sm text-ink-faint">NOT THIS — NOTED · {{ trim(($product->brand ?? '').' '.($product->name ?? '')) ?: 'Item' }}</p>
+                            <p class="data-sm text-ink-faint">NOT THIS — NOTED · {{ $product?->displayName() ?? 'Item' }}</p>
                         @endif
                     </div>
 

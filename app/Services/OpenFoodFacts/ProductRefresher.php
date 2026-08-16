@@ -10,6 +10,7 @@ use App\Models\ProductVersion;
 use App\Nutrition\NutrientOrigin;
 use App\Nutrition\NutrientOrigins;
 use App\Nutrition\NutritionSanityCheck;
+use App\Nutrition\ProductNaming;
 use App\Services\PantryNutritionService;
 use App\ValueObjects\NutrientValues;
 use Illuminate\Support\Facades\DB;
@@ -117,10 +118,14 @@ class ProductRefresher
     private function identityAttributes(OffProduct $fresh): array
     {
         $pack = $fresh->packSize();
+        $names = ProductNaming::derive($fresh->productName, $fresh->brand);
 
         return [
             'brand' => $this->limit($fresh->brand) ?? 'Unknown brand',
-            'name' => $this->limit($fresh->productName) ?? 'Unknown product',
+            'name' => $this->limit($names['name']) ?? 'Unknown product',
+            'raw_name' => $this->limit($names['raw_name']),
+            'display_name' => $this->limit($names['display_name']),
+            'variant' => $this->limit($names['variant']),
             'pack_size_value' => $pack?->inBaseUnit(),
             'pack_size_unit' => $pack?->unit->value,
             'category' => $this->limit($fresh->category()),

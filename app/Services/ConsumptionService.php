@@ -397,6 +397,6 @@ class ConsumptionService
 
     private function productLabel(CanonicalProduct $product): string
     {
-        return trim($product->brand.' '.$product->name);
+        return $product->displayName();
     }
 }

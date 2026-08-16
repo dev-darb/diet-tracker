@@ -499,7 +499,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
         if (trim($this->filter) !== '') {
             $needle = mb_strtolower(trim($this->filter));
             $pantryItems = $pantryItems->filter(
-                fn (PantryItem $i) => str_contains(mb_strtolower($i->canonicalProduct->brand.' '.$i->canonicalProduct->name), $needle)
+                fn (PantryItem $i) => str_contains(mb_strtolower($i->canonicalProduct->displayName().' '.$i->canonicalProduct->name), $needle)
             )->values();
         }
 
@@ -658,7 +658,7 @@ new #[Layout('components.layouts.app', ['title' => 'Log'])] class extends Compon
                                         <span class="data-micro text-ink-faint">{{ mb_strtoupper(mb_substr($item->canonicalProduct->name, 0, 1)) }}</span>
                                     </span>
                                 @endif
-                                <span class="voice-caption min-w-0 flex-1 truncate text-ink-dim">{{ $item->canonicalProduct->brand }} {{ $item->canonicalProduct->name }}</span>
+                                <span class="voice-caption min-w-0 flex-1 truncate text-ink-dim">{{ $item->canonicalProduct->displayName() }}</span>
                                 <span class="data-sm shrink-0 text-ink-faint">+</span>
                             </button>
                         @empty

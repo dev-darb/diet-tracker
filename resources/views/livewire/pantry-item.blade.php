@@ -142,10 +142,26 @@ new #[Layout('components.layouts.app', ['title' => 'Item'])] class extends Compo
         </a>
 
         {{-- Identity + current quantity readout --}}
+        @php($product = $pantryItem->canonicalProduct)
         <x-app.module label="Item">
-            <h1 class="voice-item mt-3 text-ink">{{ $pantryItem->canonicalProduct->brand }} <span class="text-ink-dim">{{ $pantryItem->canonicalProduct->name }}</span></h1>
-            @if ($pantryItem->canonicalProduct->variant)
-                <p class="voice-caption mt-0.5 text-ink-dim">{{ $pantryItem->canonicalProduct->variant }}</p>
+            {{-- The image is IDENTITY, not decoration: it is how you check Foody
+                 resolved the right product before trusting anything below it.
+                 This was the one detail surface in the app that never showed
+                 one — and until the audit fixed the field list, there was never
+                 an image to show. Degrades to typography, never to a broken
+                 frame (Food Imagery Is Functional UI). --}}
+            @if ($product->primary_image_path)
+                <div class="well -mx-1 mt-3 flex items-center justify-center overflow-hidden py-3">
+                    <img src="{{ $product->primary_image_path }}" alt="{{ $product->displayName() }}" loading="lazy"
+                         class="max-h-40 w-auto object-contain">
+                </div>
+            @endif
+
+            <h1 class="voice-item mt-3 text-ink">
+                {{ $product->brand }} <span class="text-ink-dim">{{ $product->name }}</span>
+            </h1>
+            @if ($product->variant)
+                <p class="voice-caption mt-0.5 text-ink-dim">{{ $product->variant }}</p>
             @endif
 
             <p class="mt-5 flex items-baseline gap-2">
