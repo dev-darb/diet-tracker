@@ -68,15 +68,27 @@ QUEUE_CONNECTION=redis
 Laravel Cloud injects the `REDIS_*` credentials from the provisioned
 Valkey/Redis instance automatically — you do not set a host or password.
 
-**2. Add the worker.** Open **Environment → Workers** (older UIs: **Compute →
-add a worker**) and create one with:
+**2. Add the worker cluster.** Open **Environment → Workers → add a worker
+cluster**. The cluster is the container; the `queue:work` command itself is a
+**background process** inside it, added in the panel's lower section.
 
-| Field | Value |
-| --- | --- |
-| Command | `php artisan queue:work --queue=default --tries=2 --timeout=200 --max-jobs=250 --max-time=3600` |
-| Connection / queue | `redis` / `default` |
-| Size | The smallest available — one worker drains the alpha comfortably |
-| Processes | 1 |
+Cluster settings:
+
+| Field | Value | Why |
+| --- | --- | --- |
+| Name | `queue` | |
+| Compute | Flex 512 MiB · 1 vCPU | The smallest tier drains the alpha comfortably |
+| Scale to zero with app cluster | **On** | Jobs are only ever queued BY an app request, so whenever there is work the app is awake and the worker wakes with it. Keeps the cluster at the low end of its cost cap; the ~20s rescue path covers any wake lag. |
+| Scheduler | **Off** | The app defines no scheduled tasks (only Laravel's stock `inspire` stub). Turn this on the day a real `Schedule::` entry is added. |
+
+Then add ONE background process:
+
+```
+php artisan queue:work --queue=default --tries=2 --timeout=200 --max-jobs=250 --max-time=3600
+```
+
+(If the field already supplies the `php artisan` prefix, enter only the
+`queue:work ...` part.)
 
 Why those flags: `--tries=2` matches the job's own retry budget (a failed
 identification settles the capture honestly rather than spinning);
