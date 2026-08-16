@@ -25,9 +25,11 @@
     ];
 @endphp
 
-<div class="module px-5 pb-2 pt-4">
-    <h2 class="silkscreen">{{ $label }}</h2>
-    <ul class="mt-2 divide-y divide-seam">
+{{-- On the canvas, not in a box (distill rollout, Aug 2026): a reading list
+     doesn't act, so it gets a typographic heading and hairlines, not a plate. --}}
+<div>
+    <h2 class="silkscreen border-b border-seam pb-2">{{ $label }}</h2>
+    <ul class="divide-y divide-seam">
         @foreach ($indicators as $indicator)
             {{-- Every target carries its receipt (NutritionTargetsService basis):
                  tap/hover a row to see where the number comes from. --}}

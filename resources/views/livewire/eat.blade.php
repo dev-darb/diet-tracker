@@ -158,17 +158,20 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                 title="Nothing logged yet"
                 subtitle="Log a meal, or tap Eat on a pantry item." />
         @else
-            {{-- The day log: a terminal feed, newest day first (comp C grammar). --}}
+            {{-- The day log: a terminal feed, newest day first (comp C grammar).
+                 Day groups sit ON the canvas — a typographic heading and a
+                 hairline, not a box (distill rollout, Aug 2026): only things
+                 that act earn a plate here, and a date doesn't act. --}}
             @foreach ($groups as $group)
-                <section class="module px-0 pb-1 pt-4">
-                    <div class="flex items-baseline justify-between px-5">
+                <section>
+                    <div class="flex items-baseline justify-between border-b border-seam pb-2">
                         <h2 class="silkscreen">{{ $group['label'] }}</h2>
                         <span class="data-sm {{ $group['label'] === 'Today' ? 'text-ink' : 'text-ink-faint' }}">
                             {{ $group['calories'] === null ? '----' : number_format($group['calories']).' KCAL' }}
                         </span>
                     </div>
 
-                    <ul class="mt-2 divide-y divide-seam">
+                    <ul class="divide-y divide-seam">
                         @foreach ($group['events'] as $event)
                             @php($line = $event->items->first())
                             {{-- The row is the record; touching it opens the record's
@@ -177,7 +180,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                  (clutter critique, Aug 2026). --}}
                             <li x-data="{ inspect: false }">
                                 <button type="button" x-on:click="inspect = !inspect"
-                                        class="flex min-h-[44px] w-full items-center gap-2.5 px-4 py-2.5 text-left transition hover:bg-plate-raised">
+                                        class="flex min-h-[44px] w-full items-center gap-2.5 px-1 py-2.5 text-left transition hover:bg-plate-raised">
                                     <span class="data-sm w-10 shrink-0 text-ink-faint">{{ $event->consumed_at->format('H:i') }}</span>
                                     <div class="min-w-0 flex-1">
                                         <p class="data-md leading-snug text-ink uppercase">{{ $event->name ?: 'Consumption' }}</p>
@@ -216,7 +219,8 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
                                      one) + the corrective actions. SPLIT reveal. --}}
                                 <div class="split" :class="inspect && 'split-open'">
                                 <div>
-                                <div class="border-t border-seam bg-plate-well px-5 py-3">
+                                {{-- The opened record ACTS (edit/delete) — it earns a well surface. --}}
+                                <div class="well mb-2 border border-seam px-4 py-3">
                                     @if ($event->items->isNotEmpty())
                                         @foreach ($event->items as $component)
                                             <div class="flex items-center justify-between gap-3 py-1 text-xs">
@@ -247,7 +251,7 @@ new #[Layout('components.layouts.app', ['title' => 'Eat'])] class extends Compon
 
                                 {{-- Edit quantity + time --}}
                                 @if ($editingId === $event->id)
-                                    <div class="border-t border-seam bg-plate-well px-5 py-4">
+                                    <div class="well mb-2 border border-seam px-4 py-4">
                                         <div class="flex flex-wrap items-end gap-3">
                                             <div class="w-24">
                                                 <label class="silkscreen" for="edit-qty-{{ $event->id }}">Amount</label>
