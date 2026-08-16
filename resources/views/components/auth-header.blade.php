@@ -1,9 +1,13 @@
 @props([
     'title',
-    'description',
+    'description' => null,
 ])
 
-<div class="flex w-full flex-col gap-2 text-center">
-    <h1 class="text-xl font-medium dark:text-zinc-200">{{ $title }}</h1>
-    <p class="text-center text-sm dark:text-zinc-400">{{ $description }}</p>
+{{-- The plate's own label + the spoken line under it. Sentence case: this is
+     the product speaking, not an engraving. --}}
+<div class="flex w-full flex-col gap-1">
+    <h1 class="voice-item text-ink">{{ $title }}</h1>
+    @if ($description !== null)
+        <p class="voice-caption text-ink-dim">{{ $description }}</p>
+    @endif
 </div>

@@ -265,6 +265,7 @@ The reusable layer lives in two tiers: CSS classes in `resources/css/app.css` (`
 - **`<x-app.placeholder glyph tone status title subtitle>`** — every idle and fault instrument state (`----` empty, `ERR`, `AI--`, `?---`, `LOGD`), tones keyed to the signal palette, optional slot for detail rows.
 - **`<x-app.stamp-toast show tone>`** — the reward stamp (green + check, genuine wins only) and the neutral quiet-save plate; announces via `role="status"`.
 - **`.input-well`** — one seated treatment for every form field (well material, ink text, action-orange focus, dark color-scheme).
+- **`<x-app.field label name type model hint>`** — the one field anatomy: silkscreen label, seated well, error in the `high` signal beneath. Every form in the app and on the front door builds from it; a form that hand-rolls its own field anatomy is the card-soup tell this component exists to prevent.
 - Existing: `<x-app.indicators>`, `<x-app.sparkline>`, `<x-app.bottom-nav>`, `<x-app.health-disclaimer>`.
 
 ### Keys (buttons)
@@ -308,6 +309,10 @@ The earned-success moment, in hardware grammar: a full-bleed green field (6px ra
 **The Wipe Rule (motion).** A wipe is the language of background work, never decoration: `.wipe-busy` tracks a phosphor scanline across anything analysing off-screen, and `.wipe-in` reveals a freshly settled result left-to-right (420ms, once — reloads render the stack calm). Disclosures use `.split` / `.split-open` (grid-row collapse, 160ms): a surface parting to reveal controls, not an element fading into existence. New rows seat with `.slot-in` (6px drop, 160ms). All motion rides transform / opacity / clip-path; plates never animate layout.
 
 **The Honest Blank Rule.** An unknown value renders as `----` (or `—`, an unlit LED, an empty seam-colored track) in ink-faint. The machine never draws a zero, a guessed bar, or a placeholder number for data it doesn't hold.
+
+**The Front Door Rule (Aug 2026).** Welcome and auth are the same machine, powered on before it knows whose kitchen it is: chassis ground, one plate carrying the form, the standard field anatomy, and a console key for the action. They are also the ONE place the brand speaks — the `foody` nameplate with its live dot sits at the top, where the app shell would carry the user's name. The wordmark is the brand literal, never `config('app.name')`: the env var is infrastructure and has held other names. The starter kit's component library (Flux inputs/buttons/modals, the settings nav layout, the logo mark) is fully retired — nothing in the product renders in a second vocabulary.
+
+**Binary controls are LED cells.** A checkbox is an unlit `plate-well` square with a `seam-strong` edge that fills `action` when it's on — the world's own device for a binary state. The browser's default box is off-world and never ships.
 
 ## Do's and Don'ts
 

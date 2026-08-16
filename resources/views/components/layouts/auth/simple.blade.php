@@ -3,20 +3,27 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white antialiased dark:bg-linear-to-b dark:from-neutral-950 dark:to-neutral-900">
-        <div class="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-            <div class="flex w-full max-w-sm flex-col gap-2">
-                <a href="{{ route('welcome') }}" class="flex flex-col items-center gap-2 font-medium">
-                    <span class="flex h-9 w-9 mb-1 items-center justify-center rounded-md">
-                        <x-app-logo-icon class="size-9 fill-current text-black dark:text-white" />
-                    </span>
-                    <span class="sr-only">{{ config('app.name', 'Laravel') }}</span>
-                </a>
-                <div class="flex flex-col gap-6">
+    {{-- The front door is the same machine, powered on before it knows who
+         you are: chassis ground, one plate, and the FOODY nameplate — the one
+         place the brand speaks (inside the app the console is the user's). --}}
+    <body class="min-h-dvh bg-chassis text-ink antialiased">
+        <div class="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-8">
+            <a href="{{ route('welcome') }}" class="flex items-center justify-center gap-2 py-2">
+                <span class="size-2 rounded-full bg-action" aria-hidden="true"></span>
+                {{-- The brand, not APP_NAME: the env var is infrastructure. Same
+                     literal as the app shell so the door matches the room. --}}
+                <span class="silkscreen !text-ink">foody</span>
+            </a>
+
+            <div class="flex flex-1 flex-col justify-center">
+                <div class="module px-5 pb-5 pt-4">
                     {{ $slot }}
                 </div>
             </div>
+
+            <p class="voice-micro pt-4 text-center text-ink-faint">
+                General nutrition guidance, not medical advice.
+            </p>
         </div>
-        @fluxScripts
     </body>
 </html>

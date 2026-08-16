@@ -173,53 +173,53 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
         </div>
 
         {{-- Account --}}
-        <section class="rounded-2xl border border-seam bg-plate p-5 shadow-sm">
+        <section class="module px-5 pb-5 pt-4">
             <div class="flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-ink">Account</h2>
-                <span x-show="saved === 'account'" x-cloak class="text-xs font-medium text-emerald-600">Saved</span>
+                <h2 class="silkscreen">Account</h2>
+                <span x-show="saved === 'account'" x-cloak class="data-sm text-good uppercase">Saved</span>
             </div>
             <form wire:submit="saveAccount" class="mt-4 space-y-4">
                 <div>
-                    <label class="text-sm font-medium text-ink-dim">Name</label>
+                    <label class="silkscreen">Name</label>
                     <input type="text" wire:model="name"
-                           class="mt-1.5 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                    @error('name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                           class="input-well mt-1.5 w-full">
+                    @error('name') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="text-sm font-medium text-ink-dim">Email</label>
+                    <label class="silkscreen">Email</label>
                     <input type="email" wire:model="email"
-                           class="mt-1.5 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                    @error('email') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                           class="input-well mt-1.5 w-full">
+                    @error('email') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                 </div>
-                <button type="submit" class="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
+                <button type="submit" class="key key-action keycap px-4 py-2.5">
                     Save account
                 </button>
             </form>
         </section>
 
         {{-- Goal & preferences --}}
-        <section class="rounded-2xl border border-seam bg-plate p-5 shadow-sm">
+        <section class="module px-5 pb-5 pt-4">
             <div class="flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-ink">Goal &amp; preferences</h2>
-                <span x-show="saved === 'profile'" x-cloak class="text-xs font-medium text-emerald-600">Saved</span>
+                <h2 class="silkscreen">Goal &amp; preferences</h2>
+                <span x-show="saved === 'profile'" x-cloak class="data-sm text-good uppercase">Saved</span>
             </div>
             <form wire:submit="saveProfile" class="mt-4 space-y-5">
                 <div>
-                    <label class="text-sm font-medium text-ink-dim">Primary goal</label>
+                    <label class="silkscreen">Primary goal</label>
                     <select wire:model="primary_goal"
-                            class="mt-1.5 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            class="input-well mt-1.5 w-full">
                         <option value="">Choose a goal…</option>
                         @foreach ($goals as $goal)
                             <option value="{{ $goal['value'] }}">{{ $goal['label'] }}</option>
                         @endforeach
                     </select>
-                    @error('primary_goal') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    @error('primary_goal') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label class="text-sm font-medium text-ink-dim">Dietary pattern</label>
+                    <label class="silkscreen">Dietary pattern</label>
                     <select wire:model="dietary_pattern"
-                            class="mt-1.5 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            class="input-well mt-1.5 w-full">
                         <option value="">No preference</option>
                         @foreach ($patterns as $p)
                             <option value="{{ $p['value'] }}">{{ $p['label'] }}</option>
@@ -228,11 +228,11 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-ink-dim">Focus areas</p>
+                    <p class="silkscreen">Focus areas</p>
                     <div class="mt-2 flex flex-wrap gap-2">
                         @foreach ($preferenceOptions as $option)
                             <button type="button" wire:click="togglePreference('{{ $option }}')"
-                                    class="rounded-full border px-3 py-1.5 text-sm transition {{ in_array($option, $dietary_preferences, true) ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-seam bg-plate text-ink-dim hover:border-seam-strong' }}">
+                                    class="key keycap-sm px-3 py-2 transition {{ in_array($option, $dietary_preferences, true) ? 'key-action' : 'text-ink-dim' }}">
                                 {{ $option }}
                             </button>
                         @endforeach
@@ -240,11 +240,11 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                 </div>
 
                 <div>
-                    <p class="text-sm font-medium text-ink-dim">Allergies</p>
+                    <p class="silkscreen">Allergies</p>
                     <div class="mt-2 flex flex-wrap gap-2">
                         @foreach ($allergyOptions as $option)
                             <button type="button" wire:click="toggleAllergy('{{ $option }}')"
-                                    class="rounded-full border px-3 py-1.5 text-sm transition {{ in_array($option, $allergies, true) ? 'border-red-500 bg-red-500 text-white' : 'border-seam bg-plate text-ink-dim hover:border-seam-strong' }}">
+                                    class="key keycap-sm px-3 py-2 transition {{ in_array($option, $allergies, true) ? '!border-high !text-high' : 'text-ink-dim' }}">
                                 {{ $option }}
                             </button>
                         @endforeach
@@ -252,38 +252,38 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                 </div>
 
                 <div>
-                    <label class="text-sm font-medium text-ink-dim">Foods you avoid</label>
+                    <label class="silkscreen">Foods you avoid</label>
                     <input type="text" wire:model="avoided_foods" placeholder="e.g. pork, coriander"
-                           class="mt-1.5 w-full rounded-xl border border-seam bg-plate px-3 py-2.5 text-sm placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                           class="input-well mt-1.5 w-full">
                 </div>
 
                 {{-- Basic health profile (optional, progressive disclosure) --}}
                 <div class="rounded-xl bg-plate-well p-4">
-                    <p class="text-sm font-medium text-ink-dim">Basic health profile</p>
-                    <p class="mt-0.5 text-xs text-ink-dim">Optional — adding height and weight lets us personalise energy and protein guidance.</p>
+                    <p class="silkscreen">Basic health profile</p>
+                    <p class="voice-caption mt-1 text-ink-dim">Optional — adding height and weight lets us personalise energy and protein guidance.</p>
                     <div class="mt-3 grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-xs text-ink-dim">Height (cm)</label>
+                            <label class="voice-micro text-ink-dim">Height (cm)</label>
                             <input type="number" inputmode="numeric" wire:model="height_cm"
-                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                            @error('height_cm') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                   class="input-well mt-1 w-full">
+                            @error('height_cm') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="text-xs text-ink-dim">Weight (kg)</label>
+                            <label class="voice-micro text-ink-dim">Weight (kg)</label>
                             <input type="number" inputmode="decimal" step="0.1" wire:model="weight_kg"
-                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                            @error('weight_kg') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                   class="input-well mt-1 w-full">
+                            @error('weight_kg') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="text-xs text-ink-dim">Date of birth</label>
+                            <label class="voice-micro text-ink-dim">Date of birth</label>
                             <input type="date" wire:model="date_of_birth"
-                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                            @error('date_of_birth') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                   class="input-well mt-1 w-full">
+                            @error('date_of_birth') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="text-xs text-ink-dim">Sex</label>
+                            <label class="voice-micro text-ink-dim">Sex</label>
                             <select wire:model="sex"
-                                    class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                    class="input-well mt-1 w-full">
                                 <option value="">—</option>
                                 @foreach ($sexes as $s)
                                     <option value="{{ $s['value'] }}">{{ $s['label'] }}</option>
@@ -291,9 +291,9 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                             </select>
                         </div>
                         <div class="col-span-2">
-                            <label class="text-xs text-ink-dim">Activity level</label>
+                            <label class="voice-micro text-ink-dim">Activity level</label>
                             <select wire:model="activity_level"
-                                    class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                    class="input-well mt-1 w-full">
                                 <option value="">—</option>
                                 @foreach ($activityLevels as $a)
                                     <option value="{{ $a['value'] }}">{{ $a['label'] }}</option>
@@ -306,44 +306,44 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
                 {{-- Manual targets (Foody Score spec §4): explicit targets become
                      the scoring targets and are judged with tighter tolerance. --}}
                 <div class="rounded-xl bg-plate-well p-4">
-                    <p class="text-sm font-medium text-ink-dim">Your own targets</p>
-                    <p class="mt-0.5 text-xs text-ink-dim">Optional — leave blank to use the figures Foody works out for you. A target you set here is treated as deliberate and scored more precisely.</p>
+                    <p class="silkscreen">Your own targets</p>
+                    <p class="voice-caption mt-1 text-ink-dim">Optional — leave blank to use the figures Foody works out for you. A target you set here is treated as deliberate and scored more precisely.</p>
                     <div class="mt-3 grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-xs text-ink-dim">Calories (kcal)</label>
+                            <label class="voice-micro text-ink-dim">Calories (kcal)</label>
                             <input type="number" inputmode="numeric" wire:model="custom_calorie_target" placeholder="{{ $derived['calories'] }}"
-                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                            @error('custom_calorie_target') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                   class="input-well mt-1 w-full">
+                            @error('custom_calorie_target') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="text-xs text-ink-dim">Protein (g)</label>
+                            <label class="voice-micro text-ink-dim">Protein (g)</label>
                             <input type="number" inputmode="decimal" step="1" wire:model="custom_protein_g" placeholder="{{ $derived['protein'] }}"
-                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                            @error('custom_protein_g') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                   class="input-well mt-1 w-full">
+                            @error('custom_protein_g') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="text-xs text-ink-dim">Carbs (g)</label>
+                            <label class="voice-micro text-ink-dim">Carbs (g)</label>
                             <input type="number" inputmode="decimal" step="1" wire:model="custom_carbs_g" placeholder="{{ $derived['carbs'] }}"
-                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                            @error('custom_carbs_g') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                   class="input-well mt-1 w-full">
+                            @error('custom_carbs_g') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="text-xs text-ink-dim">Fat (g)</label>
+                            <label class="voice-micro text-ink-dim">Fat (g)</label>
                             <input type="number" inputmode="decimal" step="1" wire:model="custom_fat_g" placeholder="{{ $derived['fat'] }}"
-                                   class="mt-1 w-full rounded-lg border border-seam bg-plate px-3 py-2 text-sm placeholder:text-ink-faint focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                            @error('custom_fat_g') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                                   class="input-well mt-1 w-full">
+                            @error('custom_fat_g') <p class="mt-1 text-xs text-high">{{ $message }}</p> @enderror
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" class="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800">
+                <button type="submit" class="key key-action keycap px-4 py-2.5">
                     Save preferences
                 </button>
             </form>
         </section>
 
         {{-- Security / other settings --}}
-        <section class="divide-y divide-seam overflow-hidden rounded-2xl border border-seam bg-plate shadow-sm">
+        <section class="module divide-y divide-seam overflow-hidden !px-0 !py-0">
             <a href="{{ route('settings.password') }}" class="flex items-center justify-between px-5 py-4 transition hover:bg-plate-well">
                 <span class="text-sm font-medium text-ink">Password</span>
                 <svg class="size-4 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
@@ -351,8 +351,8 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
         </section>
 
         {{-- Privacy / data --}}
-        <section class="rounded-2xl border border-seam bg-plate p-5 shadow-sm">
-            <h2 class="text-sm font-semibold text-ink">Privacy &amp; data</h2>
+        <section class="module px-5 pb-5 pt-4">
+            <h2 class="silkscreen">Privacy &amp; data</h2>
             <p class="mt-2 text-xs leading-relaxed text-ink-dim">
                 Private to your account. General guidance, not medical advice.
             </p>
@@ -367,7 +367,7 @@ new #[Layout('components.layouts.app', ['title' => 'Profile'])] class extends Co
         </form>
 
         {{-- Delete account --}}
-        <div class="rounded-2xl border border-red-100 bg-red-50/50 p-5">
+        <div class="well border border-high/40 px-5 py-4">
             <livewire:settings.delete-user-form />
         </div>
     </div>

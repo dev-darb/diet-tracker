@@ -6,5 +6,8 @@
 @if ($href !== null)
     <a href="{{ $href }}" wire:navigate {{ $attributes->merge(['class' => $classes]) }}>{{ $slot }}</a>
 @else
-    <button type="button" {{ $attributes->merge(['class' => $classes]) }}>{{ $slot }}</button>
+    {{-- `type` is read off the attribute bag rather than merged: a duplicate
+         type attribute resolves to the FIRST one in HTML, so hard-coding
+         "button" here would silently swallow every submit. --}}
+    <button type="{{ $attributes->get('type', 'button') }}" {{ $attributes->except('type')->merge(['class' => $classes]) }}>{{ $slot }}</button>
 @endif
